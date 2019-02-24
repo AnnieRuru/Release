@@ -1,0 +1,112 @@
+//===== eAthena Script =====================================
+//= Statistic Script
+//===== By: ================================================
+//= Annieruru
+//===== Current Version: ===================================
+//= 0.1
+//===== Compatible With: ===================================
+//= eAthena 2010-02-14
+//===== Description: =======================================
+//= Show how many users online at specific minute, and list all online players available
+//===== Topic ==============================================
+//= https://www.eathena.ws/board/index.php?s=&showtopic=239535&view=findpost&p=1307075
+//===== Additional Comments: ===============================
+//= This Script is performance killer script
+//= Note: now I read this script again, maybe don't have to use table join ...
+//==========================================================
+
+/*
+create table statistics_log (
+`date` datetime,
+name varchar(23),
+last_ip varchar(50)
+) engine = archive;
+*/
+
+prontera,155,191,5	script	jisfbsdkj	100,{
+	//setoption 0x8,1; test
+	select "now", "past";
+	if ( @menu == 1 ) {
+		set .@nb, query_sql("select `char`.name, login.last_ip from login left join `char` on login.account_id = `char`.account_id where `char`.online = 1 order by last_ip asc limit 128", .@name$, .@ip$);
+		mes "current online "+ .@nb;
+		for ( set .@i, 0; .@i < .@nb; set .@i, .@i +1 )
+			mes (.@i+1)+". "+ .@ip$[.@i] +" "+ .@name$[.@i];
+		close;
+	}
+	mes "input the date in this format";
+	mes "yyyy-mm-dd HH:mn";
+	mes "example :";
+	mes gettimestr("%Y-%m-%d %H:%M", 17);
+	next;
+	input .@input$;
+	set .@nb, query_sql("select * from statistics_log where left(date,16) = '"+ escape_sql(.@input$) +"' order by last_ip asc", .@date$, .@name$, .@ip$);
+	if ( .@nb == 0 ) {
+		mes "no save data on this date";
+		close;
+	}
+	mes "online = "+ .@nb;
+	for ( set .@i, 0; .@i < .@nb; set .@i, .@i +1 )
+		mes (.@i+1)+". "+ .@ip$[.@i] +" "+ .@name$[.@i];
+	close;
+OnMinute00:
+OnMinute01:
+OnMinute02:
+OnMinute03:
+OnMinute04:
+OnMinute05:
+OnMinute06:
+OnMinute07:
+OnMinute08:
+OnMinute09:
+OnMinute10:
+OnMinute11:
+OnMinute12:
+OnMinute13:
+OnMinute14:
+OnMinute15:
+OnMinute16:
+OnMinute17:
+OnMinute18:
+OnMinute19:
+OnMinute20:
+OnMinute21:
+OnMinute22:
+OnMinute23:
+OnMinute24:
+OnMinute25:
+OnMinute26:
+OnMinute27:
+OnMinute28:
+OnMinute29:
+OnMinute30:
+OnMinute31:
+OnMinute32:
+OnMinute33:
+OnMinute34:
+OnMinute35:
+OnMinute36:
+OnMinute37:
+OnMinute38:
+OnMinute39:
+OnMinute40:
+OnMinute41:
+OnMinute42:
+OnMinute43:
+OnMinute44:
+OnMinute45:
+OnMinute46:
+OnMinute47:
+OnMinute48:
+OnMinute49:
+OnMinute50:
+OnMinute51:
+OnMinute52:
+OnMinute53:
+OnMinute54:
+OnMinute55:
+OnMinute56:
+OnMinute57:
+OnMinute58:
+OnMinute59:
+	query_sql "insert into statistics_log select now(), `char`.name, login.last_ip from `char` left join login on `char`.account_id = login.account_id where `char`.online = 1";
+}

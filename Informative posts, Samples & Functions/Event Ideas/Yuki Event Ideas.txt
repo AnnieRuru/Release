@@ -1,0 +1,112 @@
+//	http://starlitero.freesmfhosting.com/index.php?topic=13.0
+
+ I'll start off the list of the ones I know so far:
+
+Basic Events:
+
+-Dice Event:
+Basically, reach the GM at wherever he or she is standing at (the line he/she is on) through a series of dice rolls. This is how you win the event. First one there wins! Use /dice and compare what you got to the GM's dice roll. If your roll is less or equal to the GM's, you can move forward ONE space. If your roll is greater than the GM's, you remain in your position.
+
+Preferred number of participants: 8 or more players.
+
+-Hide-and-Seek Event:
+This event is fairly simple. You just have to find the GM hiding on a map he or she picks. The GM may or may not give clues (minimum one clue) which will probably affect the prize the winner earns. Find the GM FIRST to win! The map can be any map (no restrictions; can be a town, field. or dungeon. Most likely, the GM will hide in a town because no players should really die in a hide-and-seek event).
+
+Preferred number of participants: At least 5 or more players should be searching for the GM.
+
+-Guess the Monster Event:
+In this event, you have to guess the monster that the GM is disguised as. You have to type the monster name FIRST and WITH THE CORRECT SPELLING. You do not have to add a capital for the first letter, but you can if you desire to do so. Please do not spam more than once. If you get the spelling wrong the first time, your other correct answers will be disregarded (only for that certain match). Do not argue with the GM in this event unless you are pointing out something to the GM politely. Thank you!
+
+Preferred number of participants: At least 6 or more players.
+
+There are probably more basic events, but I will edit when I get more input or remember.
+
+
+Special Events:
+
+-PvPing with the MvPs:
+In this special event, there will be at least two teams (around 4-5 on each team). On a certain map, there will be portals on opposite ends of the map (one at each end). Each team has its own portal--they must guard the MvP that lies in the place where the portal leads to. The opposing team must kill the other team's MvP to win the match. In addition, players can kill each other, so you can defend your portal/MvP as well as hunt the other team's MvP down. Players can go back to the site after death. It's a really fun and intense event!~
+
+Preferred number of participants: At least 8 or more players.
+
+-Nuke Dice Event or also known as 1234 Dice Event:
+For this event, players will be situated on a map with the numbers 1, 2, 3, and 4 available (there are 2-3 warps for this event). Players must obey what the GM says or else it is an instant nuke (but the player must remain on the map; do not warp away). The GM will broadcast the word "Start", and the players will run around, going from numbers to numbers until the hoster says "Stop". Players must stop immediately and stay on the number they are on or closest to. Do not continue walking/running. The GM will then roll a die (/dice). Whatever the GM gets will result in that numbered area to be nuked (all players on the numbered area). The other players remain alive. This event will continue until there is one survivor left. Rules might be changed during the event to accomodate a few things, so do not argue with the event hoster. If the GM rolls 5 or 6, he or she will roll again until the value is 1, 2, 3, or 4. Do not warp out after death.
+
+Preferred number of participants: 10 or more players.
+
+-Clean the Room Event:
+This event is also quite fun--players must clear their room of MvPs to win. There will be two teams, and each team gets its own "room" to clean. Players can keep coming back to the site after death.
+
+Preferred number of participants: 8 or more players.
+
+-Warp Portal Event:
+This is a very quick event. The GM will have three temporary warp portals ready for players to choose from. Players will all enter one of the portals at the same time. If the players warp out of the map, they already lost the match and must remain where they are warped to or PM the GM. The remaining players on the map will keep choosing other portals that the GM will create. The last one remaining on the map wins! It is possible to have no winners for this event (it is a fast event, so there is probably more than one round for this event).
+
+Preferred number of participants: 10 or more players.
+
+-Poporing Drop Event:
+This event will only be hosted a couple of times if the Admins give permission to do so. On a huge map, poporings or other monsters that can loot will be carrying junk and perhaps valuable things (quest items or even customs if allowed). Players will go on a free-for-all battle to kill all the monsters. Be sure to @autoloot!
+
+Preferred number of participants: 15 or more players.
+
+-Team WoE Event:
+The title might be self-explanatory, but here I go. There will be two guilds competing for one emperium. There might be obstacles in the way such as MvPs. The event will last for around one hour.
+
+Preferred number of participants: 12 or more players. All maxed.
+
+-Team PvP Event:
+This event is simple to understand as well. There will be at least two teams--players fight the opposite team. There will be at least three matches. In each of the match, the last surviving team wins it. Maxed levels please.
+
+Preferred number of participants: 10 or more players.
+
+-Save the Castle Event:
+Similar to the other MvP events, but everyone helps each other in this one. The GM will pick one castle or a tower with multiple floors and summon all sorts of monsters. Players must CLEAR ALL MONSTERS on each floor to advance to the next floor. On the top floor, there will be looter monsters that may have some good prizes~
+
+Preferred number of participants: 12 or more players.
+
+
+Novice Events:
+
+-Zombie Raid Event:
+Players must use level 1 novice (for both base and job levels) in order to join the event. In this event, the GM will spawn monsters that will chase the players around. Last player remaining wins the match! To those players who died, do not warp away or log out. No equipment or items allowed. No buffs as well.
+
+Preferred number of participants: 8 or more players.
+
+-21 Whack Event:
+For this event, players will abide by the same requirements as all novice events: Only use level 1/1 novices. The GM will spawn a shining plant, and players can hit it either one or two times. Whoever kills the plant LOSES and is out for the match. Players will line up and take turns accordingly.
+
+Preferred number of participants: 6 or more players.
+
+-Run for the Basilica Event:
+This is a fun event! Two GMs are needed (or at least 2 priests). The GM will use the skill "Basilica" which will act as a safe spot for the novices (follow novice events requirements). There will be zombies around the map. The players must run across the map to the basilica on the other side. Plyares will keep running back and forth until there is 1-2 players left in the game.
+
+Preferred number of participants: 10 or more players.
+
+Other Types of Events:
+
+Well, I won't go into detail unless someone wants more information. I'll just post the names of the events.
+
+-4 Corners Event (involves picking a number, and the GM using Tarot Card on players and using /dice)
+-Monster Invasion Event (kill all sorts of monsters to save the town)
+-Fashion Event (2-3 GMs are needed; players wear customs according to the theme the Event GM chooses; judging)
+-Race Room Event (turbo_room or the poring track)
+-Racing (the GM will use ground drift skill, and the players have to survive and reach the middle. Players can revive and come back into the race begin once again from the starting point. Try not to die as much as possible!)
+-Soccer Event (more details can be given if asked to do so)
+-Poring Death Event (one touch from poring and the player dies; last one remaining wins)
+-Mafia (kind of like the game "Clue"--kill a player and find out who did it)
+-Shark and Minnows Event (just like the game "Octopus"; more information can be provided if PMed)
+-Maze Event (go through a series of portals that lead to different places; this might be hard to host)
+-Guess the Password Event (the GM will have a locked chat room up, and players should guess what the password is in order to go into the chat room. Hints will be provided by the GM)
+-Talkie Box Event
+-Monster Invasion
+-Bomb Poring Event (Loot things while dying Grin)
+-Bomb Poring PvP
+-Find the Hiders (A person or two will be disguised in the fields--maybe prt fields--and players would hunt them down~)
+
+Credits: Yuki, Keke, Elaine, and Cookiie.
+
+I can explain more about the Bomb Poring events if needed to.
+
+Thanks for reading! If anyone would like to add more to these ideas or have some new event ideas, don't hesitate to post!
+
+Have fun, people~ 

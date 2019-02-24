@@ -1,0 +1,140 @@
+//===== eAthena Script =======================================
+//= WoW domination Battleground : Arathi Basin
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: ===================================== 
+//= eAthena 2011-05-19
+//===== Description: =========================================
+//= 1st version
+//===== Topic ================================================
+//= https://www.eathena.ws/board/index.php?s=&showtopic=272293&view=findpost&p=1492258
+//===== Additional Comments: =================================  
+//= Olrox, you should fulfill your promise and make the map =X
+//============================================================
+
+-	script	wow_domi#controller	-1,{
+OnInit:
+	set .scoretowin, 500; // 2000 points to win
+	set .time2capture, 3; // 10 seconds require to capture the flag
+
+	set .tick[1], 12000;
+	set .tick[2], 9000;
+	set .tick[3], 6000;
+	set .tick[4], 3000;
+	set .tick[5], 1000;
+
+	set .point[1], 10;
+	set .point[2], 10;
+	set .point[3], 10;
+	set .point[4], 10;
+	set .point[5], 30;
+
+	set .tick[0], 2000000000;
+	set .point[0], 0;
+	for ( set .@i, 1; .@i <= 5; set .@i, .@i +1 )
+		disablenpc "Flag#"+ .@i;
+	end;
+}
+prontera,155,175,5	script	register	100,{
+	if ( getcharid(1) == 0 )
+		dispbottom "you must have a party";
+	else if ( .team == getcharid(1) )
+		dispbottom "your team already register";
+	else if ( .state == 1 ) {
+		announce "both teams get ready ...", 1;
+		set getvariableofnpc( .team1, "wow_domi#controller" ), .team;
+		set getvariableofnpc( .team2, "wow_domi#controller" ), getcharid(1);
+		set getvariableofnpc( .stop, "wow_domi#controller" ), 0;
+		set .state, 0;
+		set .team, 0;
+		for ( set .@i, 1; .@i <= 5; set .@i, .@i +1 )
+			enablenpc "Flag#"+ .@i;
+		donpcevent "wow_domi_score_team#1::Onstart";
+		donpcevent "wow_domi_score_team#2::Onstart";
+		awake strnpcinfo(0);
+		disablenpc "register";
+	}
+	else {
+		set .team, getcharid(1);
+		announce strcharinfo(1) +" is looking for challenger", 1;
+		set .state, 1;
+		sleep 10000;
+		if ( .state != 1 ) end;
+		set .state, 0;
+		set .team, 0;
+		mapannounce "prontera", "Reset", 1;
+	}
+	end;
+}
+-	script	Flag#0::wow_domi_flag	-1,{
+	if ( getcharid(1) != getvariableofnpc( .team1, "wow_domi#controller" ) && getcharid(1) != getvariableofnpc( .team2, "wow_domi#controller" ) ) {
+		dispbottom "out of the way";
+		end;
+	}
+	if ( getcharid(1) == getvariableofnpc( .team1, "wow_domi#controller" ) && getvariableofnpc( .flag[ atoi( strnpcinfo(2) ) ], "wow_domi#controller" ) == 1 || getcharid(1) == getvariableofnpc( .team2, "wow_domi#controller" ) && getvariableofnpc( .flag[ atoi( strnpcinfo(2) ) ], "wow_domi#controller" ) == 2 ) {
+		dispbottom "your team already capture this point";
+		end;
+	}
+	getmapxy .@map$, .@x, .@y, 0;
+	getmapxy .@map$, .@x1, .@y1, 1;
+	if ( distance( .@x, .@y, .@x1, .@y1 ) > 5 ) {
+		dispbottom "too far";
+		end;
+	}
+	else if ( checkoption(0x4046) ) {
+		dispbottom "you can't capture a flag while cloaking or hiding";
+		end;
+	}
+	progressbar "0x0000FF", getvariableofnpc( .time2capture, "wow_domi#controller" );
+	if ( getcharid(1) == getvariableofnpc( .team1, "wow_domi#controller" ) )
+		set .@team, 1;
+	else
+		set .@team, 2;
+	set getvariableofnpc( .flag[ atoi( strnpcinfo(2) ) ], "wow_domi#controller" ), .@team;
+	setnpcdisplay strnpcinfo(0), ( .@team == 1 )? 974 : 973;
+	announce "the Flag "+ strnpcinfo(2) +" has change into team "+ .@team, 1;
+	awake "wow_domi_score_team#"+ .@team;
+	end;
+}
+prontera,150,181,4	duplicate(wow_domi_flag)	Flag#1	722
+prontera,153,181,4	duplicate(wow_domi_flag)	Flag#2	722
+prontera,156,181,4	duplicate(wow_domi_flag)	Flag#3	722
+prontera,159,181,4	duplicate(wow_domi_flag)	Flag#4	722
+prontera,162,181,4	duplicate(wow_domi_flag)	Flag#5	722
+
+-	script	wow_domi_score_team	-1,{
+Onstart:
+	set .@t, strnpcinfo(2);
+	while ( getvariableofnpc( .stop, "wow_domi#controller" ) == 0 ) {
+		set .@catched, 0;
+		for ( set .@i, 1; .@i <= 5; set .@i, .@i +1 )
+			if ( getvariableofnpc( .flag[.@i], "wow_domi#controller" ) == .@t )
+				set .@catched, .@catched +1;
+		set .@tick, getvariableofnpc( .tick[ .@catched ], "wow_domi#controller" );
+		set getvariableofnpc( .score[.@t], "wow_domi#controller" ), getvariableofnpc( .score[.@t], "wow_domi#controller" ) + getvariableofnpc( .point[ .@catched ], "wow_domi#controller" );
+		if ( getvariableofnpc( .score[.@t], "wow_domi#controller" ) >= getvariableofnpc( .scoretowin, "wow_domi#controller" ) ) {
+			set getvariableofnpc( .stop, "wow_domi#controller" ), 1;
+			announce "Team "+ .@t +" won!", 0;
+			for ( set .@i, 1; .@i <= 5; set .@i, .@i +1 ) {
+				set getvariableofnpc( .flag[.@i], "wow_domi#controller" ), 0;
+				setnpcdisplay "Flag#"+ .@i, 722;
+				disablenpc "Flag#"+ .@i;
+			}
+			enablenpc "register";
+			set getvariableofnpc( .score[1], "wow_domi#controller" ), 0;
+			set getvariableofnpc( .score[2], "wow_domi#controller" ), 0;
+			awake "wow_domi_score_team#1";
+			awake "wow_domi_score_team#2";
+			break;
+		}
+		if ( .@score != getvariableofnpc( .score[.@t], "wow_domi#controller" ) )
+			announce "Team "+ .@t +" score: "+ getvariableofnpc( .score[.@t], "wow_domi#controller" ), 0;
+		set .@score, getvariableofnpc( .score[.@t], "wow_domi#controller" );
+		sleep .@tick;
+	}
+	end;
+}
+-	duplicate(wow_domi_score_team)	wow_domi_score_team#1	-1
+-	duplicate(wow_domi_score_team)	wow_domi_score_team#2	-1

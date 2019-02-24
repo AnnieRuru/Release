@@ -1,0 +1,223 @@
+ src/map/script.c | 205 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 205 insertions(+)
+
+diff --git a/src/map/script.c b/src/map/script.c
+index 2c89321..bf582ac 100644
+--- a/src/map/script.c
++++ b/src/map/script.c
+@@ -18735,10 +18735,215 @@ bool script_hp_add(char *name, char *args, bool (*func)(struct script_state *st)
+ 	return script->add_builtin(&buildin, true);
+ }
+ 
++int buildin_getmemberaid_ALL_pc(struct map_session_data* sd, va_list ap) {
++	uint16 *i = va_arg( ap, uint16 * );
++	mapreg->setreg( reference_uid( script->add_str("$@onlineaid"), *i ), sd->status.account_id );
++	(*i)++;
++	return true;
++}
++
++int buildin_getmemberaid_TYPE_bl(struct block_list *bl, va_list ap) {
++	TBL_PC *sd = BL_CAST( BL_PC, bl );
++	uint16 *i = va_arg( ap, uint16 * );
++	mapreg->setreg( reference_uid( script->add_str("$@onlineaid"), *i ), sd->status.account_id );
++	(*i)++;
++	return true;
++}
++
++BUILDIN(getmemberaid) {
++	uint16 i = 0;
++	switch ( script_getnum(st,2) ) { // type
++	case ALL_CLIENT:
++		map->foreachpc( buildin_getmemberaid_ALL_pc, &i );
++		mapreg->setreg( script->add_str("$@onlinecount"), i );
++		return true;
++	case ALL_SAMEMAP:
++		{
++			int16 m;
++			if ( script_hasdata(st,3) ) {
++				if ( ( m = map->mapname2mapid( script_getstr(st,3) ) ) < 0 ) {
++					ShowError( "buildin_getmemberaid: using type ALL_SAMEMAP but the map name given is invalid !\n" );
++					mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++					return false;
++				}
++			}
++			else {
++				TBL_PC *sd = script->rid2sd(st);
++				if ( !sd ) {
++					ShowError( "buildin_getmemberaid: using type ALL_SAMEMAP but no map given and no rid attached !\n" );
++					mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++					return false;
++				}
++				m = sd->bl.m;
++			}
++			map->foreachinmap( buildin_getmemberaid_TYPE_bl, m, BL_PC, &i );
++			mapreg->setreg( script->add_str("$@onlinecount"), i );
++			return true;
++		}
++	case AREA:
++		if ( script_hasdata(st,3) ) {
++			if ( script_hasdata(st,4) && script_hasdata(st,5) && script_hasdata(st,6) && script_hasdata(st,7) ) {
++				int16 m;
++				if ( ( m = map->mapname2mapid( script_getstr(st,3) ) ) < 0 ) {
++					ShowError( "buildin_getmemberaid: using type AREA but the map name given is invalid !\n" );
++					mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++					return false;
++				}
++				map->foreachinarea( buildin_getmemberaid_TYPE_bl, m, script_getnum(st,4), script_getnum(st,5), script_getnum(st,6), script_getnum(st,7), BL_PC, &i );
++				mapreg->setreg( script->add_str("$@onlinecount"), i );
++				return true;
++			}
++			else {
++				ShowError( "buildin_getmemberaid: using type AREA but not enough arguments given !\n" );
++				mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++				return false;
++			}
++		}
++		else {
++			TBL_PC *sd = script->rid2sd(st);
++			if ( !sd ) {
++				ShowError( "buildin_getmemberaid: using type AREA but no coordinate given and no rid attached !\n" );
++				mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++				return false;
++			}
++			else {
++				map->foreachinrange( buildin_getmemberaid_TYPE_bl, &sd->bl, AREA_SIZE, BL_PC, &i );
++				mapreg->setreg( script->add_str("$@onlinecount"), i );
++				return true;
++			}
++		}
++	case PARTY:
++		{
++			struct party_data *p;
++			uint16 j = 0;
++			if ( script_hasdata(st,3) ) {
++				p = party->search( script_getnum(st,3) );
++				if ( !p ) {
++					ShowError( "buildin_getmemberaid: using type PARTY but party ID not found !\n" );
++					mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++					return false;
++				}
++			}
++			else {
++				TBL_PC *sd = script->rid2sd(st);
++				if ( !sd ) {
++					ShowError( "buildin_getmemberaid: using type PARTY but no party ID given and no rid attached !\n" );
++					mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++					return false;
++				}
++				else if ( sd->status.party_id == 0 ) {
++					ShowError( "buildin_getmemberaid: using type PARTY but RID attached has no party ID !\n" );
++					mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++					return false;
++				}
++				p = party->search( sd->status.party_id );
++			}
++			for ( i = 0; i < MAX_PARTY; i++ ) {
++				if ( p->party.member[i].account_id && p->party.member[i].online ) {
++					mapreg->setreg( reference_uid( script->add_str("$@onlineaid"), i ), p->party.member[i].account_id );
++					j++;
++				}
++			}
++			mapreg->setreg( script->add_str("$@onlinecount"), j );
++			return true;
++		}
++	case GUILD:
++		{
++			struct guild *g;
++			uint16 j = 0;
++			if ( script_hasdata(st,3) ) {
++				g = guild->search( script_getnum(st,3) );
++				if ( !g ) {
++					ShowError( "buildin_getmemberaid: using type GUILD but guild ID not found !\n" );
++					mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++					return false;
++				}
++			}
++			else {
++				TBL_PC *sd = script->rid2sd(st);
++				if ( !sd ) {
++					ShowError( "buildin_getmemberaid: using type GUILD but no guild ID given and no rid attached !\n" );
++					mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++					return false;
++				}
++				else if ( sd->status.guild_id == 0 ) {
++					ShowError( "buildin_getmemberaid: using type GUILD but RID attached has no guild ID !\n" );
++					mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++					return false;
++				}
++				g = guild->search( sd->status.guild_id );
++			}
++			for ( i = 0; i < MAX_GUILD; i++ ) {
++				if ( g->member[i].account_id && g->member[i].online ) {
++					mapreg->setreg( reference_uid( script->add_str("$@onlineaid"), i ), g->member[i].account_id );
++					j++;
++				}
++			}
++			mapreg->setreg( script->add_str("$@onlinecount"), j );
++			return true;
++		}
++	case BG:
++		{
++			struct battleground_data *bgd;
++			uint16 j = 0;
++			if ( script_hasdata(st,3) ) {
++				bgd = bg->team_search( script_getnum(st,3) );
++				if ( !bgd ) {
++					ShowError( "buildin_getmemberaid: using type BG but battleground ID not found !\n" );
++					mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++					return false;
++				}
++			}
++			else {
++				TBL_PC *sd = script->rid2sd(st);
++				if ( !sd ) {
++					ShowError( "buildin_getmemberaid: using type BG but no battleground ID given and no rid attached !\n" );
++					mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++					return false;
++				}
++				else if ( sd->bg_id == 0 ) {
++					ShowError( "buildin_getmemberaid: using type BG but RID attached has no battleground ID !\n" );
++					mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++					return false;
++				}
++				bgd = bg->team_search( sd->bg_id );
++			}
++			for ( i = 0; i < MAX_BG_MEMBERS; i++ ) {
++				if ( bgd->members[i].sd ) {
++					mapreg->setreg( reference_uid( script->add_str("$@onlineaid"), j ), bgd->members[i].sd->bl.id );
++					j++;
++				}
++			}
++			mapreg->setreg( script->add_str("$@onlinecount"), j );
++			return true;
++		}
++	default:
++		ShowError( "buildin_getmemberaid: invalid type !\n" );
++		mapreg->setreg( script->add_str("$@onlinecount"), 0 );
++		return false;
++	}
++	return true;
++}
++
++BUILDIN(checkmes) {
++	TBL_PC *sd = map->id2sd( script_getnum(st,2) );
++	if ( sd ) {
++		script_pushint(st, ( sd->npc_id || sd->npc_shopid )? 1 : 0 );
++		return true;
++	}
++	else {
++		script_pushint(st, 0);
++		ShowWarning( "buildin_checkmes: invalid player ID or not online !\n" );
++		return false;
++	}
++}
++
+ #define BUILDIN_DEF(x,args) { buildin_ ## x , #x , args }
+ #define BUILDIN_DEF2(x,x2,args) { buildin_ ## x , x2 , args }
+ void script_parse_builtin(void) {
+ 	struct script_function BUILDIN[] = {
++		BUILDIN_DEF(getmemberaid,"i?????"),
++		BUILDIN_DEF(checkmes,"i"),
+ 		// NPC interaction
+ 		BUILDIN_DEF(mes,"s*"),
+ 		BUILDIN_DEF(next,""),

@@ -1,0 +1,126 @@
+// ===== TOPIC =====
+// https://www.eathena.ws/board/index.php?s=&showtopic=183929&view=findpost&p=1010949
+// =================
+
+since there are no other topic have better resource on this
+ok I can write a 3 pages documentation just for this command
+
+QUOTE <ultramage>
+	if the message contains " or ' or some such special character, then after it gets combined into a single string, it will not form a correct query
+END QUOTE
+
+CODE
+	input .@haha$;
+	dispbottom .@haha$;
+	dispbottom escape_sql(.@haha$);
+END CODE
+
+it doesn't has much different, because it only affect 3 special characters
+' <- single quotation mark
+" <- double quotation mark
+\ <- left slash
+
+if I input -> haha"lala'hehe <-
+it will return -> haha\"lala\'hehe <-
+this is what we call, escaping a string
+
+in eathena script, we also know we can use " symbol in any string input
+CODE
+	mes "Susan says :\" Today I ate 3 eggs \".";
+	where in the game client, you can see the " symbol in the npc msg box
+END CODE
+
+============================================================
+
+
+let's say I have a sql script like this
+
+CODE
+prontera,153,171,5	script	sdfsdf	100,{
+	mes "input name, I'll show you all characters name it has on that player's account";
+	input .@name$;
+	set .@row, query_sql("select char_id, name from `char` where name like '"+ .@name$ +"'", .@num$, .@name$);
+	if ( !.@row ) {
+		mes "no result";
+		close;
+	}
+	for ( set .@i, 0; .@i < .@row; set .@i, .@i +1 )
+		mes .@num$[.@i] +" "+ .@name$[.@i];
+	close;
+}
+END CODE
+
+this script has a possibility to be hacked
+because to perform sql injection, I can enclose the string with quotation mark, then use another sql command to hack
+
+BUT with an escape_sql command, if the user want to enclose the string with quotation mark to hack the script
+the escape_sql command escaped the string, the quotation mark the user input will be escaped
+thus the script will become impossible to hack
+
+===============================================================
+
+there are 2 common method to prevent hacking with sql script
+
+just now that script was for string input
+
+CODE
+prontera,153,171,5	script	sdfsdf	100,{
+	mes "input account ID, I'll show you all characters name it has on that player's account";
+	input .@aid$;
+	set .@row, query_sql("select char_id, name from `char` where account_id = "+ escape_sql(.@aid$), .@num$, .@name$);
+	if ( !.@row ) {
+		mes "no result";
+		close;
+	}
+	for ( set .@i, 0; .@i < .@row; set .@i, .@i +1 )
+		mes .@num$[.@i] +" "+ .@name$[.@i];
+	close;
+}
+END CODE
+
+this is a stupid case.
+1. the scripter use string input while the script just needed a number
+2. even with escape_sql command over there, there is no quotation mark at all
+yes this script also has a risk to be hack
+
+because escape_sql only escape quotation mark.
+that hacker don't even have to input quotation mark because it is a number
+and an injection query can be sent without any quotation mark input
+
+there are 2 ways to solve this
+either use numeric variable for the input command
+or enclose that
+
+CODE
+	..... where account_id = '"+ escape_sql(.@aid$) +"'", ....
+END CODE
+
+with single quotation mark, where the hacker input a quotation mark will be escaped by escape_sql command
+
+==============================================================
+
+escape_sql command for another thing is
+if the player register their names containing ' or ", these characters are escaped
+
+https://www.eathena.ws/board/index.php?showtopic=177918&st=0&p=986639&#entry986639
+
+QUOTE ( @ Feb 16 2008, 11:27 AM) *
+	I'm having this DB error with the script:
+
+	CODE
+		[SQL]: DB error - You have an error in your SQL syntax; check the manual that co
+		rresponds to your MySQL server version for the right syntax to use near 's Babie
+		s', 1 , 1 )' at line 1
+		[Debug]: at ..\src\map\script.c:11553 - insert into ownladder ( guild_id, name,
+		currentown, highestown ) values ( 98, 'Silo's Babies', 1 , 1 )
+		[Debug]: Source (NPC): DOTAPVP (invisible/not on a map)
+	END CODE
+
+	I'm using SVN 12077. But this error only happens when that certain guild would have a kill.
+END QUOTE
+
+Silo's Babies <-- I don't understand what language is that
+but you can see the 5th string has a single quotation mark
+
+with escape_sql command, that string will turn into
+Silo\'s Babies <-- the quotation mark is escaped when send to sql query

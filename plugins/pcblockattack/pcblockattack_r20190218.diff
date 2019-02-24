@@ -1,0 +1,115 @@
+//===== rAthena Patch ========================================
+//= pcblockattack
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.2
+//===== Compatible With: ===================================== 
+//= rAthena 2019-02-18
+//===== Description: =========================================
+//= pcblockattack & pcblockchat
+//===== Topic ================================================
+//= https://rathena.org/board/topic/118308-gvg-spectator-request-thats-working/?do=findComment&comment=357926
+//===== Additional Comments: =================================  
+//= 
+//============================================================
+
+ conf/battle/misc.conf     |  2 +-
+ src/custom/script.inc     | 20 ++++++++++++++++++++
+ src/custom/script_def.inc |  3 +++
+ src/map/clif.cpp          |  2 +-
+ src/map/pc.cpp            |  2 +-
+ src/map/pc.hpp            |  2 ++
+ 6 files changed, 28 insertions(+), 3 deletions(-)
+
+diff --git a/conf/battle/misc.conf b/conf/battle/misc.conf
+index 1a3b8bb7e..49e792bb8 100644
+--- a/conf/battle/misc.conf
++++ b/conf/battle/misc.conf
+@@ -100,7 +100,7 @@ duel_only_on_same_map: no
+ // Custom - This variation will make every full cell to be considered a wall.
+ // NOTE: For the custom setting to take effect you have to use a server compiled
+ // with Cell Stack Limit support (see src/map/map.hpp)
+-official_cell_stack_limit: 1
++official_cell_stack_limit: 2
+ custom_cell_stack_limit: 1
+ 
+ // Allow autotrade only in maps with autotrade flag?
+diff --git a/src/custom/script.inc b/src/custom/script.inc
+index 839b990cb..0e8751707 100644
+--- a/src/custom/script.inc
++++ b/src/custom/script.inc
+@@ -17,3 +17,23 @@
+ //	script_pushint(st,1);
+ //	return 0;
+ //}
++
++BUILDIN_FUNC(pcblockchat) {
++	struct map_session_data *sd = map_id2sd( script_getnum(st,2) );
++	if ( !sd ) {
++		ShowWarning( "buildin_pcblockchat: Couldn't find RID '%d'\n", script_getnum(st,2) );
++		return SCRIPT_CMD_FAILURE;
++	}
++	sd->state.blockedchat = script_getnum(st,3) > 0;
++	return SCRIPT_CMD_SUCCESS;
++}
++
++BUILDIN_FUNC(pcblockattack) {
++	struct map_session_data *sd = map_id2sd( script_getnum(st,2) );
++	if ( !sd ) {
++		ShowWarning( "buildin_pcblockattack: Couldn't find RID '%d'\n", script_getnum(st,2) );
++		return SCRIPT_CMD_FAILURE;
++	}
++	sd->state.blockedattack = script_getnum(st,3) > 0;
++	return SCRIPT_CMD_SUCCESS;
++}
+diff --git a/src/custom/script_def.inc b/src/custom/script_def.inc
+index 886399273..63e683e82 100644
+--- a/src/custom/script_def.inc
++++ b/src/custom/script_def.inc
+@@ -9,3 +9,6 @@
+  **/
+ 
+ //BUILDIN_DEF(example,""),
++
++BUILDIN_DEF(pcblockchat,"ii"),
++BUILDIN_DEF(pcblockattack,"ii"),
+diff --git a/src/map/clif.cpp b/src/map/clif.cpp
+index 72a596a25..d8631a6fc 100644
+--- a/src/map/clif.cpp
++++ b/src/map/clif.cpp
+@@ -10110,7 +10110,7 @@ static bool clif_process_message(struct map_session_data* sd, bool whisperFormat
+ 	if( is_atcommand( fd, sd, out_message, 1 )  )
+ 		return false;
+ 
+-	if (sd->sc.cant.chat)
++	if (sd->sc.cant.chat || sd->state.blockedchat)
+ 		return false; //no "chatting" while muted.
+ 
+ 	if( battle_config.min_chat_delay ) { //[Skotlex]
+diff --git a/src/map/pc.cpp b/src/map/pc.cpp
+index 5aace7ecb..7a9bce86e 100755
+--- a/src/map/pc.cpp
++++ b/src/map/pc.cpp
+@@ -9106,7 +9106,7 @@ bool pc_candrop(struct map_session_data *sd, struct item *item)
+ bool pc_can_attack( struct map_session_data *sd, int target_id ) {
+ 	nullpo_retr(false, sd);
+ 
+-	if( pc_is90overweight(sd) || pc_isridingwug(sd) )
++	if( pc_is90overweight(sd) || pc_isridingwug(sd) || sd->state.blockedattack )
+ 		return false;
+ 
+ 	if( sd->sc.data[SC_BASILICA] ||
+diff --git a/src/map/pc.hpp b/src/map/pc.hpp
+index ea5465bc8..9bcc01a88 100644
+--- a/src/map/pc.hpp
++++ b/src/map/pc.hpp
+@@ -256,6 +256,8 @@ struct map_session_data {
+ 		unsigned int night :1; //Holds whether or not the player currently has the SI_NIGHT effect on. [Skotlex]
+ 		unsigned int using_fake_npc :1;
+ 		unsigned int rewarp :1; //Signals that a player should warp as soon as he is done loading a map. [Skotlex]
++		unsigned int blockedattack : 1;
++		unsigned int blockedchat : 1;
+ 		unsigned int killer : 1;
+ 		unsigned int killable : 1;
+ 		unsigned int doridori : 1;

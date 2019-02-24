@@ -1,0 +1,56 @@
+//===== Hercules Script ======================================
+//= Dressing Girl
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.1
+//===== Compatible With: ===================================== 
+//= Hercules 2015-12-03
+//===== Description: =========================================
+//= Let player try out various headgear before they decided to buy them
+//===== Topic ================================================
+//= http://herc.ws/board/topic/11182-dressing-room-npc/
+//===== Additional Comments: =================================
+//= addtimer hack !
+//============================================================
+
+prontera,155,185,5	script	Dressing Girl	1_F_MARIA,{
+	addtimer 1, strnpcinfo(0)+"::OnChangeBack";
+	mes "do you want to try out the look of some awesome headgear?";
+	next;
+	.@s = select( .menu$ ) -1;
+	if ( getiteminfo( .headgear[.@s], 5 ) & EQP_HEAD_TOP )
+		changelook LOOK_HEAD_TOP, getiteminfo( .headgear[.@s], 11 );
+	else if ( getiteminfo( .headgear[.@s], 5 ) & EQP_HEAD_MID )
+		changelook LOOK_HEAD_MID, getiteminfo( .headgear[.@s], 11 );
+	else if ( getiteminfo( .headgear[.@s], 5 ) & EQP_HEAD_LOW )
+		changelook LOOK_HEAD_BOTTOM, getiteminfo( .headgear[.@s], 11 );
+	else {
+		mes "this is not a headgear ...";
+		close;
+	}
+	mes "that look nice on you";
+	close;
+OnChangeBack:
+	.@top = getequipid(EQI_HEAD_TOP);
+	changelook LOOK_HEAD_TOP, ( .@top == -1 )? 0 : getiteminfo( .@top, 11 );
+	.@mid = getequipid(EQI_HEAD_MID);
+	changelook LOOK_HEAD_MID, ( .@mid == -1 )? 0 : getiteminfo( .@mid, 11 );
+	.@low = getequipid(EQI_HEAD_LOW);
+	changelook LOOK_HEAD_BOTTOM, ( .@low == -1 )? 0 : getiteminfo( .@low, 11 );
+	end;
+OnInit:
+	setarray .headgear, // add as many as possible
+		Red_Tailed_Ribbon,
+		Charming_Ribbon,
+		Twin_Ribbon,
+		Ribbon_Pink,
+		Blush_Of_Groom,
+		Ribbon_Of_Bride,
+		Glasses,
+		Flu_Mask;
+	.headgearsize = getarraysize(.headgear);
+	for ( .@i = 0; .@i < .headgearsize; ++.@i )
+		.menu$ = .menu$ + getitemname(.headgear[.@i]) +":";
+	end;
+}

@@ -1,0 +1,221 @@
+// https://rathena.org/board/topic/117531-battleground-pvp-10-annieruru-help/
+
+function	script	F_ShuffleNumbers	{
+	deletearray getarg(2);
+	.@static = getarg(0);
+	.@range = getarg(1) +1 - .@static;
+	.@count = getarg(3, .@range);
+	if (.@range <= 0 || .@count <= 0)
+		return 0;
+	if (.@count > .@range)
+		.@count = .@range;
+	for (.@i = 0; .@i < .@range; ++.@i)
+		.@temparray[.@i] = .@i;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@rand = rand(.@range);
+		set getelementofarray( getarg(2), .@i ), .@temparray[.@rand] + .@static;
+		.@range--;
+		.@temparray[.@rand] = .@temparray[.@range];
+	}
+	return .@count;
+}
+
+prontera,155,185,5	script	BG DeathMatch	1_F_MARIA,{
+	goto L_dialog;
+OnInit:
+	.minplayer2start = 2; // minimum number of players on each side needed to start this event. eg: 2vs2 = 2
+	.winningscore = 2; // how many rounds to win
+	.eventlasting = 20*60; // each round last 20 minutes or the system abort itself
+	setarray .rewardwin, 501,10, 502,5, 503,3; // reward to winning team
+	setarray .rewardlose, 501,5, 502,3, 503,1; // reward to losing team
+
+	.rewardwinsize = getarraysize( .rewardwin );
+	.rewardlosesize = getarraysize( .rewardlose );
+	setwall "bat_c03", 50,130, 2, DIR_NORTHEAST, false, "bg_pvp_round_red_respawn";
+	setwall "bat_c03", 148,52, 2, DIR_NORTHEAST, false, "bg_pvp_round_blue_respawn";
+	end;
+L_dialog:
+	mes "[Battle Ground DeathMatch]";
+	if ( .start == true ) {
+		mes "Battleground is on-going";
+		close;
+	}
+	while ( .aid[.@i] != getcharid(3) && .@i < .size ) { .@i++; }
+	if ( .@i < .size ) {
+		mes "You already join the queue.";
+		close;
+	}
+	select "join";
+	mes "you have to stick to this map";
+	close2;
+	.aid[ .size ] = getcharid(3);
+	.size++;
+	for ( .@i = 0; .@i < .size; .@i++ ) {
+		if ( !isloggedin( .aid[.@i] ) ) {
+			deletearray .aid[.@i], 1;
+			.@i--;
+			.size--;
+		}
+		else {
+			attachrid .aid[.@i];
+			if ( strcharinfo(3) != strnpcinfo(4) ) {
+				dispbottom "[Battle Ground DeathMatch] You have forfeit the registration.";
+				deletearray .aid[.@i], 1;
+				.@i--;
+				.size--;
+			}
+		}
+	}
+	detachrid;
+	if ( .size < .minplayer2start *2 ) {
+		announce "[Battle Ground DeathMatch] "+ .size +" players has join.", bc_woe|bc_all;
+		end;
+	}
+	.red = bg_create( "bat_c03",50,131, strnpcinfo(0)+"::OnRedQuit", strnpcinfo(0)+"::OnRedDead" );
+	.blue = bg_create( "bat_c03",149,52, strnpcinfo(0)+"::OnBlueQuit", strnpcinfo(0)+"::OnBlueDead" );
+	callfunc "F_ShuffleNumbers", 0, .size -1, .@r;
+	for ( .@i = 0; .@i < .size; .@i++ ) {
+		attachrid .aid[ .@r[.@i] ];
+		bg_join ( .@i % 2 )? .red : .blue;
+	}
+	detachrid;
+	deletearray .aid;
+	.size = 0;
+	.start = true;
+	callsub L_setwall;
+	bg_warp .red, "bat_c03", 53,128;
+	bg_warp .blue, "bat_c03", 146,56;
+	.life[.red] = bg_get_data( .red, 0 );
+	.life[.blue] = bg_get_data( .blue, 0 );
+	while (true) {
+		for ( .@i = 5; .@i > 0; .@i-- ) {
+			mapannounce "bat_c03", "["+ .@i +"]", bc_map;
+			if ( !.skip ) sleep 1000;
+		}
+		if ( .score[.red] == .winningscore -1 && .score[.blue] == .winningscore -1 )
+			mapannounce "bat_c03", "Final Round start!", bc_map;
+		else {
+			.round++;
+			mapannounce "bat_c03", "Round "+ .round +" start!", bc_map;
+		}
+		callsub L_make_player_move; // I dunno why sometimes players still stuck when having teamates logout, but when I put this here it never happens again :O
+		callsub L_delwall;
+		bg_updatescore "bat_c03", .life[.red], .life[.blue];
+		if ( !.skip ) sleep .eventlasting * 1000;
+		bg_updatescore "bat_c03", .score[.red], .score[.blue];
+		if ( .score[.red] == .winningscore || .score[.blue] == .winningscore || !.winside ) break;
+		.winside = 0;
+		.life[.red] = bg_get_data( .red, 0 );
+		.life[.blue] = bg_get_data( .blue, 0 );
+		if ( !.skip ) sleep 5000;
+		callsub L_make_player_move;
+		bg_warp .red, "bat_c03", 53,128;
+		bg_warp .blue, "bat_c03", 146,56;
+		callsub L_setwall;
+		if ( !.skip ) sleep 1000;
+	}
+	if ( .winside == .red ) {
+		mapannounce "bat_c03", "- Red side Won the match !", bc_map;
+		callsub L_reward, .red, .rewardwin, .rewardwinsize;
+		callsub L_reward, .blue, .rewardlose, .rewardlosesize;
+	}
+	else if ( .winside == .blue ) {
+		mapannounce "bat_c03", "- Blue side Won the match !", bc_map;
+		callsub L_reward, .blue, .rewardwin, .rewardwinsize;
+		callsub L_reward, .red, .rewardlose, .rewardlosesize;
+	}
+	else {
+		mapannounce "bat_c03", "- Time Out ! End as a Draw due to purposely drag out the match.", bc_map;
+		callsub L_reward, .blue, .rewardlose, .rewardlosesize;
+		callsub L_reward, .red, .rewardlose, .rewardlosesize;
+	}
+	sleep 5000;
+	callsub L_make_player_move;
+	bg_warp .red, "prontera", 155,182;
+	bg_warp .blue, "prontera", 158,182;
+	bg_destroy .red;
+	bg_destroy .blue;
+	.round = .winside = .score[.red] = .score[.blue] = .life[.red] = .life[.blue] = .start = .skip = false;
+	end;
+L_reward:
+	bg_get_data getarg(0), 1;
+	for ( .@i = 0; .@i < $@arenamemberscount; .@i++ )
+		for ( .@j = 0; .@j < getarg(2); .@j += 2 )
+			getitem getelementofarray( getarg(1), .@j ), getelementofarray( getarg(1), .@j +1 ), $@arenamembers[.@i];
+	return;
+L_setwall:
+	setwall "bat_c03", 54,122, 6, DIR_NORTHEAST, false, "bg_pvp_round_red";
+	setwall "bat_c03", 140,56, 6, DIR_NORTHEAST, false, "bg_pvp_round_blue";
+	return;
+L_delwall:
+	delwall "bg_pvp_round_red";
+	delwall "bg_pvp_round_blue";
+	return;
+L_make_player_move:
+	setarray .@team, .red, .blue;
+	for ( .@j = 0; .@j < 2; .@j++ ) {
+		bg_get_data .@team[.@j], 1;
+		for ( .@i = 0; .@i < $@arenamemberscount; .@i++ ) {
+			attachrid $@arenamembers[.@i];
+			setoption Option_Xmas | Option_Invisible, false;
+			pcblockmove getcharid(3), false;
+			pcblockskill getcharid(3), false;
+		}
+	}
+	return;
+OnRedQuit: callsub L_quit, .red, .blue, "Red", "Blue";
+OnBlueQuit: callsub L_quit, .blue, .red, "Blue", "Red";
+L_quit:
+	if ( checkoption( Option_Xmas | Option_Invisible ) == false )
+		.life[ getarg(0) ]--;
+	percentheal 100, 100;
+	setoption Option_Xmas | Option_Invisible, false;
+	pcblockmove getcharid(3), false;
+	pcblockskill getcharid(3), false;
+	if ( !bg_get_data( getarg(0), 0 ) ) {
+		mapannounce "bat_c03", "All "+ getarg(2) +" team members has Quit !", bc_all, 0xff3333; // purposely use different color
+		.score[ getarg(1) ] = .winningscore;
+		.winside = getarg(1);
+		.skip = true;
+		awake strnpcinfo(0);
+	}
+	else if ( !.life[ getarg(0) ] ) {
+		.winside = getarg(1);
+		mapannounce "bat_c03", " "+ getarg(3) +" team has defeated the opponent team, "+ getarg(3) +" team score a point !", bc_all;
+		.score[ getarg(1) ]++;
+		awake strnpcinfo(0);
+	}
+	else
+		bg_updatescore "bat_c03", .life[.red], .life[.blue];
+	end;
+OnRedDead: callsub L_dead, .red, .blue, "Red", "Blue";
+OnBlueDead: callsub L_dead, .blue, .red, "Blue", "Red";
+L_dead:
+	.life[ getarg(0) ]--;
+	if ( !.life[ getarg(0) ] ) {
+		.winside = getarg(1);
+		mapannounce "bat_c03", " "+ getarg(3) +" team has defeated the opponent team, "+ getarg(3) +" team score a point !", bc_all;
+		.score[ getarg(1) ]++;
+		awake strnpcinfo(0);
+	}
+	else
+		bg_updatescore "bat_c03", .life[.red], .life[.blue];
+	sleep2 1250;
+	percentheal 100,100;
+	if ( getcharid(4) ) {
+		setoption Option_Xmas | Option_Invisible, true;
+		pcblockmove getcharid(3), true;
+		pcblockskill getcharid(3), true;
+	}
+	end;
+}
+
+bat_c03	mapflag	battleground	2
+bat_c03	mapflag	nosave	SavePoint
+bat_c03	mapflag	nowarp
+bat_c03	mapflag	nowarpto
+bat_c03	mapflag	noteleport
+bat_c03	mapflag	nomemo
+bat_c03	mapflag	nopenalty
+bat_c03	mapflag	nobranch
+bat_c03	mapflag	noicewall

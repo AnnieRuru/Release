@@ -1,0 +1,602 @@
+//===== eAthena Script =======================================================================
+//= Pendu (HangMan)
+//===== By: ==================================================================================
+//= by Keyworld (ea.ws) // Key (roea.fr)
+//===== Current Version: =====================================================================
+//= 1.3
+//===== Compatible With: =====================================================================
+//= ~13000
+//===== Description: =========================================================================
+//= A simple Hangman
+//===== Additional Comments: =================================================================
+// Enjoy~
+//============================================================================================
+
+prontera,155,185,4	script	HangMan	935,{
+
+	//=== Configurations ======================================================================
+
+		set .@npc$ , "^0000FF[HangMan]^000000" ; // Nom du NPC.
+		set .@minlength , 4  ;                // minimum char in the word
+		set .@maxlength , 12 ;               // we can't see more than 12 characters in a chatroom...
+		set .@color$ , "^792d5b" ;          // A color to colorise the texte °°
+		set .@rungame , 0 ;                // Minimum GM level to configure the NPC (default 0)
+		set .@logword , 0 ;               // Log the word enter by people ? 0 = no  1 = yes (logmes + debugmes)
+		set .check_gotocount, 2048 ;     // Limit to infinity loop
+		set .autoevent , 1 ;            // Per default all 30 minutes.
+		set .cutinposition , 2 ;      //   0, 1 , 2 , 3 , 4  (see the doc)
+	//=========================================================================================
+
+	//=== Functions ============================================================================
+		function change_case  ;              // Function to change the case of a letter.
+		function array_search ;            // Return where is store a value in an array.
+		function str_to_array ;           // Change a string to a variable .
+		function implode_ ;               // Change a variable to a string.
+		function load_cutin ;
+	//=========================================================================================
+
+
+		switch( ( ! .block && .@rungame > getgmlevel() ) ? 2 : .block )
+		{
+
+
+			case 0:
+
+
+					do
+					{
+
+						// Load the settings.
+						if ( ! .init )
+							donpcevent strnpcinfo(0) + "::OnInit" ;
+
+						//Initialise the player/npc.
+						set .block   ,  1 ;  // We block the npc.
+						set .@string$ , "" ;    // init the var.
+						initnpctimer ;       // Timer for debug.
+
+						mes .@npc$ ;
+						mes "Input a word betwen " + .@color$ + .@minlength + "^000000 and " + .@color$ + .@maxlength + "^000000 characters." ;
+						mes "( " +.@color$ + "\"0\"^000000 to exit )" ;
+						next ;
+
+
+						while( input( .@string$, .@minlength, .@maxlength ) || ! str_to_array( .@string$  , ".letter$" ) )
+						{
+
+							// "0" --> "exit".
+							if ( .@string$ == "0" )
+							{
+
+								close2;
+								set .block , 0 ;
+								cleararray .letter$[0] , "" , 128 ;
+								end ;
+
+							}
+
+							mes .@npc$ ;
+							mes "The length is not correct or there is an invalid character." ;
+							next ;
+							
+							mes .@npc$ ;
+							mes "Please input a word of " + .@color$ + .@minlength + "^000000 to " + .@color$ + .@maxlength + "^000000 characters" ;
+							next ;
+
+						}
+
+
+						mes .@npc$ ;
+						mes "Use \"" +  .@color$  + .@string$ + "^000000\" ?" ;
+						next ;
+
+						set .init , 0 ;
+
+					} while ( select( " -  Yes: -  No" ) == 2 ) ;
+
+
+
+			AutoSelect:
+
+					set .lettercount , getarraysize( .letter$ ) - 1 ;    // Char number.
+					set .wordsearch$ , .@string$ ;                        // Save in a "." var.
+
+
+					if ( .@logword && playerattached() ) // To prevent an error if it's an autoevent (player is not attached)
+					{
+
+						logmes "[HangMan] : " + strcharinfo(0)+ " input the word : " + .@string$ ;
+						debugmes "[HangMan] : " + strcharinfo(0) + " input the mot : " + .@string$ ;
+
+					}
+
+
+					for ( set .@i , 0 ; .@i < .lettercount ; set .@i , .@i + 1 ) // We create the " _ _ _ _" string.
+					{
+						set .letterhide$[ .@i ] , " _" ;
+					}
+
+
+					set .letterhide$[ 0 ], .letter$[ 0 ] ;                        // We show the first letter.
+					set .letterhide$[ .lettercount ], .letter$[ .lettercount ] ;  // We show the last letter.
+
+
+
+
+
+					for ( set .@i , 0 ; .@i < .lettercount ; set .@i , .@i + 1 )
+					{
+
+						set .@j , ( array_search ( .letter$[ 0 ] , ".letter$" , .@i , .lettercount ) ) ;
+
+						if ( .@j + 1 )
+						{
+							set .letterhide$[ .@j ], .letter$[ .@j ] ;
+							set .@i , .@j ;
+						}
+
+					}
+
+					for ( set .@i , 0 ; .@i < .lettercount ; set .@i , .@i + 1 )
+					{
+
+						set .@j, ( array_search( .letter$[ .lettercount ] , ".letter$" ,	.@i , .lettercount ) ) ;
+
+						if ( .@j + 1 )
+						{
+							set .letterhide$[ .@j ], .letter$[ .@j ] ;
+							set .@i, .@j ;
+						}
+
+					}
+
+
+					set .wordfind$ , implode_( "" , ".letterhide$" ) ;
+					initnpctimer ;
+					delwaitingroom ;
+					waitingroom .wordfind$ , 0 ;   // Create the Chat-Room
+					set .block , 3 ;               // UnBlock the game.
+
+				if ( playerattached() )
+					close ;
+				else
+					end ;
+
+
+
+
+
+
+			case 1:   // Someone is setting up the NPC.
+
+					mes .@npc$ ;
+					mes "Someone is setting up this NPC." ;
+					mes "Please wait." ;
+					close ;
+
+
+					
+			case 2:  // He can't config the NPC.
+			
+					mes .@npc$ ;
+					mes "You can't set up this NPC." ;
+					close ;
+
+
+			case 3:
+
+
+					do
+					{
+
+						if ( .wordfind$ == "" )
+						{
+							close2;
+							cutin "" , 255 ;
+							end;
+						}
+
+						mes .@npc$ ;
+						mes .wordfind$ ;   // We show the word.
+						load_cutin() ;
+
+						mes "Letter already used : " + .@color$ + ( implode_( " " , ".blacklist$" ) ) + "^000000." ; //we show the list.
+						next ;
+
+
+
+						if ( select( " -  Choose a letter.: -  Try a word" ) - 1 )
+						{
+
+							// input a word.
+							mes .@npc$ ;
+							mes "Please input a word (" +  .@color$ + "not case sensitive^000000 !)" ;
+							next ;
+							input @string$ ;
+
+
+							if ( compare( "_|~key~|_" + @string$ + "_|~key~|_" , "_|~key~|_" + .wordsearch$ + "_|~key~|_" ) )
+							{
+
+								announce strcharinfo( 0 ) + " just find the word : " + .wordsearch$ + " !", bc_blue | bc_map ;
+								donpcevent strnpcinfo( 0 ) + "::OnInit" ;    //On Reset.
+
+								mes .@npc$ ;
+								mes "Congratulation !" ;
+
+								close2 ;
+								cutin "" , 255 ;
+								end ;
+
+							}
+							else
+							{
+
+								mes .@npc$ ;
+								mes "The word isn't correct." ;
+
+								load_cutin( 1 ) ;
+
+								next ;
+								continue ;
+
+							}
+
+						}
+
+
+
+						// Input letter :
+
+						mes .@npc$ ;
+						mes "Choose a letter" ;
+						mes "(" +.@color$ + " 0^000000 to exit. )" ;
+						next ;
+
+						if ( input( @string$ , 1 , 1 ) )
+						{
+
+							mes .@npc$ ;
+							mes "Just one letter at time." ;
+							mes "Thank you~" ;
+							next ;
+							continue ;
+
+						}
+
+
+						if ( @string$ == "0" )
+						{
+							close2 ;
+							cutin "" , 255 ;
+							end ;
+						}
+
+						set @string$ , change_case( @string$ ) ;
+
+						if ( @string$ == "0" ) // If it isn't a letter (alphabet aA-zZ)
+						{
+					
+							mes .@npc$ ;
+							mes "Character prohibit." ;
+							next ;
+							continue ;
+
+						}
+						else if ( array_search ( @string$ , ".blacklist$") + 1 )   // Letter already used.
+						{
+
+							mes .@npc$ ;
+							mes "This letter is already input (see the list)" ;
+							mes "Thanks to choose an other." ;
+							next ;
+							continue ;
+
+						}
+
+						set .blacklist$[ getarraysize( .blacklist$ ) ] , @string$ ;    // We put the letter in the list.
+						set @i , array_search( @string$, ".letter$") ;
+
+						if ( @i == -1 )    // The letter isn't in the word.
+						{
+
+							heal - MaxHP / 5 , 0 ; //Life divised by 5.
+							mes .@npc$ ;
+							mes "Can't find the letter in the word..." ;
+							load_cutin( 1 ) ;
+							next ;
+							continue ;
+
+						}
+						else
+						{
+
+							mes .@npc$ ;
+							mes "Letter is in the word !" ;
+
+
+							for ( set @i , 0 ; @i < .lettercount ; set @i , @i + 1 )
+							{
+
+								set @j , ( array_search( @string$ , ".letter$" ,	@i , .lettercount ) ) ;
+
+								if ( @j + 1 )
+								{
+									set .letterhide$[ @j ], .letter$[ @j ] ;
+									set @i, @j ;
+								}
+
+							}
+
+							set .wordfind$ , implode_( " " , ".letterhide$" ) ;
+
+							delwaitingroom ;   // we update the chat-room name
+							waitingroom .wordfind$ , 0 ;
+
+
+							if ( array_search( " _" , ".letterhide$" ) == -1 )    //If all letters are find.
+							{
+
+								announce strcharinfo( 0 ) + " just find the word : " + .wordsearch$ + " !", bc_blue | bc_map ;
+								donpcevent strnpcinfo( 0 ) + "::OnInit" ;
+								close2 ;
+								cutin "" , 255 ;
+								end ;
+
+							}
+
+							next ;
+
+							if ( select( " -  Continue: -  Exit" ) - 1 )
+							{
+								close2 ;
+								cutin "" , 255 ;
+								end ;
+							}
+						}
+
+					} while( HP ) ;
+
+
+					// The player is dead x)
+
+					mes .@npc$ ;
+					mes "Loooooose" ;
+					announce "Hangman :" + strcharinfo( 0 ) + " has just been killed" , bc_blue | bc_area ;
+					close2 ;
+					cutin "" , 255 ;
+					end ;
+
+		}
+
+
+
+
+	OnInit:
+
+		delwaitingroom ;
+		set .block , 0 ;
+		set .init  , 1 ;
+		set .stat , 0 ;
+
+		cleararray .letter$[ 0 ]     , "" , 128 ;
+		cleararray .blacklist$[ 0 ]  , "" , 128 ;
+		cleararray .letterhide$[ 0 ] , "" , 128 ;
+
+		set .lettercount , 0  ;
+		set .wordfind$   , "" ;
+		set .wordsearch$ , "" ;
+
+		setarray .wordlist$[0], //Please just use Aa-Zz characters !
+		"eathena",
+		"bored",
+		"keyworld",
+		"kissme",
+		"mysevername",
+		"poring",
+		"lunatic",
+		"fabre",
+		"noidea";
+
+		end ;
+
+
+	OnMinute00:
+	OnMinute30:
+
+	if ( .autoevent )
+	{
+		set .@i , rand ( 0 , getarraysize( .wordlist$ ) - 1 ) ;
+		str_to_array( .wordlist$[.@i]  , ".letter$" ) ;
+		set .@string$ , .wordlist$[.@i] ;
+		callsub AutoSelect;
+	}
+
+	//Debug
+	OnTimer120000:
+
+		if ( .block - 1 )
+			end ;
+		else
+		{
+			set .block , 0 ;
+			stopnpctimer ;
+		}
+
+
+	OnTimer600000:
+
+		donpcevent strnpcinfo(0) + "::OnInit" ;
+		stopnpctimer ;
+		end ;
+
+
+
+
+
+
+
+
+
+
+
+	//=== FUNCTIONS ===========================================================================
+
+	function	load_cutin	{
+	
+		if ( getarg( 0 , 0 ) )
+			set .stat , .stat + 1 ;
+		
+		cutin "hangman_" + .stat , .cutinposition ;
+		
+		if ( .stat >= 10 )
+		{
+			announce "[Hangman] : Nobody find the word ! Mwahaha ! " , bc_blue | bc_area ;
+			donpcevent strnpcinfo(0) + "::OnInit" ;
+		}
+		
+		return ;
+	}
+
+	function	change_case	{
+
+
+		setarray .@char$[ 0 ],
+		"A" , "B" , "C" , "D" , "E" , "F" , "G",
+		"H" , "I" , "J" , "K" , "L" , "M" , "N" ,
+		"O" , "P" , "Q" , "R" , "S" , "T" , "U" ,
+		"V" , "W" , "X" , "Y" , "Z" ;
+
+		for( set .@i , 0 ; .@i < 26 ; set .@i, .@i + 1 )
+		{
+	
+			if ( compare( getarg( 0 ) , .@char$[ .@i ] ) )
+			{
+
+				return .@char$[ .@i ] ;
+
+			}
+
+		}
+
+		return "0" ;
+
+	}
+
+
+
+
+	function	array_search	{
+
+
+
+		for ( set .@i , getarg(2,0) ; .@i < getarg( 3, getarraysize( getd( getarg(1) ) )  ) ; set .@i , .@i + 1 )
+		{
+
+			if ( getd( getarg( 1 ) + "[" + .@i + "]" ) == getarg( 0 ) )
+			{
+
+				return .@i ;
+
+			}
+
+		}
+
+
+		return -1 ;
+
+	}
+	
+	
+
+
+
+	function	str_to_array	{
+
+
+
+		if ( getstrlen( getarg(0) ) >= 110 )
+		{
+			return 0 ;
+		}
+
+
+		if ( atoi( getd( getarg(1) ) ) )
+		{
+			cleararray getd( getarg(1) + "[ 0 ]" ) , 0 , 128 ;
+		}
+		else
+		{
+			cleararray getd( getarg(1) + "[ 0 ]" ) , "" , 128 ;
+		}
+
+		setarray .@char$[ 0 ],
+		"A" , "B" , "C" , "D" , "E" , "F" , "G",
+		"H" , "I" , "J" , "K" , "L" , "M" , "N" ,
+		"O" , "P" , "Q" , "R" , "S" , "T" , "U" ,
+		"V" , "W" , "X" , "Y" , "Z" ;
+
+		set .@j , 0 ;
+		set .@str_temp$, "_|~key~|_" + getarg(0) + "_|~key~|_" ;
+
+
+
+		while( ! compare ( "_|~key~|_" + .@str$ + "_|~key~|_" , .@str_temp$ ) )
+		{
+
+			set .@j , .@j + 1 ;
+
+			for ( set .@i , 0 ; .@i <= getarraysize(.@char$) ; set .@i , .@i + 1 )
+			{
+
+				if ( compare( .@str_temp$ , "_|~key~|_" + .@str$ + .@char$[ .@i ] ) )
+				{
+
+					set .@str$ , .@str$ + .@char$[ .@i ] ;
+					setd getarg(1) + "[" + getarraysize( getd( getarg(1) ) ) + "]" , .@char$[ .@i ] ;
+					break;
+
+				}
+
+			}
+
+
+			// Character not found.
+			if ( .@i == getarraysize( .@char$ ) )
+				return 0 ;
+
+
+			if ( .@j >= .check_gotocount / getarraysize(.@char$) - 1 )
+			{
+
+				sleep2( 1 ) ;
+				set .@j , 0 ;
+
+			}
+
+		}
+
+		return 1 ;
+
+	}
+
+
+
+
+	function	implode_	{
+
+
+		set .@str_temp$ , "" ;
+		
+		for ( set .@i , 0 ; .@i < getarraysize( getd( getarg(1) ) ) ; set .@i , .@i + 1 )
+		{
+
+			set .@str_temp$ , .@str_temp$ + getarg( 0 , "" ) + getd( getarg( 1 ) + "[" + .@i + "]" ) ;
+		
+		}
+		
+		return .@str_temp$;
+
+	}
+
+}

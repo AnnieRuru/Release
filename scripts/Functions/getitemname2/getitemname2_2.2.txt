@@ -1,0 +1,680 @@
+//===== eAthena Script ======================================
+//= [Function] getitemname2
+//===== By: =================================================
+//= ~AnnieRuru~
+//===== Current Version: ====================================
+//= 2.2
+//===== Compatible With: ====================================
+//= eAthena 14764 Trunk SQL + KRO+RE 0909
+//===== Description: ========================================
+//= custom function to show item names just like in game
+//===== Topic: ==============================================
+//= http://www.eathena.ws/board/index.php?showtopic=244678
+//===== Additional Comments: ================================
+//= callfunc("getitemname2", ItemID, Identify, Refine, Broken, Card1, Card2, Card3, Card4)
+//= it also creates a player array : @itemname2_info$
+//= [0] = color
+//=     ^000000 (black)  = normal equipment/items
+//=     ^999999 (gray)   = unidentify equipment
+//=     ^FF0000 (red)    = broken equipment
+//=     ^66CC00 (green)  = enchanted equipment (1)
+//=     ^0066CC (blue)   = enchanted equipment (2)
+//=     ^CC6600 (choco)  = enchanted equipment (3)
+//=     ^BB44BB (purple) = enchanted equipment (4)
+//= [1] = ID information
+//=     Equipment = Char ID
+//=     Pet egg = Pet ID
+//= [2] = return full item name if identified ( used in unidentified items only )
+//= [3] = amount of star crumb used, return in number ( used in crafted item only )
+//= [4] = weapon element, return in string ( used in crafted item only )
+//===========================================================
+
+/*	for testing only
+prontera,152,188,5	script	test getitemname2	100,{
+	//	debug
+//	setarray .@a, 1964,1,4,0, 0,0,0,4001;
+//	mes @itemname2_info$ + callfunc("getitemname2", .@a[0],.@a[1],.@a[2],.@a[3], .@a[4],.@a[5],.@a[6],.@a[7]);
+//	getitem2 .@a[0],1,.@a[1],.@a[2],.@a[3], .@a[4],.@a[5],.@a[6],.@a[7];
+	getinventorylist;
+	mes "^000000=== Total items : "+ @inventorylist_count +" ===";
+	set .@i, 0;
+	while ( .@i < @inventorylist_count ) {
+		set .@itemname$, callfunc("getitemname2", @inventorylist_id[.@i], @inventorylist_identify[.@i], @inventorylist_refine[.@i], @inventorylist_attribute[.@i], @inventorylist_card1[.@i], @inventorylist_card2[.@i], @inventorylist_card3[.@i], @inventorylist_card4[.@i]);
+		dispbottom .@itemname$ +": "+ @inventorylist_amount[.@i] +" ea.";
+		set .@menu$, .@menu$ + @itemname2_info$ + .@itemname$ +"; "+ @inventorylist_amount[.@i] +" ea.:";
+		set .@i, .@i +1 ;
+	}
+	set .@menu, select(.@menu$) -1;
+	mes @itemname2_info$[0] + callfunc("getitemname2", @inventorylist_id[.@menu], @inventorylist_identify[.@menu], @inventorylist_refine[.@menu], @inventorylist_attribute[.@menu], @inventorylist_card1[.@menu], @inventorylist_card2[.@menu], @inventorylist_card3[.@menu], @inventorylist_card4[.@menu]) +": "+ @inventorylist_amount[.@menu] +" ea.";
+	mes "^000000ID = "+ @itemname2_info$[1];
+	mes "Full name = "+ @itemname2_info$[2];
+	mes "start crumb = "+ @itemname2_info$[3];
+	mes "weapon element = "+ @itemname2_info$[4];
+	close;
+}*/
+
+function	script	getitemname2	{
+	deletearray @itemname2_info$;
+	set .@id, getarg(0);
+	set .@type, getiteminfo( .@id, 2 );
+	set .@refine, getarg(2);
+	set .@card[0], getarg(4);
+	set .@card[1], getarg(5);
+	set .@card[2], getarg(6);
+	set .@card[3], getarg(7);
+	set .@ref$, ( .@refine )? "+"+ .@refine +" " : "" ; // I think no need refinement check for type 4 or 5, the source automatically convert refined etc items into no refinement
+	set .@slot, getitemslots(.@id);
+	set .@slots$, ( .@slot )? " ["+ .@slot +"]" : "" ;
+	set @itemname2_info$[0], "^000000";
+	if ( (.@type != 4 && .@type != 5 ) && .@card[0] != 254 ) { // non-equipable item that isn't signed
+		set .@pid, .@card[1] +( ( .@card[1] >= 0 )?0:pow(2,16) )+ .@card[2] * pow(2,16);
+		set @itemname2_info$[1], ( .@pid )? .@pid : "";
+		return getitemname(.@id);
+	}
+	else if ( ( .@type == 4 || .@type == 5 ) && .@card[0] == 0 && .@card[1] == 0 && .@card[2] == 0 && .@card[3] == 0 ) // equipment with no card, for reduce gotocount
+		set .@return$, .@ref$ + getitemname(.@id) + .@slots$;
+	else if ( ( .@type == 4 || .@type == 5 ) && ( .@card[0] > 500 || .@card[1] > 500 || .@card[2] > 500 || .@card[3] > 500 ) && .@card[0] != 254 && .@card[0] != 255 ) { // equipment that has cards, but not a signed item
+		set .@i, 0;
+		while ( .@i < 4 ) {
+			set .@j, .@i;
+			while ( .@j < 4 ) {
+				if ( .@card[.@i] == .@card[.@j] ) {
+					set .@k, 1;
+					while ( .@k <= .@i ) {
+						if ( .@card[.@i] == .@card[.@i - .@k] ) {
+							break;
+						}
+						set .@k, .@k +1 ;
+					}
+					if ( .@k <= .@i ) break;
+					set .@cnt[.@i], .@cnt[.@i] +1 ;
+				}
+				set .@j, .@j +1 ;
+			}
+			if ( getd("$@cardprefix"+ .@card[.@i] +"$") != "" && .@cnt[.@i] ) {
+				set .@cnt$[.@i],
+					( .@cnt[.@i] == 2 )? "Double" :
+					( .@cnt[.@i] == 3 )? "Triple" :
+					( .@cnt[.@i] == 4 )? "Quadruple" :
+					"";
+				if ( compare( getd("$@cardprefix"+ .@card[.@i] +"$"), "of " ) == 0 )
+					set .@prefix$, .@prefix$ + .@cnt$[.@i] +( ( .@cnt$[.@i] == "" )?"":" " )+ getd("$@cardprefix"+ .@card[.@i] +"$") +" ";
+				else
+					set .@prefix$[1], .@prefix$[1] +" "+ getd("$@cardprefix"+ .@card[.@i] +"$") +( ( .@cnt$[.@i] == "" )?"":" " )+ .@cnt$[.@i];
+			}
+			set .@enchant, .@enchant + ( .@card[.@i] && .@i >= .@slot );
+			set .@i, .@i +1 ;
+		}
+		set .@return$, .@ref$ + .@prefix$ + getitemname(.@id) + .@prefix$[1] + .@slots$;
+		set @itemname2_info$[0],
+			( .@enchant == 1 )? "^66CC00" :
+			( .@enchant == 2 )? "^0066CC" :
+			( .@enchant == 3 )? "^CC6600" :
+			( .@enchant == 4 )? "^BB44BB" :
+			"^000000";
+	}
+	else if ( .@card[0] == 254 || .@card[0] == 255 ) { // signed items
+		set .@cid, .@card[3] * pow(2,16) + .@card[2];
+		set @itemname2_info$[1], .@cid;
+		if ( query_sql("select name from `char` where char_id = "+ .@cid, .@name$) == 0 )
+			set .@name$, "Unknown";
+		set .@sc$,
+			( .@card[1] / 10 == 128 )? "Very Strong " :
+			( .@card[1] / 10 == 256 )? "Very Very Strong " :
+			( .@card[1] / 10 == 384 )? "Very Very Very Strong " :
+			"";
+		set @itemname2_info$[3],
+			( .@card[1] / 10 == 128 )? 1 :
+			( .@card[1] / 10 == 256 )? 2 :
+			( .@card[1] / 10 == 384 )? 3 :
+			"";
+		set .@ele$,
+			( .@card[1] % 10 == 1 )? "Ice " :
+			( .@card[1] % 10 == 2 )? "Earth " :
+			( .@card[1] % 10 == 3 )? "Fire " :
+			( .@card[1] % 10 == 4 )? "Wind " :
+			"";
+		set @itemname2_info$[4],
+			( .@card[1] % 10 == 1 )? "Ice" :
+			( .@card[1] % 10 == 2 )? "Earth" :
+			( .@card[1] % 10 == 3 )? "Fire" :
+			( .@card[1] % 10 == 4 )? "Wind" :
+			"";
+		set .@return$, .@ref$ + .@sc$ + .@name$ +"'s "+ .@ele$ + getitemname(.@id);
+	}
+	if ( getarg(1) == 0 ) { // unidentified
+		if ( .@type == 5 ) {
+			set @itemname2_info$[0], "^999999";
+			set @itemname2_info$[2], .@return$;
+			set .@loc, getiteminfo( .@id, 5 );
+			return
+				( .@loc & 769 )?
+					// from top to bottom : Signpost, Ear Muff, Poo Poo Hat, Funeral Hat, Antenna, Egg Shell, Cap, Sheep Hat, Red Nose, Moustache, Bandana, Flower, Ribbon, Headband, Masquerade, Mask, Glasses, Hairband, Accessory, Else Hat
+					( .@id == 2272 )? "Signpost" :
+					( .@id == 2283 )? "Ear Muffs" :
+					( .@id == 2289 )? "Poo Poo Hat" :
+					( .@id == 2290 )? "Funeral Hat" :
+					( .@id == 5011 )? "Antenna" :
+					( .@id == 5015 )? "Egg Shell" :
+					( .@id == 5370 )? "Cap" :
+					( .@id == 5133 )? "Sheep Hat" :
+					( .@id == 2262 || .@id == 5204 )? "Red Nose" :
+					( .@id == 5373 || .@id == 5374 || .@id == 5375 )? "Helm" :
+					( .@id == 2237 || .@id == 2238 || .@id == 2240 || .@id == 2241 )? "Moustache" :
+					( .@id == 2211 || .@id == 2287 || .@id == 5350 || .@id == 5661 )? "Bandana" :
+					( .@id == 2207 || .@id == 2253 || .@id == 712 || .@id == 10009 || .@id == 5351 || .@id == 11712 )? "Flower" :
+					( .@id == 5220 || .@id == 5221 || .@id == 5315 || .@id == 2715 || .@id == 5382 || .@id == 5600 )? "Ribbon" :
+					( .@id == 5210 || .@id == 5212 || .@id == 5213 || .@id == 5215 || .@id == 5216 || .@id == 5218 )? "Headband" :
+					( .@id == 2278 || .@id == 2281 || .@id == 2297 || .@id == 5086 || .@id == 5087 || .@id == 5088 || .@id == 5089 || .@id == 5090 || .@id == 5121 || .@id == 5130 || .@id == 5143 || .@id == 5176 || .@id == 5309 || .@id == 5314 || .@id == 5326 || .@id == 5332 || .@id == 5397 || .@id == 5566 || .@id == 5475 )? "Masquerade" :
+					( .@id == 2218 || .@id == 2219 || .@id == 2265 || .@id == 2266 || .@id == 5004 || .@id == 2288 || .@id == 2292 || .@id == 5005 || .@id == 10002 || .@id == 5054 || .@id == 5096 || .@id == 5098 || .@id == 5272 || .@id == 5294 || .@id == 5461 || .@id == 5485 || .@id == 5565 || .@id == 5482 || .@id == 5483 || .@id == 5577 )? "Mask" :
+					( .@id == 2201 || .@id == 2202 || .@id == 2203 || .@id == 2204 || .@id == 2205 || .@id == 2212 || .@id == 2239 || .@id == 2242 || .@id == 2243 || .@id == 2260 || .@id == 2263 || .@id == 2271 || .@id == 2276 || .@id == 2291 || .@id == 2296 || .@id == 5006 || .@id == 10014 || .@id == 5288 || .@id == 5325 || .@id == 5401 )? "Glasses" :
+					( .@id == 2210 || .@id == 2213 || .@id == 2214 || .@id == 2215 || .@id == 2250 || .@id == 2254 || .@id == 2255 || .@id == 2273 || .@id == 2274 || .@id == 2275 || .@id == 2282 || .@id == 2295 || .@id == 5010 || .@id == 5057 || .@id == 5070 || .@id == 5071 || .@id == 5082 || .@id == 5101 || .@id == 5104 || .@id == 5118 || .@id == 5125 || .@id == 5207 || .@id == 5256 || .@id == 5257 || .@id == 5269 || .@id == 5286 || .@id == 5803 || .@id == 5301 || .@id == 5310 || .@id == 5320 || .@id == 5321 || .@id == 5329 || .@id == 5357 || .@id == 5376 || .@id == 5411 || .@id == 5436 || .@id == 5438 || .@id == 5439 || .@id == 5440 || .@id == 5441 || .@id == 5442 || .@id == 5547 || .@id == 5553 || .@id == 5360 || .@id == 5585 || .@id == 5678 || .@id == 5470 )? "Hairband" :
+					( .@id == 2208 || .@id == 2209 || .@id == 2267 || .@id == 2268 || .@id == 2269 || .@id == 2270 || .@id == 2279 || .@id == 2286 || .@id == 2294 || .@id == 2298 || .@id == 2601 || .@id == 2602 || .@id == 2603 || .@id == 2604 || .@id == 2605 || .@id == 2607 || .@id == 2608 || .@id == 2609 || .@id == 2610 || .@id == 2611 || .@id == 2612 || .@id == 2613 || .@id == 2614 || .@id == 2615 || .@id == 2616 || .@id == 2617 || .@id == 2618 || .@id == 2619 || .@id == 2620 || .@id == 5008 || .@id == 5013 || .@id == 2621 || .@id == 2622 || .@id == 2623 || .@id == 2624 || .@id == 2625 || .@id == 2626 || .@id == 2627 || .@id == 2628 || .@id == 10004 || .@id == 10005 || .@id == 10007 || .@id == 10011 || .@id == 10013 || .@id == 10015 || .@id == 10016 || .@id == 2629 || .@id == 2630 || .@id == 5061 || .@id == 5063 || .@id == 5064 || .@id == 5068 || .@id == 5074 || .@id == 5077 || .@id == 5079 || .@id == 5083 || .@id == 5085 || .@id == 2638 || .@id == 2639 || .@id == 2641 || .@id == 5102 || .@id == 2642 || .@id == 2643 || .@id == 2645 || .@id == 2648 || .@id == 2649 || .@id == 2650 || .@id == 2651 || .@id == 2652 || .@id == 2653 || .@id == 2654 || .@id == 2655 || .@id == 2656 || .@id == 5107 || .@id == 5110 || .@id == 5113 || .@id == 5117 || .@id == 2659 || .@id == 2660 || .@id == 2661 || .@id == 2662 || .@id == 2663 || .@id == 2664 || .@id == 2667 || .@id == 5139 || .@id == 5140 || .@id == 2668 || .@id == 5153 || .@id == 2670 || .@id == 5154 || .@id == 5155 || .@id == 5156 || .@id == 2671 || .@id == 5175 || .@id == 2672 || .@id == 2673 || .@id == 5191 || .@id == 5192 || .@id == 5193 || .@id == 5194 || .@id == 5195 || .@id == 5196 || .@id == 5197 || .@id == 2674 || .@id == 2675 || .@id == 5206 || .@id == 2676 || .@id == 5801 || .@id == 5277 || .@id == 5278 || .@id == 2701 || .@id == 2702 || .@id == 2703 || .@id == 2686 || .@id == 2687 || .@id == 2688 || .@id == 2689 || .@id == 2690 || .@id == 2691 || .@id == 2692 || .@id == 2693 || .@id == 2694 || .@id == 2695 || .@id == 2696 || .@id == 2697 || .@id == 2698 || .@id == 2699 || .@id == 2704 || .@id == 2705 || .@id == 5285 || .@id == 5305 || .@id == 5804 || .@id == 5244 || .@id == 5245 || .@id == 5248 || .@id == 5249 || .@id == 5250 || .@id == 5251 || .@id == 5311 || .@id == 5322 || .@id == 2709 || .@id == 2710 || .@id == 2712 || .@id == 2728 || .@id == 2729 || .@id == 2730 || .@id == 2731 || .@id == 2732 || .@id == 2716 || .@id == 2717 || .@id == 2718 || .@id == 2719 || .@id == 2720 || .@id == 2721 || .@id == 2722 || .@id == 2723 || .@id == 2724 || .@id == 2725 || .@id == 2726 || .@id == 2727 || .@id == 2714 || .@id == 5358 || .@id == 5361 || .@id == 5362 || .@id == 2737 || .@id == 5377 || .@id == 2742 ||				 .@id == 2751 || .@id == 2743 || .@id == 2744 || .@id == 2745 || .@id == 2746 || .@id == 2747 || .@id == 2748 || .@id == 2749 || .@id == 2765 || .@id == 2766 || .@id == 2767 || .@id == 2768 || .@id == 2769 || .@id == 2770 || .@id == 2771 || .@id == 2775 || .@id == 5462 || .@id == 5463 || .@id == 5444 || .@id == 5445 || .@id == 5446 || .@id == 2783 || .@id == 2784 || .@id == 2785 || .@id == 2786 || .@id == 10028 || .@id == 10029 || .@id == 10030 || .@id == 10031 || .@id == 10032 || .@id == 10033 || .@id == 10034 || .@id == 10035 || .@id == 10036 || .@id == 2787 || .@id == 2788 || .@id == 2789 || .@id == 2790 || .@id == 2791 || .@id == 2792 || .@id == 2793 || .@id == 5823 || .@id == 5820 || .@id == 5821 || .@id == 2794 || .@id == 2795 || .@id == 5521 || .@id == 2799 || .@id == 2800 || .@id == 2801 || .@id == 2802 || .@id == 2803 || .@id == 2804 || .@id == 2805 || .@id == 2806 || .@id == 2807 || .@id == 2798 || .@id == 5532 || .@id == 2815 || .@id == 5548 || .@id == 5574 || .@id == 5576 || .@id == 2828 || .@id == 5592 || .@id == 2830 || .@id == 2831 || .@id == 5594 || .@id == 5596 || .@id == 5597 || .@id == 5681 || .@id == 2845 || .@id == 2843 || .@id == 2844 || .@id == 2853 || .@id == 2854 || .@id == 2632 || .@id == 2633 )? "Accessory" :
+					( .@id == 2206 || .@id == 2216 || .@id == 2217 || .@id == 2220 || .@id == 2221 || .@id == 2222 || .@id == 2223 || .@id == 2226 || .@id == 2227 || .@id == 2236 || .@id == 2244 || .@id == 2245 || .@id == 2247 || .@id == 2248 || .@id == 2251 || .@id == 2252 || .@id == 2277 || .@id == 2280 || .@id == 5003 || .@id == 5012 || .@id == 5016 || .@id == 5018 || .@id == 5019 || .@id == 2264 || .@id == 10006 || .@id == 10010 || .@id == 10012 || .@id == 10018 || .@id == 5058 || .@id == 5059 || .@id == 5060 || .@id == 5062 || .@id == 5065 || .@id == 5067 || .@id == 5069 || .@id == 5073 || .@id == 5075 || .@id == 5076 || .@id == 5078 || .@id == 5084 || .@id == 5092 || .@id == 5093 || .@id == 5097 || .@id == 5099 || .@id == 5103 || .@id == 5136 || .@id == 5105 || .@id == 5106 || .@id == 5108 || .@id == 5109 || .@id == 5111 || .@id == 5112 || .@id == 5114 || .@id == 5115 || .@id == 5116 || .@id == 5119 || .@id == 5120 || .@id == 5122 || .@id == 5123 || .@id == 5129 || .@id == 5132 || .@id == 5137 || .@id == 5138 || .@id == 5141 || .@id == 5144 || .@id == 5145 || .@id == 5146 || .@id == 5147 || .@id == 5150 || .@id == 5158 || .@id == 5167 || .@id == 5168 || .@id == 5170 || .@id == 5172 || .@id == 5173 || .@id == 5174 || .@id == 5188 || .@id == 5189 || .@id == 5190 || .@id == 5198 || .@id == 5200 || .@id == 5199 || .@id == 5201 || .@id == 5202 || .@id == 5208 || .@id == 5209 || .@id == 5214 || .@id == 5219 || .@id == 5222 || .@id == 5227 || .@id == 5228 || .@id == 5229 || .@id == 5230 || .@id == 5231 || .@id == 5232 || .@id == 5233 || .@id == 5234 || .@id == 5235 || .@id == 5236 || .@id == 5237 || .@id == 5252 || .@id == 5253 || .@id == 5254 || .@id == 5255 || .@id == 5258 || .@id == 5226 || .@id == 5259 || .@id == 5260 || .@id == 5263 || .@id == 5264 || .@id == 5243 || .@id == 5270 || .@id == 5273 || .@id == 5274 || .@id == 5275 || .@id == 5276 || .@id == 5802 || .@id == 5282 || .@id == 5283 || .@id == 5284 || .@id == 5287 || .@id == 5289 || .@id == 5290 || .@id == 5291 || .@id == 5293 || .@id == 5302 || .@id == 5304 || .@id == 5307 || .@id == 5308 || .@id == 5312 || .@id == 5316 || .@id == 5317 || .@id == 5318 || .@id == 5319 || .@id == 5323 || .@id == 5324 || .@id == 5330 || .@id == 5806 || .@id == 5333 || .@id == 5334 || .@id == 5335 || .@id == 5336 || .@id == 5337 || .@id == 5338 || .@id == 5339 || .@id == 5340 || .@id == 5341 || .@id == 5342 || .@id == 5343 || .@id == 5344 || .@id == 5345 || .@id == 5346 || .@id == 5353 || .@id == 5347 || .@id == 5348 || .@id == 5349 || .@id == 5352 || .@id == 5809 || .@id == 5354 || .@id == 5355 || .@id == 5356 || .@id == 5810 || .@id == 5359 || .@id == 5366 || .@id == 5368 || .@id == 5369 || .@id == 5371 || .@id == 5379 || .@id == 5380 || .@id == 5381 || .@id == 5383 || .@id == 5384 || .@id == 5372 || .@id == 5378 || .@id == 5386 || .@id == 5387 || .@id == 5388 || .@id == 5390 || .@id == 5392 || .@id == 5393 || .@id == 5812 || .@id == 5395 || .@id == 5405 || .@id == 5364 || .@id == 5365 || .@id == 5367 || .@id == 5406 || .@id == 5407 || .@id == 5408 || .@id == 5409 || .@id == 5410 || .@id == 5399 || .@id == 5413 || .@id == 5414 || .@id == 5415 || .@id == 5416 || .@id == 5417 || .@id == 5418 || .@id == 5422 || .@id == 5423 || .@id == 5424 || .@id == 5425 || .@id == 5426 || .@id == 5427 || .@id == 5428 || .@id == 5429 || .@id == 5430 || .@id == 5432 || .@id == 5433 || .@id == 5450 || .@id == 5456 || .@id == 5457 || .@id == 5458 || .@id == 5459 || .@id == 5478 || .@id == 5484 || .@id == 5813 || .@id == 5486 || .@id == 5487 || .@id == 5488 || .@id == 5437 || .@id == 5443 || .@id == 5447 || .@id == 5448 || .@id == 5449 || .@id == 5490 || .@id == 5435 || .@id == 5491 || .@id == 5494 || .@id == 5496 || .@id == 5497 || .@id == 5499 || .@id == 5500 || .@id == 5501 || .@id == 5502 || .@id == 5504 || .@id == 5505 || .@id == 5503 || .@id == 5815 || .@id == 5816 || .@id == 5818 || .@id == 5822 || .@id == 5506 || .@id == 5507 || .@id == 5508 || .@id == 5509 || .@id == 5510 || .@id == 5511 || .@id == 5519 || .@id == 5522 || .@id == 5523 || .@id == 5524 || .@id == 5525 || .@id == 5526 || .@id == 5527 || .@id == 5528 || .@id == 5824 || .@id == 5530 || .@id == 5531 || .@id == 5534 || .@id == 5535 || .@id == 5537 || .@id == 5538 || .@id == 5539 || .@id == 5544 || .@id == 5561 || .@id == 5562 || .@id == 5431 || .@id == 5826 || .@id == 5568 || .@id == 5572 || .@id == 5479 || .@id == 5480 || .@id == 5481 || .@id == 5575 || .@id == 5583 || .@id == 5586 || .@id == 5587 || .@id == 5827 || .@id == 5593 || .@id == 5601 || .@id == 5434 || .@id == 5466 || .@id == 5467 || .@id == 5468 || .@id == 5471 || .@id == 5465 || .@id == 5472 || .@id == 5473 || .@id == 5474 || .@id == 5476 || .@id == 5469 || .@id == 5563 || .@id == 5690 || .@id == 5739 || .@id == 5740 || .@id == 5744 || .@id == 5745 )? "Hat" :
+					"Headgear" :
+				( .@loc & 16 )?
+					// Clothing, Else Armor
+					( .@id == 2301 || .@id == 2302 || .@id == 2303 || .@id == 2304 || .@id == 2305 || .@id == 2306 || .@id == 2307 || .@id == 2308 || .@id == 2309 || .@id == 2310 || .@id == 2311 || .@id == 2318 || .@id == 2319 || .@id == 2320 || .@id == 2321 || .@id == 2322 || .@id == 2323 || .@id == 2324 || .@id == 2325 || .@id == 2326 || .@id == 2327 || .@id == 2330 || .@id == 2331 || .@id == 2332 || .@id == 2333 || .@id == 2334 || .@id == 2335 || .@id == 2336 || .@id == 2337 || .@id == 2338 || .@id == 2339 || .@id == 2361 || .@id == 2362 || .@id == 2363 || .@id == 2370 || .@id == 2371 || .@id == 2372 || .@id == 2373 || .@id == 2374 || .@id == 2397 || .@id == 15012 )? "Clothing" :
+					"Armor" :
+				( .@loc & 32 )?
+					// Guard, Else Shield
+					( .@id == 2110 || .@id == 2111 || .@id == 2136 )? "Guard" :
+					"Shield" :
+				( .@loc & 4 )? "Garment" :
+				( .@loc & 64 )? "Shoes" :
+				( .@loc & 136 )?
+					// Ring, Else Accessory
+					( .@id == 2631 || .@id == 2640 || .@id == 2677 || .@id == 2678 || .@id == 2679 || .@id == 2680 || .@id == 2681 || .@id == 2682 || .@id == 2683 || .@id == 2684 || .@id == 2685 || .@id == 2711 || .@id == 5828 )? "Ring" :
+					"Accessory" :
+				"Equipment - ERROR";
+		}
+		else if ( .@type == 4 ) {
+			set @itemname2_info$[0], "^999999";
+			set @itemname2_info$[2], .@return$;
+			set .@view, getiteminfo( .@id, 11 );
+			return
+				( .@view == 1 )? "Dagger" :
+				( .@view == 2 )? "Sword" :
+				( .@view == 3 )? "Two-handed Sword" :
+				( .@view == 4 || .@view == 5 )? "Spear" :
+				( .@view == 6 || .@view == 7 )? "Axe" :
+				( .@view == 8 )? "Mace" :
+				( .@view == 10 )?
+					( .@id == 2262 || .@id == 5204 )? "Staff" :
+					"Rod" :
+				( .@view == 11 )? "Bow" :
+				( .@view == 12 )? "Claw" :
+				( .@view == 13 )? "Musical Instrument" :
+				( .@view == 14 )? "Whip" :
+				( .@view == 15 )? "Book" :
+				( .@view == 16 )? "Katar" :
+				( .@view == 17 )? "Revolver" :
+				( .@view == 18 )? "Rifle" :
+				( .@view == 19 )? "Gatling Gun" :
+				( .@view == 20 )? "Shotgun" :
+				( .@view == 21 )? "Grenade Launcher" :
+				( .@view == 22 )? "Huuma Shuriken" :
+				"Weapon - ERROR";
+		}
+	}
+	else if ( getarg(3) ) // broken equipment
+		set @itemname2_info$[0], "^FF0000";
+	return .@return$;
+}
+
+-	script	itemname2_prefix	-1,{
+OnInit:
+	setd "$@cardprefix"+ 4001 +"$", "Lucky";
+	setd "$@cardprefix"+ 4002 +"$", "Vital";
+	setd "$@cardprefix"+ 4003 +"$", "Hard";
+	setd "$@cardprefix"+ 4004 +"$", "Dexterous";
+	setd "$@cardprefix"+ 4005 +"$", "Hallowed";
+	setd "$@cardprefix"+ 4006 +"$", "Lucky";
+	setd "$@cardprefix"+ 4007 +"$", "Beholder";
+	setd "$@cardprefix"+ 4008 +"$", "Extra";
+	setd "$@cardprefix"+ 4009 +"$", "Light";
+	setd "$@cardprefix"+ 4010 +"$", "Wise";
+	setd "$@cardprefix"+ 4011 +"$", "Dynamic";
+	setd "$@cardprefix"+ 4012 +"$", "Rigid";
+	setd "$@cardprefix"+ 4013 +"$", "Excellent";
+	setd "$@cardprefix"+ 4014 +"$", "of Champion";
+	setd "$@cardprefix"+ 4015 +"$", "Quick";
+	setd "$@cardprefix"+ 4016 +"$", "Speedy";
+	setd "$@cardprefix"+ 4017 +"$", "Stun";
+	setd "$@cardprefix"+ 4018 +"$", "Smart";
+	setd "$@cardprefix"+ 4019 +"$", "Martyr";
+	setd "$@cardprefix"+ 4020 +"$", "Blink";
+	setd "$@cardprefix"+ 4021 +"$", "Skillful";
+	setd "$@cardprefix"+ 4022 +"$", "of Spore";
+	setd "$@cardprefix"+ 4023 +"$", "of Desert";
+	setd "$@cardprefix"+ 4024 +"$", "Drowsy";
+	setd "$@cardprefix"+ 4025 +"$", "Keen";
+	setd "$@cardprefix"+ 4026 +"$", "Shrewd";
+	setd "$@cardprefix"+ 4027 +"$", "Athletic";
+	setd "$@cardprefix"+ 4028 +"$", "Double-forced";
+	setd "$@cardprefix"+ 4029 +"$", "Wolverine";
+	setd "$@cardprefix"+ 4030 +"$", "Windy";
+	setd "$@cardprefix"+ 4031 +"$", "of Ares";
+	setd "$@cardprefix"+ 4032 +"$", "of Athena";
+	setd "$@cardprefix"+ 4033 +"$", "Detoxication";
+	setd "$@cardprefix"+ 4034 +"$", "Clever";
+	setd "$@cardprefix"+ 4035 +"$", "Bloody";
+	setd "$@cardprefix"+ 4036 +"$", "Robust";
+	setd "$@cardprefix"+ 4037 +"$", "Untouchable";
+	setd "$@cardprefix"+ 4038 +"$", "of Health";
+	setd "$@cardprefix"+ 4039 +"$", "of Aristotle";
+	setd "$@cardprefix"+ 4040 +"$", "Teleport";
+	setd "$@cardprefix"+ 4041 +"$", "of Sandman";
+	setd "$@cardprefix"+ 4042 +"$", "of He-Man";
+	setd "$@cardprefix"+ 4043 +"$", "Hurricane";
+	setd "$@cardprefix"+ 4044 +"$", "Hiding";
+	setd "$@cardprefix"+ 4045 +"$", "Heavy";
+	setd "$@cardprefix"+ 4046 +"$", "of Cleric";
+	setd "$@cardprefix"+ 4047 +"$", "Ghost";
+	setd "$@cardprefix"+ 4048 +"$", "Poison";
+	setd "$@cardprefix"+ 4049 +"$", "Flammable";
+	setd "$@cardprefix"+ 4050 +"$", "of Hermes";
+	setd "$@cardprefix"+ 4051 +"$", "of Flash";
+	setd "$@cardprefix"+ 4052 +"$", "Erudite";
+	setd "$@cardprefix"+ 4053 +"$", "Healing";
+	setd "$@cardprefix"+ 4054 +"$", "Holy";
+	setd "$@cardprefix"+ 4055 +"$", "Ice";
+	setd "$@cardprefix"+ 4056 +"$", "of Warmth";
+	setd "$@cardprefix"+ 4057 +"$", "Silence";
+	setd "$@cardprefix"+ 4058 +"$", "Cranial";
+	setd "$@cardprefix"+ 4059 +"$", "of Cadi";
+	setd "$@cardprefix"+ 4060 +"$", "Clamorous";
+	setd "$@cardprefix"+ 4061 +"$", "Immortal";
+	setd "$@cardprefix"+ 4062 +"$", "Envenom";
+	setd "$@cardprefix"+ 4063 +"$", "Insecticide";
+	setd "$@cardprefix"+ 4064 +"$", "Nimble";
+	setd "$@cardprefix"+ 4065 +"$", "Underneath";
+	setd "$@cardprefix"+ 4066 +"$", "Brutal";
+	setd "$@cardprefix"+ 4067 +"$", "Atomic";
+	setd "$@cardprefix"+ 4068 +"$", "Chemical";
+	setd "$@cardprefix"+ 4069 +"$", "Saharic";
+	setd "$@cardprefix"+ 4070 +"$", "of Witch";
+	setd "$@cardprefix"+ 4071 +"$", "Angelic";
+	setd "$@cardprefix"+ 4072 +"$", "Solid";
+	setd "$@cardprefix"+ 4073 +"$", "Discount";
+	setd "$@cardprefix"+ 4074 +"$", "of Gargantua";
+	setd "$@cardprefix"+ 4075 +"$", "Hypnotic";
+	setd "$@cardprefix"+ 4076 +"$", "Cursing";
+	setd "$@cardprefix"+ 4077 +"$", "Under a Cast";
+	setd "$@cardprefix"+ 4078 +"$", "of Recovery";
+	setd "$@cardprefix"+ 4079 +"$", "of Muscle";
+	setd "$@cardprefix"+ 4080 +"$", "Fisher";
+	setd "$@cardprefix"+ 4081 +"$", "Glorious";
+	setd "$@cardprefix"+ 4082 +"$", "Gigantic";
+	setd "$@cardprefix"+ 4083 +"$", "Homer's";
+	setd "$@cardprefix"+ 4084 +"$", "Blast";
+	setd "$@cardprefix"+ 4085 +"$", "Damned";
+	setd "$@cardprefix"+ 4086 +"$", "Critical";
+	setd "$@cardprefix"+ 4087 +"$", "Order";
+	setd "$@cardprefix"+ 4088 +"$", "Guard";
+	setd "$@cardprefix"+ 4089 +"$", "Aqua";
+	setd "$@cardprefix"+ 4090 +"$", "Amulet";
+	setd "$@cardprefix"+ 4091 +"$", "of Counter";
+	setd "$@cardprefix"+ 4092 +"$", "Boned";
+	setd "$@cardprefix"+ 4093 +"$", "Cure";
+	setd "$@cardprefix"+ 4094 +"$", "Kingbird";
+	setd "$@cardprefix"+ 4095 +"$", "Genie's";
+	setd "$@cardprefix"+ 4096 +"$", "Venomer's";
+	setd "$@cardprefix"+ 4097 +"$", "Green";
+	setd "$@cardprefix"+ 4098 +"$", "of Zephyrus";
+	setd "$@cardprefix"+ 4099 +"$", "of Ifrit";
+	setd "$@cardprefix"+ 4100 +"$", "Soul-Enchanted";
+	setd "$@cardprefix"+ 4101 +"$", "of Gnome";
+	setd "$@cardprefix"+ 4102 +"$", "Mocking";
+	setd "$@cardprefix"+ 4103 +"$", "Clairvoyant";
+	setd "$@cardprefix"+ 4104 +"$", "Chaos";
+	setd "$@cardprefix"+ 4105 +"$", "Unfrozen";
+	setd "$@cardprefix"+ 4106 +"$", "Ancient";
+	setd "$@cardprefix"+ 4107 +"$", "Fledged";
+	setd "$@cardprefix"+ 4108 +"$", "Innoxious";
+	setd "$@cardprefix"+ 4109 +"$", "Flameguard";
+	setd "$@cardprefix"+ 4110 +"$", "Viper's";
+	setd "$@cardprefix"+ 4111 +"$", "Decussate";
+	setd "$@cardprefix"+ 4112 +"$", "Peerless";
+	setd "$@cardprefix"+ 4113 +"$", "of Ghost";
+	setd "$@cardprefix"+ 4114 +"$", "Poisoning";
+	setd "$@cardprefix"+ 4115 +"$", "Malicious";
+	setd "$@cardprefix"+ 4116 +"$", "Divine";
+	setd "$@cardprefix"+ 4117 +"$", "Hybrid";
+	setd "$@cardprefix"+ 4118 +"$", "Dragoon";
+	setd "$@cardprefix"+ 4119 +"$", "Evil";
+	setd "$@cardprefix"+ 4120 +"$", "of Dragoon";
+	setd "$@cardprefix"+ 4121 +"$", "Perfect";
+	setd "$@cardprefix"+ 4122 +"$", "Adurate";
+	setd "$@cardprefix"+ 4123 +"$", "Bearer's";
+	setd "$@cardprefix"+ 4124 +"$", "Plasterer's";
+	setd "$@cardprefix"+ 4125 +"$", "Aqua";
+	setd "$@cardprefix"+ 4126 +"$", "Titan";
+	setd "$@cardprefix"+ 4127 +"$", "Insomniac";
+	setd "$@cardprefix"+ 4128 +"$", "of Deaf";
+	setd "$@cardprefix"+ 4129 +"$", "of Rogue";
+	setd "$@cardprefix"+ 4130 +"$", "Divine";
+	setd "$@cardprefix"+ 4131 +"$", "Hasty";
+	setd "$@cardprefix"+ 4132 +"$", "of Gemstone";
+	setd "$@cardprefix"+ 4133 +"$", "Immune";
+	setd "$@cardprefix"+ 4134 +"$", "Spiritual";
+	setd "$@cardprefix"+ 4135 +"$", "Mirror";
+	setd "$@cardprefix"+ 4136 +"$", "from Hell";
+	setd "$@cardprefix"+ 4137 +"$", "of Infinity";
+	setd "$@cardprefix"+ 4138 +"$", "Satanic";
+	setd "$@cardprefix"+ 4139 +"$", "of Moonlight";
+	setd "$@cardprefix"+ 4140 +"$", "Liberation";
+	setd "$@cardprefix"+ 4141 +"$", "Deadly";
+	setd "$@cardprefix"+ 4142 +"$", "of Berserk";
+	setd "$@cardprefix"+ 4143 +"$", "Neutral";
+	setd "$@cardprefix"+ 4144 +"$", "of Eternity";
+	setd "$@cardprefix"+ 4145 +"$", "of Bigmouth";
+	setd "$@cardprefix"+ 4146 +"$", "Reflect";
+	setd "$@cardprefix"+ 4147 +"$", "Scythe-like";
+	setd "$@cardprefix"+ 4148 +"$", "of Kirin";
+	setd "$@cardprefix"+ 4149 +"$", "of Serenity";
+	setd "$@cardprefix"+ 4150 +"$", "Spell-Proof";
+	setd "$@cardprefix"+ 4151 +"$", "Havoc Bringer's";
+	setd "$@cardprefix"+ 4152 +"$", "Sprightly";
+	setd "$@cardprefix"+ 4153 +"$", "of Cancer";
+	setd "$@cardprefix"+ 4154 +"$", "Sweet Scented";
+	setd "$@cardprefix"+ 4155 +"$", "Deadly Goblin's";
+	setd "$@cardprefix"+ 4156 +"$", "of Fatal Flame";
+	setd "$@cardprefix"+ 4157 +"$", "Piercing";
+	setd "$@cardprefix"+ 4158 +"$", "Slaughter";
+	setd "$@cardprefix"+ 4159 +"$", "Deluxe";
+	setd "$@cardprefix"+ 4160 +"$", "Superior";
+	setd "$@cardprefix"+ 4161 +"$", "Anti-Magic";
+	setd "$@cardprefix"+ 4162 +"$", "Sightless";
+	setd "$@cardprefix"+ 4163 +"$", "Wild";
+	setd "$@cardprefix"+ 4164 +"$", "Fisherman's";
+	setd "$@cardprefix"+ 4165 +"$", "of Insect Soul Eater";
+	setd "$@cardprefix"+ 4166 +"$", "of Jinx";
+	setd "$@cardprefix"+ 4167 +"$", "of Beast Soul Eater";
+	setd "$@cardprefix"+ 4168 +"$", "of Doom";
+	setd "$@cardprefix"+ 4169 +"$", "Spell Master's";
+	setd "$@cardprefix"+ 4170 +"$", "Solidifying";
+	setd "$@cardprefix"+ 4171 +"$", "Soul Draining";
+	setd "$@cardprefix"+ 4172 +"$", "Slicing";
+	setd "$@cardprefix"+ 4173 +"$", "Mesmerizing";
+	setd "$@cardprefix"+ 4174 +"$", "Deviant";
+	setd "$@cardprefix"+ 4175 +"$", "Shoving";
+	setd "$@cardprefix"+ 4176 +"$", "Fatal Serpentine";
+	setd "$@cardprefix"+ 4177 +"$", "Green Stone";
+	setd "$@cardprefix"+ 4178 +"$", "Bow-Master's";
+	setd "$@cardprefix"+ 4179 +"$", "of Highlight";
+	setd "$@cardprefix"+ 4180 +"$", "of Dragon Soul Eater";
+	setd "$@cardprefix"+ 4181 +"$", "Soundless";
+	setd "$@cardprefix"+ 4182 +"$", "of Demon Soul Eater";
+	setd "$@cardprefix"+ 4183 +"$", "Werewolf";
+	setd "$@cardprefix"+ 4184 +"$", "Crushing";
+	setd "$@cardprefix"+ 4185 +"$", "of Wisdom";
+	setd "$@cardprefix"+ 4186 +"$", "Strenuous";
+	setd "$@cardprefix"+ 4187 +"$", "of the Spooky Night";
+	setd "$@cardprefix"+ 4188 +"$", "Red Stone";
+	setd "$@cardprefix"+ 4189 +"$", "of Misfortune";
+	setd "$@cardprefix"+ 4190 +"$", "of Last Laugh";
+	setd "$@cardprefix"+ 4191 +"$", "of the Stix";
+	setd "$@cardprefix"+ 4192 +"$", "of Fatal Pisces";
+	setd "$@cardprefix"+ 4193 +"$", "of Patience";
+	setd "$@cardprefix"+ 4194 +"$", "Overpowering";
+	setd "$@cardprefix"+ 4195 +"$", "Blue Stone";
+	setd "$@cardprefix"+ 4196 +"$", "of Jellopy";
+	setd "$@cardprefix"+ 4197 +"$", "Lucky Streak";
+	setd "$@cardprefix"+ 4198 +"$", "of True Sight";
+	setd "$@cardprefix"+ 4199 +"$", "Dashing";
+	setd "$@cardprefix"+ 4200 +"$", "of Mystical Resistance";
+	setd "$@cardprefix"+ 4201 +"$", "Crippling";
+	setd "$@cardprefix"+ 4202 +"$", "of Exorcism";
+	setd "$@cardprefix"+ 4203 +"$", "Blazing";
+	setd "$@cardprefix"+ 4204 +"$", "Poacher's";
+	setd "$@cardprefix"+ 4205 +"$", "Blue Cubic";
+	setd "$@cardprefix"+ 4206 +"$", "Cubic";
+	setd "$@cardprefix"+ 4207 +"$", "Anti-Small";
+	setd "$@cardprefix"+ 4208 +"$", "Energetic";
+	setd "$@cardprefix"+ 4209 +"$", "Fiddler's";
+	setd "$@cardprefix"+ 4210 +"$", "Pressure";
+	setd "$@cardprefix"+ 4211 +"$", "Virtuoso's";
+	setd "$@cardprefix"+ 4212 +"$", "of Knock-Back";
+	setd "$@cardprefix"+ 4213 +"$", "of Reticence";
+	setd "$@cardprefix"+ 4214 +"$", "Man-Eater's";
+	setd "$@cardprefix"+ 4215 +"$", "Rationing";
+	setd "$@cardprefix"+ 4216 +"$", "Freezing";
+	setd "$@cardprefix"+ 4217 +"$", "Rejuvenating";
+	setd "$@cardprefix"+ 4218 +"$", "Nightmarish";
+	setd "$@cardprefix"+ 4219 +"$", "Magic Stone";
+	setd "$@cardprefix"+ 4220 +"$", "Faithful";
+	setd "$@cardprefix"+ 4221 +"$", "Insect Collector's";
+	setd "$@cardprefix"+ 4222 +"$", "of Sleep";
+	setd "$@cardprefix"+ 4223 +"$", "Stun-Proof";
+	setd "$@cardprefix"+ 4224 +"$", "Monsoon";
+	setd "$@cardprefix"+ 4225 +"$", "Slingshot";
+	setd "$@cardprefix"+ 4226 +"$", "Supreme";
+	setd "$@cardprefix"+ 4227 +"$", "Roast Scented";
+	setd "$@cardprefix"+ 4228 +"$", "of Siesta";
+	setd "$@cardprefix"+ 4229 +"$", "of Torment";
+	setd "$@cardprefix"+ 4230 +"$", "Coward's";
+	setd "$@cardprefix"+ 4231 +"$", "Charging";
+	setd "$@cardprefix"+ 4232 +"$", "Refreshing";
+	setd "$@cardprefix"+ 4233 +"$", "Lucky Fluke";
+	setd "$@cardprefix"+ 4234 +"$", "of Clarity";
+	setd "$@cardprefix"+ 4235 +"$", "Fallen Angel's";
+	setd "$@cardprefix"+ 4236 +"$", "Protective";
+	setd "$@cardprefix"+ 4237 +"$", "of Godly Wrath";
+	setd "$@cardprefix"+ 4238 +"$", "of Doubled Power";
+	setd "$@cardprefix"+ 4239 +"$", "Veteran Hunter's";
+	setd "$@cardprefix"+ 4240 +"$", "Magic-Proof";
+	setd "$@cardprefix"+ 4241 +"$", "Miraculous";
+	setd "$@cardprefix"+ 4242 +"$", "Prime";
+	setd "$@cardprefix"+ 4243 +"$", "of Escape";
+	setd "$@cardprefix"+ 4244 +"$", "Seeker's";
+	setd "$@cardprefix"+ 4245 +"$", "Assassinator's";
+	setd "$@cardprefix"+ 4246 +"$", "Killing";
+	setd "$@cardprefix"+ 4247 +"$", "Starfish's";
+	setd "$@cardprefix"+ 4248 +"$", "Shining Cross";
+	setd "$@cardprefix"+ 4249 +"$", "Witch Doctor's";
+	setd "$@cardprefix"+ 4250 +"$", "Anti-Large";
+	setd "$@cardprefix"+ 4251 +"$", "Invasion";
+	setd "$@cardprefix"+ 4252 +"$", "Four Leaf Clover";
+	setd "$@cardprefix"+ 4253 +"$", "of Royal Guard";
+	setd "$@cardprefix"+ 4254 +"$", "Anti-Medium";
+	setd "$@cardprefix"+ 4255 +"$", "Smashing";
+	setd "$@cardprefix"+ 4256 +"$", "Desirable";
+	setd "$@cardprefix"+ 4257 +"$", "Wing";
+	setd "$@cardprefix"+ 4258 +"$", "Prodigy";
+	setd "$@cardprefix"+ 4259 +"$", "of Nature";
+	setd "$@cardprefix"+ 4260 +"$", "Confusion Resistant";
+	setd "$@cardprefix"+ 4261 +"$", "Bleed Resistant";
+	setd "$@cardprefix"+ 4262 +"$", "Dark Sky";
+	setd "$@cardprefix"+ 4263 +"$", "Bloodlust";
+	setd "$@cardprefix"+ 4264 +"$", "Thunderbolt";
+	setd "$@cardprefix"+ 4265 +"$", "of Dawn";
+	setd "$@cardprefix"+ 4266 +"$", "Magic Resistant";
+	setd "$@cardprefix"+ 4267 +"$", "Dragon Slayer's";
+	setd "$@cardprefix"+ 4268 +"$", "Extending";
+	setd "$@cardprefix"+ 4269 +"$", "Fatasm";
+	setd "$@cardprefix"+ 4270 +"$", "of Venom";
+	setd "$@cardprefix"+ 4271 +"$", "Yellow Stone";
+	setd "$@cardprefix"+ 4272 +"$", "Swift";
+	setd "$@cardprefix"+ 4273 +"$", "Shell";
+	setd "$@cardprefix"+ 4274 +"$", "of Undead Soul Eater";
+	setd "$@cardprefix"+ 4275 +"$", "Undead Killer's";
+	setd "$@cardprefix"+ 4276 +"$", "Crucial";
+	setd "$@cardprefix"+ 4277 +"$", "Dominatrix";
+	setd "$@cardprefix"+ 4278 +"$", "of Magical Immunity";
+	setd "$@cardprefix"+ 4279 +"$", "Soul Collector's";
+	setd "$@cardprefix"+ 4280 +"$", "Blessed";
+	setd "$@cardprefix"+ 4281 +"$", "Diligent";
+	setd "$@cardprefix"+ 4282 +"$", "of Reservoir";
+	setd "$@cardprefix"+ 4283 +"$", "Mana Sphere";
+	setd "$@cardprefix"+ 4284 +"$", "of Caress";
+	setd "$@cardprefix"+ 4285 +"$", "Elven-Enchanted";
+	setd "$@cardprefix"+ 4286 +"$", "Terrorizing";
+	setd "$@cardprefix"+ 4287 +"$", "Magically Shielded";
+	setd "$@cardprefix"+ 4288 +"$", "Maestro";
+	setd "$@cardprefix"+ 4289 +"$", "of Plant Soul Eater";
+	setd "$@cardprefix"+ 4290 +"$", "Mirror";
+	setd "$@cardprefix"+ 4291 +"$", "Deadly Kobold's";
+	setd "$@cardprefix"+ 4292 +"$", "Deadly Plant's";
+	setd "$@cardprefix"+ 4293 +"$", "of Chance";
+	setd "$@cardprefix"+ 4294 +"$", "Sneaky";
+	setd "$@cardprefix"+ 4295 +"$", "of Blackout";
+	setd "$@cardprefix"+ 4296 +"$", "Greedy";
+	setd "$@cardprefix"+ 4297 +"$", "Poaching";
+	setd "$@cardprefix"+ 4298 +"$", "of Mayhem";
+	setd "$@cardprefix"+ 4299 +"$", "Guardian's";
+	setd "$@cardprefix"+ 4300 +"$", "Venomous Charge";
+	setd "$@cardprefix"+ 4301 +"$", "Traumatic";
+	setd "$@cardprefix"+ 4302 +"$", "High Risk";
+	setd "$@cardprefix"+ 4303 +"$", "Mystic";
+	setd "$@cardprefix"+ 4304 +"$", "Shield Master's";
+	setd "$@cardprefix"+ 4305 +"$", "Explosive";
+	setd "$@cardprefix"+ 4306 +"$", "King's";
+	setd "$@cardprefix"+ 4307 +"$", "of Marine Soul Eater";
+	setd "$@cardprefix"+ 4308 +"$", "Power Draining";
+	setd "$@cardprefix"+ 4309 +"$", "Reinforced";
+	setd "$@cardprefix"+ 4310 +"$", "Fatally Evil";
+	setd "$@cardprefix"+ 4311 +"$", "Anti-Evil";
+	setd "$@cardprefix"+ 4312 +"$", "of the Soul";
+	setd "$@cardprefix"+ 4313 +"$", "Bogie";
+	setd "$@cardprefix"+ 4314 +"$", "Fire-Proof";
+	setd "$@cardprefix"+ 4315 +"$", "of Stone Curse";
+	setd "$@cardprefix"+ 4316 +"$", "of Angel Soul Eater";
+	setd "$@cardprefix"+ 4317 +"$", "Aural";
+	setd "$@cardprefix"+ 4318 +"$", "Storm-Bringer's";
+	setd "$@cardprefix"+ 4319 +"$", "Sword-Master's";
+	setd "$@cardprefix"+ 4320 +"$", "Meteoric";
+	setd "$@cardprefix"+ 4321 +"$", "Polymorphic";
+	setd "$@cardprefix"+ 4322 +"$", "of Retaliation";
+	setd "$@cardprefix"+ 4323 +"$", "of Frost";
+	setd "$@cardprefix"+ 4324 +"$", "Arctic";
+	setd "$@cardprefix"+ 4325 +"$", "Vicious";
+	setd "$@cardprefix"+ 4326 +"$", "Ocean Scented";
+	setd "$@cardprefix"+ 4327 +"$", "Spell Flow";
+	setd "$@cardprefix"+ 4328 +"$", "Hyper";
+	setd "$@cardprefix"+ 4329 +"$", "Soul Gain";
+	setd "$@cardprefix"+ 4330 +"$", "Curse Lift";
+	setd "$@cardprefix"+ 4331 +"$", "Evasion";
+	setd "$@cardprefix"+ 4332 +"$", "of Talent";
+	setd "$@cardprefix"+ 4333 +"$", "of Chaotic Venom";
+	setd "$@cardprefix"+ 4334 +"$", "Anti-Sniping";
+	setd "$@cardprefix"+ 4335 +"$", "Gnome";
+	setd "$@cardprefix"+ 4336 +"$", "of Vitality";
+	setd "$@cardprefix"+ 4337 +"$", "of Wildcat";
+	setd "$@cardprefix"+ 4338 +"$", "of Vital Switching";
+	setd "$@cardprefix"+ 4339 +"$", "of Stone Wall";
+	setd "$@cardprefix"+ 4340 +"$", "of Requiem";
+	setd "$@cardprefix"+ 4341 +"$", "Disarm";
+	setd "$@cardprefix"+ 4342 +"$", "Mammoth";
+	setd "$@cardprefix"+ 4343 +"$", "of Creator";
+	setd "$@cardprefix"+ 4344 +"$", "of Value";
+	setd "$@cardprefix"+ 4345 +"$", "Sylph";
+	setd "$@cardprefix"+ 4346 +"$", "of Power Switching";
+	setd "$@cardprefix"+ 4347 +"$", "Stamina";
+	setd "$@cardprefix"+ 4348 +"$", "Gangster";
+	setd "$@cardprefix"+ 4349 +"$", "Anti-Arrow";
+	setd "$@cardprefix"+ 4350 +"$", "Undine";
+	setd "$@cardprefix"+ 4351 +"$", "Low Level";
+	setd "$@cardprefix"+ 4352 +"$", "Undecided";
+	setd "$@cardprefix"+ 4353 +"$", "of Rejuvenation";
+	setd "$@cardprefix"+ 4354 +"$", "of Stability";
+	setd "$@cardprefix"+ 4355 +"$", "Healthy";
+	setd "$@cardprefix"+ 4356 +"$", "Magic Cancel";
+	setd "$@cardprefix"+ 4357 +"$", "of Fury";
+	setd "$@cardprefix"+ 4358 +"$", "Lost-Power";
+	setd "$@cardprefix"+ 4359 +"$", "of Shadow";
+	setd "$@cardprefix"+ 4360 +"$", "Assassin";
+	setd "$@cardprefix"+ 4361 +"$", "of Hollgren";
+	setd "$@cardprefix"+ 4362 +"$", "Heat";
+	setd "$@cardprefix"+ 4363 +"$", "Protection";
+	setd "$@cardprefix"+ 4364 +"$", "of Magic Sealing";
+	setd "$@cardprefix"+ 4365 +"$", "of Tempest";
+	setd "$@cardprefix"+ 4366 +"$", "of Caster";
+	setd "$@cardprefix"+ 4367 +"$", "of Squeezing";
+	setd "$@cardprefix"+ 4368 +"$", "Rapid";
+	setd "$@cardprefix"+ 4369 +"$", "of Luck Switching";
+	setd "$@cardprefix"+ 4370 +"$", "Weakening";
+	setd "$@cardprefix"+ 4371 +"$", "of Paladin";
+	setd "$@cardprefix"+ 4372 +"$", "Undecided";
+	setd "$@cardprefix"+ 4373 +"$", "Cursed";
+	setd "$@cardprefix"+ 4374 +"$", "Undecided";
+	setd "$@cardprefix"+ 4375 +"$", "Extra High Level";
+	setd "$@cardprefix"+ 4376 +"$", "Manful";
+	setd "$@cardprefix"+ 4377 +"$", "Sweetie";
+	setd "$@cardprefix"+ 4378 +"$", "Low Level";
+	setd "$@cardprefix"+ 4379 +"$", "Low Level";
+	setd "$@cardprefix"+ 4380 +"$", "Salamander";
+	setd "$@cardprefix"+ 4381 +"$", "of Wanderer";
+	setd "$@cardprefix"+ 4382 +"$", "of Scholar";
+	setd "$@cardprefix"+ 4383 +"$", "Chaotic";
+	setd "$@cardprefix"+ 4384 +"$", "Magic Eater";
+	setd "$@cardprefix"+ 4385 +"$", "Drink";
+	setd "$@cardprefix"+ 4386 +"$", "of Magic Shelter";
+	setd "$@cardprefix"+ 4387 +"$", "of Agility Switching";
+	setd "$@cardprefix"+ 4388 +"$", "Soul";
+	setd "$@cardprefix"+ 4389 +"$", "Elemental";
+	setd "$@cardprefix"+ 4390 +"$", "Blooding";
+	setd "$@cardprefix"+ 4391 +"$", "Snack";
+	setd "$@cardprefix"+ 4392 +"$", "of Dexterity Switching";
+	setd "$@cardprefix"+ 4393 +"$", "of Intelligence Switching";
+	setd "$@cardprefix"+ 4394 +"$", "Divine Cross";
+	setd "$@cardprefix"+ 4395 +"$", "Slug";
+	setd "$@cardprefix"+ 4396 +"$", "Dull";
+	setd "$@cardprefix"+ 4397 +"$", "Stupidity";
+	setd "$@cardprefix"+ 4398 +"$", "Darkness";
+	setd "$@cardprefix"+ 4399 +"$", "Penetration";
+	setd "$@cardprefix"+ 4400 +"$", "of Temptation";
+	setd "$@cardprefix"+ 4401 +"$", "Swift";
+	setd "$@cardprefix"+ 4402 +"$", "Strange";
+	setd "$@cardprefix"+ 4403 +"$", "Undecided";
+	setd "$@cardprefix"+ 4404 +"$", "of Chaotic Bleeding";
+	setd "$@cardprefix"+ 4405 +"$", "of Magic Mirror";
+	setd "$@cardprefix"+ 4406 +"$", "Twinkle";
+	setd "$@cardprefix"+ 4407 +"$", "of Elimination";
+	setd "$@cardprefix"+ 4408 +"$", "Abyss";
+	setd "$@cardprefix"+ 4409 +"$", "Panic";
+	setd "$@cardprefix"+ 4410 +"$", "Madness";
+	setd "$@cardprefix"+ 4411 +"$", "Arta's";
+	setd "$@cardprefix"+ 4412 +"$", "Aria";
+	setd "$@cardprefix"+ 4413 +"$", "Resistance";
+	setd "$@cardprefix"+ 4414 +"$", "Gorgon's";
+	setd "$@cardprefix"+ 4415 +"$", "Sweet";
+	setd "$@cardprefix"+ 4416 +"$", "Grain";
+	setd "$@cardprefix"+ 4417 +"$", "Flow";
+	setd "$@cardprefix"+ 4418 +"$", "Hailing";
+	setd "$@cardprefix"+ 4419 +"$", "Jack Frost";
+	setd "$@cardprefix"+ 4420 +"$", "Solace";
+	setd "$@cardprefix"+ 4421 +"$", "of Chinook";
+	setd "$@cardprefix"+ 4422 +"$", "Breeze";
+	setd "$@cardprefix"+ 4423 +"$", "Spread";
+	setd "$@cardprefix"+ 4424 +"$", "Stony";
+	setd "$@cardprefix"+ 4425 +"$", "Beast";
+	setd "$@cardprefix"+ 4426 +"$", "Exceeding";
+	setd "$@cardprefix"+ 4427 +"$", "of Force";
+	setd "$@cardprefix"+ 4428 +"$", "Shaft";
+	setd "$@cardprefix"+ 4429 +"$", "Nessus";
+	setd "$@cardprefix"+ 4430 +"$", "Inferno";
+	setd "$@cardprefix"+ 4431 +"$", "Stygia";
+	setd "$@cardprefix"+ 4432 +"$", "Scorching";
+	setd "$@cardprefix"+ 4433 +"$", "Ignite";
+	setd "$@cardprefix"+ 4434 +"$", "Miner's";
+	setd "$@cardprefix"+ 4435 +"$", "Violent";
+	setd "$@cardprefix"+ 4436 +"$", "Lunatic";
+	setd "$@cardprefix"+ 4437 +"$", "Mad Dog";
+	setd "$@cardprefix"+ 4438 +"$", "Mental";
+	setd "$@cardprefix"+ 4439 +"$", "of Anathema";
+	setd "$@cardprefix"+ 4440 +"$", "of Ignoring";
+	setd "$@cardprefix"+ 4441 +"$", "Arrogant";
+	setd "$@cardprefix"+ 4442 +"$", "of Basis";
+	setd "$@cardprefix"+ 4443 +"$", "of Underneith";
+	setd "$@cardprefix"+ 4444 +"$", "of Saharic";
+	setd "$@cardprefix"+ 4445 +"$", "of Windy";
+	setd "$@cardprefix"+ 4447 +"$", "of Envenom";
+	setd "$@cardprefix"+ 4448 +"$", "of Damned";
+	setd "$@cardprefix"+ 4449 +"$", "of Hallowed";
+	setd "$@cardprefix"+ 4450 +"$", "Surplus";
+	setd "$@cardprefix"+ 4451 +"$", "of Axis";
+	setd "$@cardprefix"+ 4452 +"$", "Magical";
+	setd "$@cardprefix"+ 4453 +"$", "Violent";
+	end;
+}

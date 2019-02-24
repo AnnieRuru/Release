@@ -1,0 +1,298 @@
+//===== Hercules Script ======================================
+//= WoW domination Battleground : Arathi Basin
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.5
+//===== Compatible With: ===================================== 
+//= Hercules 2014-02-20
+//===== Description: =========================================
+//= Hercules version
+//===== Topic ================================================
+//= http://herc.ws/board/topic/4514-wow-domination-battleground-olrox-is-not-invited/?p=29269
+//===== Additional Comments: =================================  
+//= rewrite again from scratch
+//============================================================
+
+-	script	wow_domi#main	-1,{
+OnInit:
+	mapwarp "guild_vs2", "prontera", 156,191;
+	.eventlasting = 30*60; // how long will the event last or it auto-reset. 30*60 = 30 mins
+	.minplayer2start = 2; // how many players require to start ? if 3vs3, set to 3
+
+	.score2win = 100; // score will start at 0, and end at this value
+	.time2capture = 3; // when capture a flag, how long does it takes to turn to your side
+	.distance = 3; // how far does the player allow to capture a flag ? example, if set to 15, will allow archers to capture the flag using bows
+
+	.tick[1] = 12000; // when capture 1 flag ...
+	.point[1] = 1; // 12 seconds to gain 1 point
+
+	.tick[2] = 9000; // when capture 2 flags ...
+	.point[2] = 1; // 9 seconds to gain 1 point
+
+	.tick[3] = 6000; // when capture 3 flags ...
+	.point[3] = 1; // 6 seconds to gain 1 point
+
+	.tick[4] = 3000; // when capture 4 flags ...
+	.point[4] = 1; // 3 seconds to gain 1 point
+
+	.tick[5] = 1000; // when capture ALL flags ...
+	.point[5] = 3; // gain 3 points every second !
+
+	setarray .rewardwin, 501,10, 502,5, 503,3; // reward to winning team
+	setarray .rewardlose, 501,5, 502,3, 503,1; // reward to losing team
+
+//	for those who want to translate this script ...
+	.team1name$ = "Alliance";
+	.team2name$ = "Horde";
+
+	.team1base$ = "Alliance Base";
+	.team2base$ = "Horde Base";
+
+	.flagname$[1] = "Stable";
+	.flagname$[2] = "Gold Mine";
+	.flagname$[3] = "Blacksmith";
+	.flagname$[4] = "Lumber Mill";
+	.flagname$[5] = "Farm";
+
+	.ann$[0] = "[WoW Battleground] Alliance : %d/%d. Horde : %d/%d";
+	.ann$[1] = "[WoW Battleground] Battleground has started";
+	.ann$[2] = "[WoW Battleground] %s has captured %s !";
+	.ann$[3] = "[WoW Battleground] All %s members has quit !";
+	.ann$[4] = "[WoW Battleground] %s won !";
+	.ann$[5] = "[WoW Battleground] Time out ! Aborting the match.";
+	
+	.msg$[0] = "Get out"; // not a battleground member
+	.msg$[1] = "Event has ended";
+	.msg$[2] = "Your team has captured this flag";
+	.msg$[3] = "You can't capture a flag while cloaking or hiding";
+	.msg$[4] = "You have to stand nearer";
+
+//	---- END of Config ---
+	.tick = .eventlasting * 1000;
+	.rewardwinsize = getarraysize( .rewardwin );
+	.rewardlosesize = getarraysize( .rewardlose );
+	setnpcdisplay "wow_domi_base#1", .team1base$;
+	setnpcdisplay "wow_domi_base#2", .team2base$;
+	for ( .@i = 1; .@i <= 5; .@i++ )
+		setnpcdisplay "wow_domi_flag#"+ .@i, .flagname$[.@i] +"#"+ .@i;
+	end;
+OnStart:
+	if ( getwaitingroomstate( 0, .alliance$ ) < .minplayer2start || getwaitingroomstate( 0, .horde$ ) < .minplayer2start ) {
+		announce sprintf( .ann$[0], getwaitingroomstate( 0, .alliance$ ), .minplayer2start, getwaitingroomstate( 0, .horde$ ), .minplayer2start ), bc_all, 0x00CED1;
+		end;
+	}
+	.start = 1;
+	announce .ann$[1], bc_all, 0x00CED1;
+	.alliance = waitingroom2bg( "guild_vs2", 49, 91, strnpcinfo(0)+"::OnAllianceQuit", strnpcinfo(0)+"::OnAllianceDied", .alliance$ );
+	copyarray .team1aid, $@arenamembers, $@arenamembersnum;
+	.horde = waitingroom2bg( "guild_vs2", 49, 8, strnpcinfo(0)+"::OnHordeQuit", strnpcinfo(0)+"::OnHordeDied", .horde$ );
+	copyarray .team2aid, $@arenamembers, $@arenamembersnum;
+	.team1count = .team2count = .minplayer2start;
+	donpcevent "wow_domi_score_team#1::OnStart";
+	donpcevent "wow_domi_score_team#2::OnStart";
+	bg_warp .alliance, "guild_vs2", 50,92;
+	bg_warp .horde, "guild_vs2", 50,7;
+	delwaitingroom .alliance$;
+	delwaitingroom .horde$;
+	disablenpc .alliance$;
+	disablenpc .horde$;
+	donpcevent "wow_domi_viewpoint::OnStart";
+	sleep .eventlasting * 1000;
+	donpcevent "wow_domi_viewpoint::OnEnd";
+	awake "wow_domi_score_team#1";
+	awake "wow_domi_score_team#2";
+	if ( .winside ) {
+		mapannounce "guild_vs2", sprintf( .ann$[4], getd( ".team"+ .winside +"name$" ) ), bc_map, 0x00CED1;
+		callsub L_reward, .winside, .rewardwin, .rewardwinsize;
+		callsub L_reward, ( .winside == 1 )? 2:1, .rewardlose, .rewardlosesize;
+	}
+	else
+		mapannounce "guild_vs2", .ann$[5], bc_map, 0x00CED1;
+	sleep 5000;
+	for ( .@i = 1; .@i <= 5; .@i++ ) {
+		.flag[.@i] = 0;
+		setnpcdisplay .flagname$[.@i], 722;
+	}
+	mapwarp "guild_vs2", "prontera", 156,191; // respawn here
+	bg_destroy .alliance;
+	bg_destroy .horde;
+	enablenpc .alliance$;
+	enablenpc .horde$;
+	donpcevent .alliance$ +"::OnStart";
+	donpcevent .horde$ +"::OnStart";
+	.start = .score[1] = .score[2] = .alliance = .horde = .winside = 0;
+	end;
+L_reward:
+	for ( .@i = 0; .@i < getd(".team"+ getarg(0) +"count"); .@i++ )
+		for ( .@j = 0; .@j < getarg(2); .@j += 2 )
+			getitem getelementofarray( getarg(1), .@j ), getelementofarray( getarg(1), .@j +1 ), getd(".team"+ getarg(0) +"aid["+ .@i +"]" );
+	return;
+OnAllianceDied: callsub L_died, 1;
+OnHordeDied: callsub L_died, 2;
+L_died:
+	sleep2 1250;
+	percentheal 100,100;
+	end;
+OnAllianceQuit: callsub L_quit, 1, 2;
+OnHordeQuit: callsub L_quit, 2, 1;
+L_quit:
+	while ( getd( ".team"+ getarg(0) +"aid["+ .@i +"]" ) != getcharid(3) && .@i < getd(".team"+ getarg(0) +"count") ) .@i++;
+	deletearray getd( ".team"+ getarg(0) +"aid["+ .@i +"]" ), 1;
+	setd ".team"+ getarg(0) +"count", getd(".team"+ getarg(0) +"count") -1;
+	if ( bg_get_data( getarg(0), 0) ) end;
+	announce sprintf( .ann$[3], getd( ".team"+ getarg(0) +"name$" ) ), bc_map, 0xFF0000;
+	.winside = getarg(1);
+	.start = 2;
+	awake strnpcinfo(0);
+	end;
+}
+-	script	wow_domi_viewpoint	-1,{
+OnStart:
+	sleep 7000; // long enough I guess ?
+OnCapture:
+	callsub L_display, 1;
+	end;
+OnEnd:
+	callsub L_display, 2;
+	end;
+L_display:
+	.@main$ = "wow_domi#main";
+	for ( .@j = 1; .@j <= 2; .@j++ ) {
+		for ( .@i = 0; .@i < getvariableofnpc( getd(".team"+ .@j +"count"), .@main$ ); .@i++ ) {
+			attachrid getvariableofnpc( getd(".team"+ .@j +"aid["+ .@i +"]"), .@main$ );
+			for ( .@k = 1; .@k <= 5; .@k++ ) {
+				viewpoint getarg(0), getvariableofnpc( .flagx[.@k], .@main$ ), getvariableofnpc( .flagy[.@k], .@main$ ), .@k, .color[ getvariableofnpc( .flag[.@k], .@main$ ) ];
+			}
+		}
+	}
+	end;
+OnInit:
+	.color[0] = 0xFFFFFF;
+	.color[1] = 0x0099FF;
+	.color[2] = 0xFF0000;
+	end;
+}
+
+-	script	wow_domi_score_team	-1,{
+OnStart:
+	.@team = atoi( strnpcinfo(2) );
+	.@main$ = "wow_domi#main";
+	while ( getvariableofnpc( .start, .@main$ ) == 1 ) {
+		.@catched = 0;
+		for ( .@i = 1; .@i <= 5; .@i++ )
+			if ( getvariableofnpc( .flag[.@i], .@main$ ) == .@team )
+				.@catched++;
+		.@tick = getvariableofnpc( .tick[ .@catched ], .@main$ );
+		set getvariableofnpc( .score[.@team], .@main$ ), getvariableofnpc( .score[.@team], .@main$ ) + getvariableofnpc( .point[ .@catched ], .@main$ );
+		if ( getvariableofnpc( .score[.@team], .@main$ ) >= getvariableofnpc( .score2win, .@main$ ) ) {
+			set getvariableofnpc( .start, .@main$ ), 2;
+			set getvariableofnpc( .winside, .@main$ ), .@team;
+			awake .@main$;
+			if ( .@team == 1 )
+				bg_updatescore "guild_vs2", 100, getvariableofnpc( .score[2], .@main$ );
+			else
+				bg_updatescore "guild_vs2", getvariableofnpc( .score[1], .@main$ ), 100;
+			break;
+		}
+		bg_updatescore "guild_vs2", getvariableofnpc( .score[1], .@main$ ), getvariableofnpc( .score[2], .@main$ );
+		sleep .@tick;
+	}
+	end;
+}
+-	duplicate(wow_domi_score_team)	wow_domi_score_team#1	-1
+-	duplicate(wow_domi_score_team)	wow_domi_score_team#2	-1
+
+-	script	wow_domi_flag	-1,{
+	.@id = atoi( strnpcinfo(2) );
+	.@main$ = "wow_domi#main";
+	.@alliance = getvariableofnpc( .alliance, .@main$ );
+	.@horde = getvariableofnpc( .horde, .@main$ );
+	.@flag = getvariableofnpc( .flag[.@id], .@main$ );
+	if ( !getcharid(4) || ( getcharid(4) != .@alliance && getcharid(4) != .@horde ) ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[0], .@main$ );
+		end;
+	}
+	if ( getvariableofnpc( .start, .@main$ ) != 1 ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[1], .@main$ );
+		end;
+	}
+	if ( getcharid(4) == .@alliance && .@flag == 1 || getcharid(4) == .@horde && .@flag == 2 ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[2], .@main$ );
+		end;
+	}
+	if ( checkoption(0x4046) ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[3], .@main$ );
+		end;
+	}
+	getmapxy .@map$, .@x, .@y, 0;
+	getmapxy .@map$, .@x1, .@y1, 1;
+	if ( distance( .@x, .@y, .@x1, .@y1 ) > getvariableofnpc( .distance, .@main$ ) ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[4], .@main$ );
+		end;
+	}
+	progressbar "", getvariableofnpc( .time2capture, .@main$ );
+	if ( getvariableofnpc( .start, .@main$ ) != 1 ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[1], .@main$ );
+		end;
+	}
+	.@flag = getvariableofnpc( .flag[.@id], .@main$ );
+	if ( getcharid(4) == .@alliance && .@flag == 1 || getcharid(4) == .@horde && .@flag == 2 ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[2], .@main$ );
+		end;
+	}
+	.@team = ( getcharid(4) == .@alliance )? 1 : 2;
+	set getvariableofnpc( .flag[.@id], .@main$ ), .@team;
+	setnpcdisplay "wow_domi_flag#"+ .@id, ( .@team == 1 )? 1_FLAG_LION : 1_FLAG_EAGLE;
+	announce sprintf( getvariableofnpc( .ann$[2], .@main$ ), getvariableofnpc( getd( ".team"+ .@team +"name$" ), .@main$ ), getvariableofnpc( .flagname$[.@id], .@main$ ) ), bc_map, 0x00CED1;
+	awake "wow_domi_score_team#"+ .@team;
+	donpcevent "wow_domi_viewpoint::OnCapture";
+	end;
+OnInit:
+	sleep 1;
+	.@id = atoi( strnpcinfo(2) );
+	.@main$ = "wow_domi#main";
+	getmapxy .@map$, getvariableofnpc( .flagx[.@id], .@main$ ), getvariableofnpc( .flagy[.@id], .@main$ ), 1;
+	end;
+}
+guild_vs2,49,69,4	duplicate(wow_domi_flag)	wow_domi_flag#1	722
+guild_vs2,72,50,4	duplicate(wow_domi_flag)	wow_domi_flag#2	722
+guild_vs2,49,49,4	duplicate(wow_domi_flag)	wow_domi_flag#3	722
+guild_vs2,26,49,4	duplicate(wow_domi_flag)	wow_domi_flag#4	722
+guild_vs2,49,28,4	duplicate(wow_domi_flag)	wow_domi_flag#5	722
+
+-	script	wow_domi_base	-1,{
+	end;
+}
+guild_vs2,50,92,5	duplicate(wow_domi_base)	wow_domi_base#1	973
+guild_vs2,50,7,5	duplicate(wow_domi_base)	wow_domi_base#2	974
+
+prontera,151,193,5	script	Alliance	100,{
+	end;
+OnInit:
+	sleep 1;
+	set getvariableofnpc( .alliance$, "wow_domi#main" ), strnpcinfo(0);
+OnStart:
+	waitingroom strnpcinfo(1), getvariableofnpc( .minplayer2start, "wow_domi#main" ) +1, "wow_domi#main::OnStart", 1;
+	end;
+}
+
+prontera,160,193,5	script	Horde	100,{
+	end;
+OnInit:
+	sleep 1;
+	set getvariableofnpc( .horde$, "wow_domi#main" ), strnpcinfo(0);
+OnStart:
+	waitingroom strnpcinfo(1), getvariableofnpc( .minplayer2start, "wow_domi#main" ) +1, "wow_domi#main::OnStart", 1;
+	end;
+}
+
+guild_vs2	mapflag	battleground	2
+guild_vs2	mapflag	nosave	SavePoint
+guild_vs2	mapflag	nowarp
+guild_vs2	mapflag	nowarpto
+guild_vs2	mapflag	noteleport
+guild_vs2	mapflag	nomemo
+guild_vs2	mapflag	nopenalty
+guild_vs2	mapflag	nobranch
+guild_vs2	mapflag	noicewall

@@ -1,0 +1,214 @@
+//===== rAthena Script ============================================
+//= Raffle Event
+//===== By: =======================================================
+//= AnnieRuru
+//===== Current Version: ==========================================
+//= 0.2
+//===== Compatible With: ==========================================
+//= rathena 2019-02-04
+//===== Description: ==============================================
+//= 1 player setup the item for all other players to bet on the item
+//===== Topic =====================================================
+//= https://rathena.org/board/topic/117956-rolling-in-the-deep/?do=findComment&comment=356321
+//===== Additional Comments: ======================================
+//= rathena's mail command still doesn't support refine field
+//=================================================================
+
+/* can only bet these item types
+- `IT_WEAPON`: 4
+- `IT_ARMOR`: 5
+- `IT_CARD`: 6
+- `IT_PETEGG`: 7
+- `IT_PETARMOR`: 8
+*/
+prontera,155,185,5	script	Raffle Manager	4_F_ANNIVERSARY,{
+//	.@a = RDMOPT_VAR_MAXHPAMOUNT;
+//	.@b = 300000;
+//	.@d = 50;
+//	getitem3 1201,1,1,0,0, 0,0,0,0, .@a,.@b,.@d;
+//	end;
+	disable_items;
+	if ( .start == 1 ) goto L_StartEvent; // goto is evil, but it actually helps make script higher readability
+	else if ( .start == 2 ) {
+		mes .npc_raff$;
+		mes "Currently rolling dice.. please wait until we announce the winner.";
+		close;
+	}
+	mes .npc_raff$;
+	mes "Select which item from your inventory would you like to raffle? ^ff0000Read please^000000. just to remind you please prevent selecting items with refine. thanks!";
+	next;
+	getinventorylist;
+	for ( .@i = 0; .@i < @inventorylist_count; ++.@i ) {
+		if ( @inventorylist_equip[.@i] == 0 && @inventorylist_identify[.@i] == true && @inventorylist_attribute[.@i] == false && @inventorylist_expire[.@i] == 0 && @inventorylist_bound[.@i] == BOUND_NONE && @inventorylist_refine == 0 && ( getiteminfo( @inventorylist_id[.@i], 2 ) == IT_WEAPON || getiteminfo( @inventorylist_id[.@i], 2 ) == IT_ARMOR || getiteminfo( @inventorylist_id[.@i], 2 ) == IT_CARD || getiteminfo( @inventorylist_id[.@i], 2 ) == IT_PETEGG || getiteminfo( @inventorylist_id[.@i], 2 ) == IT_PETARMOR ) ) {
+			.@itemname$ = callfunc( "getitemname2", @inventorylist_id[.@i], @inventorylist_identify, @inventorylist_refine, @inventorylist_attribute, @inventorylist_card1, @inventorylist_card2, @inventorylist_card3, @inventorylist_card4 );
+			.@menu$ = .@menu$ + @itemname2_info$ + .@itemname$ +" - "+ @inventorylist_amount[.@i] +" ea.:";
+			.@id[.@c] = @inventorylist_id[.@i];
+			.@refine[.@c] = @inventorylist_refine[.@i];
+			for ( .@j = 1; .@j < 4; ++.@j )
+				setd ".@card"+ .@j +"["+ .@c +"]", getd("@inventorylist_card"+ .@j +"["+ .@i +"]");
+			for ( .@j = 1; .@j <= 5; ++.@j ) {
+				setd ".@randopt"+ .@j +"id["+ .@c +"]", getd("@inventorylist_option_id"+ .@j +"["+ .@i +"]");
+				setd ".@randopt"+ .@j +"value["+ .@c +"]", getd("@inventorylist_option_value"+ .@j +"["+ .@i +"]");
+				setd ".@randopt"+ .@j +"param["+ .@c +"]", getd("@inventorylist_option_parameter"+ .@j +"["+ .@i +"]");
+			}
+			++.@c;
+		}
+	}
+	if ( !.@c ) {
+		mes .npc_raff$;
+		mes "I'm sorry but you dont have anything in your inventory to be able to make a raffle.";
+		close;
+	}
+	.@s = select(.@menu$) -1;
+	.@id = .@id[.@s];
+	.@refine = .@refine[.@s];
+	for ( .@j = 1; .@j < 4; ++.@j )
+		setd ".@card"+ .@j, getd(".@card"+ .@j +"["+ .@s +"]");
+	for ( .@j = 1; .@j < 5; ++.@j ) {
+		.@randopt_id[.@j -1] = getd(".@randopt"+ .@j +"id["+ .@s +"]");
+		.@randopt_value[.@j -1] = getd(".@randopt"+ .@j +"value["+ .@s +"]");
+		.@randopt_param[.@j -1] = getd(".@randopt"+ .@j +"param["+ .@s +"]");
+	}
+	.@itemname$ = callfunc( "getitemname2", .@id, 1, .@refine, 0, .@card1, .@card2, .@card3, .@card4 );
+	mes .npc_raff$;
+	mes "Are you sure you want to raffle your " + .@itemname$ + "?";
+	next;
+	if ( select( "Yes", "No" ) == 2 ) close;
+	mes .npc_raff$;
+	mes "Select the amount of "+ getitemname( .currency ) +" for the player to pay per entry.";
+	next;
+	if ( input( .@amount, 1, 30000 ) ) {
+		mes .npc_raff$;
+		mes "Im sorry that was invalid please try again.";
+		close;
+	}
+	mes .npc_raff$;
+	mes "Are you sure about this?";
+	mes "^0000ffItemName^000000: ^ff0000" + .@itemname$ + "^000000";
+	mes "^0000ffAmount^000000: ^ff0000" + callfunc("F_InsertComma",.@amount) + " x "+ getitemname( .currency ) + "^000000";
+	if ( select ( "Yes", "No" ) == 2 ) close;
+	close2;
+	if ( .@randopt_id ) { // stupid countitem3 script command
+		if ( !countitem3( .@id, 1, .@refine, 0, .@card1, .@card2, .@card3, .@card4, .@randopt_id, .@randopt_value, .@randopt_param ) ) {
+			dispbottom "You tried?! TAKE THIS!";
+		//	atcommand "@nuke " + strcharinfo(0); // Note: killing players on a map without nopenalty mapflag will result in exp loss
+			unitskilluseid getcharid(3),"NPC_SELFDESTRUCTION", 1;
+			end;
+		}
+	}
+	else if ( !countitem2( .@id, 1, .@refine, 0, .@card1, .@card2, .@card3, .@card4 ) ) {
+		dispbottom "You tried?! TAKE THIS!";
+		atcommand "@nuke " + strcharinfo(0);
+		end;
+	}
+	if ( .start != 0 ) {
+		dispbottom "Too slow, somebody make it faster than you.";
+		end;
+	}
+	announce strcharinfo(0) +" has opened a raffle for " + (Sex?"his":"her") + " ("+ .@itemname$ +") for only " + callfunc("F_InsertComma",.@amount) + "x coins per entry. You only have 5 minutes before the raffle starts.",bc_all,0xB6FF00;
+	if ( .@randopt_id ) // delitem3 also stupid
+		delitem3 .@id, 1, 1, .@refine, 0, .@card1, .@card2, .@card3, .@card4, .@randopt_id, .@randopt_value, .@randopt_param;
+	else
+		delitem2 .@id, 1, 1, .@refine, 0, .@card1, .@card2, .@card3, .@card4;
+	.id = .@id;
+	.refine = .@refine;
+	for ( .@i = 1; .@i <= 4; ++.@i )
+		setd ".card"+ .@i, getd(".@card"+ .@i);
+	copyarray .randopt_id, .@randopt_id, 5;
+	copyarray .randopt_value, .@randopt_value, 5;
+	copyarray .randopt_param, .@randopt_param, 5;
+	.aid = getcharid(3);
+	.cid = getcharid(0);
+	.amount = .@amount;
+	.itemname$ = .@itemname$;
+	.start = true;
+	initnpctimer;
+	end;
+L_StartEvent:
+	mes .npc_raff$;
+	mes "Currently there are " + callfunc("F_InsertPlural", .total_bet, "player") + "  registered.";
+	for ( .@i = 0; .@i < .total_bet; ++.@i )
+		mes ( .@i +1 )+". "+ rid2name(.bet_aid[.@i]);
+	next;
+	if ( getcharid(3) == .aid ) {
+		mes .npc_raff$;
+		mes "I'm sorry but you are not allowed to join.";
+		close;
+	}
+	.@i = 0;
+	while ( .bet_aid[.@i] != getcharid(3) && .@i < .total_bet ) ++.@i;
+	if ( .@i < .total_bet ) {
+		mes .npc_raff$;
+		mes "You've already registered in the raffle.";
+		close;
+	}
+	mes .npc_raff$;
+	mes "Are you sure you want to pay the " + callfunc("F_InsertComma",.amount) + " x "+ getitemname( .currency ) +" for " + .itemname$ + "?";
+	next;
+	if ( select ( "Yes", "No" ) == 2 ) close;
+	if ( countitem( .currency ) < .amount ) {
+		mes .npc_raff$;
+		mes "The minimum payment is "+ callfunc("F_InsertComma",.amount) +" x "+ getitemname( .currency );
+		close;
+	}
+	if ( .start != 1 ) {
+		mes .npc_raff$;
+		mes "Too late";
+		close;
+	}
+	delitem .currency, .amount;
+	announce strcharinfo(0) +" has joined the raffle for the item '"+ .itemname$+"'",bc_all,0xB6FF00;
+	.bet_aid[.total_bet] = getcharid(3);
+	.bet_cid[.total_bet] = getcharid(0);
+	++.total_bet;
+	close;
+//OnTimer300000: // 5 minutes
+OnTimer10000: // 5 minutes
+	stopnpctimer;
+	.start = 2;
+	announce "Raffle is now closed. I'm gonna start shuffling all of you now.",bc_all,0xB6FF00;
+	sleep 1000;
+	announce "To clarify there's a total of "+ .total_bet +" players who joined the raffle for the item ("+ .itemname$ +").",bc_all,0xB6FF00;
+	sleep 1000;
+	announce "And at least "+ .register_min +" players to register this raffle system to work",bc_all,0xB6FF00;
+	sleep 1000;
+	.@amount = 1; // this stupid mail system...
+	.@zeny = 0;
+	.@give_amount = .amount * .total_bet; // why do I have to make these stupid variables ??
+	if ( .total_bet < .register_min ) {
+		announce "The raffle has been cancelled too few players wants the item.",bc_all,0xB6FF00;
+		mail .cid, "WckdRO", "Raffle Items", "I'm sorry but too few players interested on the item that you added for raffle.", .@zeny, .id, .@amount, .card1, .card2, .card3, .card4, .randopt_id, .randopt_value, .randopt_param;
+		for ( .@i = 0; .@i < .total_bet; ++.@i )
+			mail .bet_cid[.@i], "WckdRO", "Raffle Items", "The raffle were cancelled due to not enough players, here is the refund.", .@zeny, .currency, .amount;
+	}
+	else {
+		.@r = rand(.total_bet);
+		announce "The winner is "+ rid2name(.bet_aid[.@r]) +" !!",bc_all,0xB6FF00;
+		mail .bet_cid[.@r], "WckdRO", "Raffle Items", "Congratulations you won the raffle !! here's the item enjoy !", .@zeny, .id, .@amount, .card1, .card2, .card3, .card4, .randopt_id, .randopt_value, .randopt_param;
+		mail .cid, "WckdRO", "Raffle Items", "There were "+ .total_bet +" players bet on your item.", .@zeny, .currency, .@give_amount;
+	}
+	.start = false;
+	.id = 0;
+	.refine = 0;
+	.card1 = 0;
+	.card2 = 0;
+	.card3 = 0;
+	.card4 = 0;
+	deletearray .randopt_id;
+	deletearray .randopt_value;
+	deletearray .randopt_param;
+	.aid = 0;
+	.amount = 0;
+	.itemname$ = "";
+	deletearray .bet_aid;
+	deletearray .bet_cid;
+	.total_bet = 0;
+	end;
+OnInit:
+	.npc_raff$ = "[^04B4AE Raffle Manager ^000000]";
+//	.currency = 32609; // Poring_Coin
+	.currency = 7539; // Poring_Coin
+	.register_min = 3; // minimum 3 players to make this work
+//	.register_limit = 100; // only 10 people can join ... seems you remove this ... remember players unable take more than 30000 item count, means bug the script
+	end;
+}

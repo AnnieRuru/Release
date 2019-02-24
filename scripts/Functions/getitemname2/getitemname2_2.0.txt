@@ -1,0 +1,640 @@
+//===== eAthena Script ======================================
+//= [Function] getitemname2
+//===== By: =================================================
+//= ~AnnieRuru~
+//===== Current Version: ====================================
+//= 2.0
+//===== Compatible With: ====================================
+//= eAthena 14279 Trunk SQL
+//===== Description: ========================================
+//= custom function to show item names just like in game
+//===== Topic: ==============================================
+//= http://www.eathena.ws/board/index.php?showtopic=244678
+//===== Additional Comments: ================================
+//= callfunc("getitemname2", ItemID, Identify, Refine, Broken, Card1, Card2, Card3, Card4)
+//= it also creates a player array : @itemname2_info$
+//= [0] = color
+//=     ^000000 (black)  = normal equipment/items
+//=     ^999999 (gray)   = unidentify equipment
+//=     ^FF0000 (red)    = broken equipment
+//=     ^66CC00 (green)  = enchanted equipment (1)
+//=     ^0066CC (blue)   = enchanted equipment (2)
+//=     ^CC6600 (choco)  = enchanted equipment (3)
+//=     ^BB44BB (purple) = enchanted equipment (4)
+//= [1] = ID information
+//=     Equipment = Char ID
+//=     Pet egg = Pet ID
+//= [2] = return full item name if identified ( used in unidentified items only )
+//= [3] = amount of star crumb used, return in number ( used in crafted item only )
+//= [4] = weapon element, return in string ( used in crafted item only )
+//===========================================================
+
+/*	for testing only
+prontera,152,188,5	script	test getitemname2	100,{
+	//	debug
+//	setarray .@a, 1964,1,4,0, 4001,4001,4001,4001;
+//	mes @itemname2_info$ + callfunc("getitemname2", .@a[0],.@a[1],.@a[2],.@a[3], .@a[4],.@a[5],.@a[6],.@a[7]);
+//	getitem2 .@a[0],1,.@a[1],.@a[2],.@a[3], .@a[4],.@a[5],.@a[6],.@a[7];
+	getinventorylist;
+	mes "^000000=== Total items : "+ @inventorylist_count +" ===";
+	set .@i, 0;
+	while ( .@i < @inventorylist_count ) {
+		set .@itemname$, callfunc("getitemname2", @inventorylist_id[.@i], @inventorylist_identify[.@i], @inventorylist_refine[.@i], @inventorylist_attribute[.@i], @inventorylist_card1[.@i], @inventorylist_card2[.@i], @inventorylist_card3[.@i], @inventorylist_card4[.@i]);
+		dispbottom .@itemname$ +": "+ @inventorylist_amount[.@i] +" ea.";
+		set .@menu$, .@menu$ + @itemname2_info$ + .@itemname$ +"; "+ @inventorylist_amount[.@i] +" ea.:";
+		set .@i, .@i +1 ;
+	}
+	set .@menu, select(.@menu$) -1;
+	mes @itemname2_info$[0] + callfunc("getitemname2", @inventorylist_id[.@menu], @inventorylist_identify[.@menu], @inventorylist_refine[.@menu], @inventorylist_attribute[.@menu], @inventorylist_card1[.@menu], @inventorylist_card2[.@menu], @inventorylist_card3[.@menu], @inventorylist_card4[.@menu]) +": "+ @inventorylist_amount[.@menu] +" ea.";
+	mes @itemname2_info$[1];
+	mes @itemname2_info$[2];
+	mes @itemname2_info$[3];
+	mes @itemname2_info$[4];
+	close;
+}*/
+
+function	script	getitemname2	{
+	deletearray @itemname2_info$;
+	set .@id, getarg(0);
+	set .@type, getiteminfo( .@id, 2 );
+	set .@refine, getarg(2);
+	set .@card[0], getarg(4);
+	set .@card[1], getarg(5);
+	set .@card[2], getarg(6);
+	set .@card[3], getarg(7);
+	set .@ref$, ( .@refine )? "+"+ .@refine +" " : "" ; // I think no need refinement check for type 4 or 5, the source automatically convert refined etc items into no refinement
+	set .@slot, getitemslots(.@id);
+	set .@slots$, ( .@slot )? " ["+ .@slot +"]" : "" ;
+	set @itemname2_info$[0], "^000000";
+	if ( (.@type != 4 && .@type != 5 ) && .@card[0] != 254 ) { // non-equipable item that isn't signed
+		set .@pid, .@card[1] +( ( .@card[1] >= 0 )?0:pow(2,16) )+ .@card[2] * pow(2,16);
+		set @itemname2_info$[1], ( .@pid )? .@pid : "";
+		return getitemname(.@id);
+	}
+	else if ( ( .@type == 4 || .@type == 5 ) && .@card[0] == 0 && .@card[1] == 0 && .@card[2] == 0 && .@card[3] == 0 ) // equipment with no card, for reduce gotocount
+		set .@return$, .@ref$ + getitemname(.@id) + .@slots$;
+	else if ( ( .@type == 4 || .@type == 5 ) && ( .@card[0] > 500 || .@card[1] > 500 || .@card[2] > 500 || .@card[3] > 500 ) && .@card[0] != 254 && .@card[0] != 255 ) { // equipment that has cards, but not a signed item
+		set .@i, 0;
+		while ( .@i < 4 ) {
+			set .@j, .@i;
+			while ( .@j < 4 ) {
+				if ( .@card[.@i] == .@card[.@j] ) {
+					set .@k, 1;
+					while ( .@k <= .@i ) {
+						if ( .@card[.@i] == .@card[.@i - .@k] ) {
+							break;
+						}
+						set .@k, .@k +1 ;
+					}
+					if ( .@k <= .@i ) break;
+					set .@cnt[.@i], .@cnt[.@i] +1 ;
+				}
+				set .@j, .@j +1 ;
+			}
+			if ( getd("$@cardprefix"+ .@card[.@i] +"$") != "" && .@cnt[.@i] ) {
+				if ( .@cnt[.@i] == 1 ) ;
+				else if ( .@cnt[.@i] == 2 ) set .@cnt$[.@i], "Double";
+				else if ( .@cnt[.@i] == 3 ) set .@cnt$[.@i], "Triple";
+				else if ( .@cnt[.@i] == 4 ) set .@cnt$[.@i], "Quadruple";
+				if ( compare( getd("$@cardprefix"+ .@card[.@i] +"$"), "of " ) == 0 )
+					set .@prefix$, .@prefix$ + .@cnt$[.@i] +( ( .@cnt$[.@i] == "" )?"":" " )+ getd("$@cardprefix"+ .@card[.@i] +"$") +" ";
+				else
+					set .@prefix$[1], .@prefix$[1] +" "+ getd("$@cardprefix"+ .@card[.@i] +"$") +( ( .@cnt$[.@i] == "" )?"":" " )+ .@cnt$[.@i];
+			}
+			if ( .@card[.@i] && .@i >= .@slot )
+				set .@enchant, .@enchant +1;
+			set .@i, .@i +1 ;
+		}
+		set .@return$, .@ref$ + .@prefix$ + getitemname(.@id) + .@prefix$[1] + .@slots$;
+		if ( .@enchant == 0 ) ;
+		else if ( .@enchant == 1 ) set @itemname2_info$[0], "^66CC00";
+		else if ( .@enchant == 2 ) set @itemname2_info$[0], "^0066CC";
+		else if ( .@enchant == 3 ) set @itemname2_info$[0], "^CC6600";
+		else if ( .@enchant == 4 ) set @itemname2_info$[0], "^BB44BB";
+	}
+	else if ( .@card[0] == 254 || .@card[0] == 255 ) { // signed items
+		set .@cid, .@card[3] * pow(2,16) + .@card[2];
+		set @itemname2_info$[1], .@cid;
+		if ( query_sql("select name from `char` where char_id = "+ .@cid, .@name$) == 0 )
+			set .@name$, "Unknown";
+		if ( .@card[1] / 10 == 0 ) ; 
+		else if ( .@card[1] / 10 == 128 ) {
+			set .@sc$, "Very Strong ";
+			set @itemname2_info$[3], 1;
+		}
+		else if ( .@card[1] / 10 == 256 ) {
+			set .@sc$, "Very Very Strong ";
+			set @itemname2_info$[3], 2;
+		}
+		else if ( .@card[1] / 10 == 384 ) {
+			set .@sc$, "Very Very Very Strong ";
+			set @itemname2_info$[3], 3;
+		}
+		if ( .@card[1] % 10 == 0 ) ;
+		else if ( .@card[1] % 10 == 1 ) {
+			set .@ele$, "Ice ";
+			set @itemname2_info$[3], "Ice";
+		}
+		else if ( .@card[1] % 10 == 2 ) {
+			set .@ele$, "Earth ";
+			set @itemname2_info$[3], "Earth";
+		}
+		else if ( .@card[1] % 10 == 3 ) {
+			set .@ele$, "Fire ";
+			set @itemname2_info$[3], "Fire";
+		}
+		else if ( .@card[1] % 10 == 4 ) {
+			set .@ele$, "Wind ";
+			set @itemname2_info$[3], "Wind";
+		}
+		set .@return$, .@ref$ + .@sc$ + .@name$ +"'s "+ .@ele$ + getitemname(.@id);
+	}
+	if ( getarg(1) == 0 ) { // unidentified
+		if ( .@type == 5 ) {
+			set @itemname2_info$[0], "^999999";
+			set @itemname2_info$[2], .@return$;
+			set .@loc, getiteminfo( .@id, 5 );
+			if ( .@loc & 769 ) return "Headgear"; // I knew the name varies on some items ... but it will take a lot gotocount if list out all of them
+			else if ( .@loc & 16 ) return "Armor";
+			else if ( .@loc & 32 ) return "Shield";
+			else if ( .@loc & 4 ) return "Garment";
+			else if ( .@loc & 64 ) return "Shoes";
+			else if ( .@loc & 136 ) return "Accessory";
+		}
+		else if ( .@type == 4 ) {
+			set @itemname2_info$[0], "^999999";
+			set @itemname2_info$[2], .@return$;
+			set .@view, getiteminfo( .@id, 11 );
+			if ( .@view == 1 ) return "Dagger";
+			else if ( .@view == 2 ) return "Sword";
+			else if ( .@view == 3 ) return "Two-handed Sword";
+			else if ( .@view == 4 ) return "Spear";
+			else if ( .@view == 5 ) return "Spear";
+			else if ( .@view == 6 ) return "Axe";
+			else if ( .@view == 7 ) return "Axe";
+			else if ( .@view == 8 ) return "Mace";
+			else if ( .@view == 10 ) return "Rod";
+			else if ( .@view == 11 ) return "Bow";
+			else if ( .@view == 12 ) return "Claw";
+			else if ( .@view == 13 ) return "Musical Instrument";
+			else if ( .@view == 14 ) return "Whip";
+			else if ( .@view == 15 ) return "Book";
+			else if ( .@view == 16 ) return "Katar";
+			else if ( .@view == 17 ) return "Revolver";
+			else if ( .@view == 18 ) return "Rifle";
+			else if ( .@view == 19 ) return "Gatling gun";
+			else if ( .@view == 20 ) return "Shotgun";
+			else if ( .@view == 21 ) return "Grenade launchers";
+			else if ( .@view == 22 ) return "Fuuma Shurikens";
+		}
+	}
+	else if ( getarg(3) ) // broken equipment
+		set @itemname2_info$[0], "^FF0000";
+	return .@return$;
+}
+
+-	script	itemname2_prefix	-1,{
+OnInit:
+	setd "$@cardprefix"+ 4001 +"$", "Lucky";
+	setd "$@cardprefix"+ 4002 +"$", "Vital";
+	setd "$@cardprefix"+ 4003 +"$", "Hard";
+	setd "$@cardprefix"+ 4004 +"$", "Dexterous";
+	setd "$@cardprefix"+ 4005 +"$", "Hallowed";
+	setd "$@cardprefix"+ 4006 +"$", "Lucky";
+	setd "$@cardprefix"+ 4007 +"$", "Beholder";
+	setd "$@cardprefix"+ 4008 +"$", "Extra";
+	setd "$@cardprefix"+ 4009 +"$", "Light";
+	setd "$@cardprefix"+ 4010 +"$", "Wise";
+	setd "$@cardprefix"+ 4011 +"$", "Dynamic";
+	setd "$@cardprefix"+ 4012 +"$", "Rigid";
+	setd "$@cardprefix"+ 4013 +"$", "Excellent";
+	setd "$@cardprefix"+ 4014 +"$", "of Champion";
+	setd "$@cardprefix"+ 4015 +"$", "Quick";
+	setd "$@cardprefix"+ 4016 +"$", "Speedy";
+	setd "$@cardprefix"+ 4017 +"$", "Stun";
+	setd "$@cardprefix"+ 4018 +"$", "Smart";
+	setd "$@cardprefix"+ 4019 +"$", "Martyr";
+	setd "$@cardprefix"+ 4020 +"$", "Blink";
+	setd "$@cardprefix"+ 4021 +"$", "Skillful";
+	setd "$@cardprefix"+ 4022 +"$", "of Spore";
+	setd "$@cardprefix"+ 4023 +"$", "of Desert";
+	setd "$@cardprefix"+ 4024 +"$", "Drowsy";
+	setd "$@cardprefix"+ 4025 +"$", "Keen";
+	setd "$@cardprefix"+ 4026 +"$", "Shrewd";
+	setd "$@cardprefix"+ 4027 +"$", "Athletic";
+	setd "$@cardprefix"+ 4028 +"$", "Double-forced";
+	setd "$@cardprefix"+ 4029 +"$", "Wolverine";
+	setd "$@cardprefix"+ 4030 +"$", "Windy";
+	setd "$@cardprefix"+ 4031 +"$", "of Ares";
+	setd "$@cardprefix"+ 4032 +"$", "of Athena";
+	setd "$@cardprefix"+ 4033 +"$", "Detoxication";
+	setd "$@cardprefix"+ 4034 +"$", "Clever";
+	setd "$@cardprefix"+ 4035 +"$", "Bloody";
+	setd "$@cardprefix"+ 4036 +"$", "Robust";
+	setd "$@cardprefix"+ 4037 +"$", "Untouchable";
+	setd "$@cardprefix"+ 4038 +"$", "of Health";
+	setd "$@cardprefix"+ 4039 +"$", "of Aristotle";
+	setd "$@cardprefix"+ 4040 +"$", "Teleport";
+	setd "$@cardprefix"+ 4041 +"$", "of Sandman";
+	setd "$@cardprefix"+ 4042 +"$", "of He-Man";
+	setd "$@cardprefix"+ 4043 +"$", "Hurricane";
+	setd "$@cardprefix"+ 4044 +"$", "Hiding";
+	setd "$@cardprefix"+ 4045 +"$", "Heavy";
+	setd "$@cardprefix"+ 4046 +"$", "of Cleric";
+	setd "$@cardprefix"+ 4047 +"$", "Ghost";
+	setd "$@cardprefix"+ 4048 +"$", "Poison";
+	setd "$@cardprefix"+ 4049 +"$", "Flammable";
+	setd "$@cardprefix"+ 4050 +"$", "of Hermes";
+	setd "$@cardprefix"+ 4051 +"$", "of Flash";
+	setd "$@cardprefix"+ 4052 +"$", "Erudite";
+	setd "$@cardprefix"+ 4053 +"$", "Healing";
+	setd "$@cardprefix"+ 4054 +"$", "Holy";
+	setd "$@cardprefix"+ 4055 +"$", "Ice";
+	setd "$@cardprefix"+ 4056 +"$", "of Warmth";
+	setd "$@cardprefix"+ 4057 +"$", "Silence";
+	setd "$@cardprefix"+ 4058 +"$", "Cranial";
+	setd "$@cardprefix"+ 4059 +"$", "of Cadi";
+	setd "$@cardprefix"+ 4060 +"$", "Clamorous";
+	setd "$@cardprefix"+ 4061 +"$", "Immortal";
+	setd "$@cardprefix"+ 4062 +"$", "Envenom";
+	setd "$@cardprefix"+ 4063 +"$", "Insecticide";
+	setd "$@cardprefix"+ 4064 +"$", "Nimble";
+	setd "$@cardprefix"+ 4065 +"$", "Underneath";
+	setd "$@cardprefix"+ 4066 +"$", "Brutal";
+	setd "$@cardprefix"+ 4067 +"$", "Atomic";
+	setd "$@cardprefix"+ 4068 +"$", "Chemical";
+	setd "$@cardprefix"+ 4069 +"$", "Saharic";
+	setd "$@cardprefix"+ 4070 +"$", "of Witch";
+	setd "$@cardprefix"+ 4071 +"$", "Angelic";
+	setd "$@cardprefix"+ 4072 +"$", "Solid";
+	setd "$@cardprefix"+ 4073 +"$", "Discount";
+	setd "$@cardprefix"+ 4074 +"$", "of Gargantua";
+	setd "$@cardprefix"+ 4075 +"$", "Hypnotic";
+	setd "$@cardprefix"+ 4076 +"$", "Cursing";
+	setd "$@cardprefix"+ 4077 +"$", "Under a Cast";
+	setd "$@cardprefix"+ 4078 +"$", "of Recovery";
+	setd "$@cardprefix"+ 4079 +"$", "of Muscle";
+	setd "$@cardprefix"+ 4080 +"$", "Fisher";
+	setd "$@cardprefix"+ 4081 +"$", "Glorious";
+	setd "$@cardprefix"+ 4082 +"$", "Gigantic";
+	setd "$@cardprefix"+ 4083 +"$", "Homer's";
+	setd "$@cardprefix"+ 4084 +"$", "Blast";
+	setd "$@cardprefix"+ 4085 +"$", "Damned";
+	setd "$@cardprefix"+ 4086 +"$", "Critical";
+	setd "$@cardprefix"+ 4087 +"$", "Order";
+	setd "$@cardprefix"+ 4088 +"$", "Guard";
+	setd "$@cardprefix"+ 4089 +"$", "Aqua";
+	setd "$@cardprefix"+ 4090 +"$", "Amulet";
+	setd "$@cardprefix"+ 4091 +"$", "of Counter";
+	setd "$@cardprefix"+ 4092 +"$", "Boned";
+	setd "$@cardprefix"+ 4093 +"$", "Cure";
+	setd "$@cardprefix"+ 4094 +"$", "Kingbird";
+	setd "$@cardprefix"+ 4095 +"$", "Genie's";
+	setd "$@cardprefix"+ 4096 +"$", "Venomer's";
+	setd "$@cardprefix"+ 4097 +"$", "Green";
+	setd "$@cardprefix"+ 4098 +"$", "of Zephyrus";
+	setd "$@cardprefix"+ 4099 +"$", "of Ifrit";
+	setd "$@cardprefix"+ 4100 +"$", "Soul-Enchanted";
+	setd "$@cardprefix"+ 4101 +"$", "of Gnome";
+	setd "$@cardprefix"+ 4102 +"$", "Mocking";
+	setd "$@cardprefix"+ 4103 +"$", "Clairvoyant";
+	setd "$@cardprefix"+ 4104 +"$", "Chaos";
+	setd "$@cardprefix"+ 4105 +"$", "Unfrozen";
+	setd "$@cardprefix"+ 4106 +"$", "Ancient";
+	setd "$@cardprefix"+ 4107 +"$", "Fledged";
+	setd "$@cardprefix"+ 4108 +"$", "Innoxious";
+	setd "$@cardprefix"+ 4109 +"$", "Flameguard";
+	setd "$@cardprefix"+ 4110 +"$", "Viper's";
+	setd "$@cardprefix"+ 4111 +"$", "Decussate";
+	setd "$@cardprefix"+ 4112 +"$", "Peerless";
+	setd "$@cardprefix"+ 4113 +"$", "of Ghost";
+	setd "$@cardprefix"+ 4114 +"$", "Poisoning";
+	setd "$@cardprefix"+ 4115 +"$", "Malicious";
+	setd "$@cardprefix"+ 4116 +"$", "Divine";
+	setd "$@cardprefix"+ 4117 +"$", "Hybrid";
+	setd "$@cardprefix"+ 4118 +"$", "Dragoon";
+	setd "$@cardprefix"+ 4119 +"$", "Evil";
+	setd "$@cardprefix"+ 4120 +"$", "of Dragoon";
+	setd "$@cardprefix"+ 4121 +"$", "Perfect";
+	setd "$@cardprefix"+ 4122 +"$", "Adurate";
+	setd "$@cardprefix"+ 4123 +"$", "Bearer's";
+	setd "$@cardprefix"+ 4124 +"$", "Plasterer's";
+	setd "$@cardprefix"+ 4125 +"$", "Aqua";
+	setd "$@cardprefix"+ 4126 +"$", "Titan";
+	setd "$@cardprefix"+ 4127 +"$", "Insomniac";
+	setd "$@cardprefix"+ 4128 +"$", "of Deaf";
+	setd "$@cardprefix"+ 4129 +"$", "of Rogue";
+	setd "$@cardprefix"+ 4130 +"$", "Divine";
+	setd "$@cardprefix"+ 4131 +"$", "Hasty";
+	setd "$@cardprefix"+ 4132 +"$", "of Gemstone";
+	setd "$@cardprefix"+ 4133 +"$", "Immune";
+	setd "$@cardprefix"+ 4134 +"$", "Spiritual";
+	setd "$@cardprefix"+ 4135 +"$", "Mirror";
+	setd "$@cardprefix"+ 4136 +"$", "from Hell";
+	setd "$@cardprefix"+ 4137 +"$", "of Infinity";
+	setd "$@cardprefix"+ 4138 +"$", "Satanic";
+	setd "$@cardprefix"+ 4139 +"$", "of Moonlight";
+	setd "$@cardprefix"+ 4140 +"$", "Liberation";
+	setd "$@cardprefix"+ 4141 +"$", "Deadly";
+	setd "$@cardprefix"+ 4142 +"$", "of Berserk";
+	setd "$@cardprefix"+ 4143 +"$", "Neutral";
+	setd "$@cardprefix"+ 4144 +"$", "of Eternity";
+	setd "$@cardprefix"+ 4145 +"$", "of Bigmouth";
+	setd "$@cardprefix"+ 4146 +"$", "Reflect";
+	setd "$@cardprefix"+ 4147 +"$", "Scythe-like";
+	setd "$@cardprefix"+ 4148 +"$", "of Kirin";
+	setd "$@cardprefix"+ 4149 +"$", "of Serenity";
+	setd "$@cardprefix"+ 4150 +"$", "Spell-Proof";
+	setd "$@cardprefix"+ 4151 +"$", "Havoc Bringer's";
+	setd "$@cardprefix"+ 4152 +"$", "Sprightly";
+	setd "$@cardprefix"+ 4153 +"$", "of Cancer";
+	setd "$@cardprefix"+ 4154 +"$", "Sweet Scented";
+	setd "$@cardprefix"+ 4155 +"$", "Deadly Goblin's";
+	setd "$@cardprefix"+ 4156 +"$", "of Fatal Flame";
+	setd "$@cardprefix"+ 4157 +"$", "Piercing";
+	setd "$@cardprefix"+ 4158 +"$", "Slaughter";
+	setd "$@cardprefix"+ 4159 +"$", "Deluxe";
+	setd "$@cardprefix"+ 4160 +"$", "Superior";
+	setd "$@cardprefix"+ 4161 +"$", "Anti-Magic";
+	setd "$@cardprefix"+ 4162 +"$", "Sightless";
+	setd "$@cardprefix"+ 4163 +"$", "Wild";
+	setd "$@cardprefix"+ 4164 +"$", "Fisherman's";
+	setd "$@cardprefix"+ 4165 +"$", "of Insect Soul Eater";
+	setd "$@cardprefix"+ 4166 +"$", "of Jinx";
+	setd "$@cardprefix"+ 4167 +"$", "of Beast Soul Eater";
+	setd "$@cardprefix"+ 4168 +"$", "of Doom";
+	setd "$@cardprefix"+ 4169 +"$", "Spell Master's";
+	setd "$@cardprefix"+ 4170 +"$", "Solidifying";
+	setd "$@cardprefix"+ 4171 +"$", "Soul Draining";
+	setd "$@cardprefix"+ 4172 +"$", "Slicing";
+	setd "$@cardprefix"+ 4173 +"$", "Mesmerizing";
+	setd "$@cardprefix"+ 4174 +"$", "Deviant";
+	setd "$@cardprefix"+ 4175 +"$", "Shoving";
+	setd "$@cardprefix"+ 4176 +"$", "Fatal Serpentine";
+	setd "$@cardprefix"+ 4177 +"$", "Green Stone";
+	setd "$@cardprefix"+ 4178 +"$", "Bow-Master's";
+	setd "$@cardprefix"+ 4179 +"$", "of Highlight";
+	setd "$@cardprefix"+ 4180 +"$", "of Dragon Soul Eater";
+	setd "$@cardprefix"+ 4181 +"$", "Soundless";
+	setd "$@cardprefix"+ 4182 +"$", "of Demon Soul Eater";
+	setd "$@cardprefix"+ 4183 +"$", "Werewolf";
+	setd "$@cardprefix"+ 4184 +"$", "Crushing";
+	setd "$@cardprefix"+ 4185 +"$", "of Wisdom";
+	setd "$@cardprefix"+ 4186 +"$", "Strenuous";
+	setd "$@cardprefix"+ 4187 +"$", "of the Spooky Night";
+	setd "$@cardprefix"+ 4188 +"$", "Red Stone";
+	setd "$@cardprefix"+ 4189 +"$", "of Misfortune";
+	setd "$@cardprefix"+ 4190 +"$", "of Last Laugh";
+	setd "$@cardprefix"+ 4191 +"$", "of the Stix";
+	setd "$@cardprefix"+ 4192 +"$", "of Fatal Pisces";
+	setd "$@cardprefix"+ 4193 +"$", "of Patience";
+	setd "$@cardprefix"+ 4194 +"$", "Overpowering";
+	setd "$@cardprefix"+ 4195 +"$", "Blue Stone";
+	setd "$@cardprefix"+ 4196 +"$", "of Jellopy";
+	setd "$@cardprefix"+ 4197 +"$", "Lucky Streak";
+	setd "$@cardprefix"+ 4198 +"$", "of True Sight";
+	setd "$@cardprefix"+ 4199 +"$", "Dashing";
+	setd "$@cardprefix"+ 4200 +"$", "of Mystical Resistance";
+	setd "$@cardprefix"+ 4201 +"$", "Crippling";
+	setd "$@cardprefix"+ 4202 +"$", "of Exorcism";
+	setd "$@cardprefix"+ 4203 +"$", "Blazing";
+	setd "$@cardprefix"+ 4204 +"$", "Poacher's";
+	setd "$@cardprefix"+ 4205 +"$", "Blue Cubic";
+	setd "$@cardprefix"+ 4206 +"$", "Cubic";
+	setd "$@cardprefix"+ 4207 +"$", "Anti-Small";
+	setd "$@cardprefix"+ 4208 +"$", "Energetic";
+	setd "$@cardprefix"+ 4209 +"$", "Fiddler's";
+	setd "$@cardprefix"+ 4210 +"$", "Pressure";
+	setd "$@cardprefix"+ 4211 +"$", "Virtuoso's";
+	setd "$@cardprefix"+ 4212 +"$", "of Knock-Back";
+	setd "$@cardprefix"+ 4213 +"$", "of Reticence";
+	setd "$@cardprefix"+ 4214 +"$", "Man-Eater's";
+	setd "$@cardprefix"+ 4215 +"$", "Rationing";
+	setd "$@cardprefix"+ 4216 +"$", "Freezing";
+	setd "$@cardprefix"+ 4217 +"$", "Rejuvenating";
+	setd "$@cardprefix"+ 4218 +"$", "Nightmarish";
+	setd "$@cardprefix"+ 4219 +"$", "Magic Stone";
+	setd "$@cardprefix"+ 4220 +"$", "Faithful";
+	setd "$@cardprefix"+ 4221 +"$", "Insect Collector's";
+	setd "$@cardprefix"+ 4222 +"$", "of Sleep";
+	setd "$@cardprefix"+ 4223 +"$", "Stun-Proof";
+	setd "$@cardprefix"+ 4224 +"$", "Monsoon";
+	setd "$@cardprefix"+ 4225 +"$", "Slingshot";
+	setd "$@cardprefix"+ 4226 +"$", "Supreme";
+	setd "$@cardprefix"+ 4227 +"$", "Roast Scented";
+	setd "$@cardprefix"+ 4228 +"$", "of Siesta";
+	setd "$@cardprefix"+ 4229 +"$", "of Torment";
+	setd "$@cardprefix"+ 4230 +"$", "Coward's";
+	setd "$@cardprefix"+ 4231 +"$", "Charging";
+	setd "$@cardprefix"+ 4232 +"$", "Refreshing";
+	setd "$@cardprefix"+ 4233 +"$", "Lucky Fluke";
+	setd "$@cardprefix"+ 4234 +"$", "of Clarity";
+	setd "$@cardprefix"+ 4235 +"$", "Fallen Angel's";
+	setd "$@cardprefix"+ 4236 +"$", "Protective";
+	setd "$@cardprefix"+ 4237 +"$", "of Godly Wrath";
+	setd "$@cardprefix"+ 4238 +"$", "of Doubled Power";
+	setd "$@cardprefix"+ 4239 +"$", "Veteran Hunter's";
+	setd "$@cardprefix"+ 4240 +"$", "Magic-Proof";
+	setd "$@cardprefix"+ 4241 +"$", "Miraculous";
+	setd "$@cardprefix"+ 4242 +"$", "Prime";
+	setd "$@cardprefix"+ 4243 +"$", "of Escape";
+	setd "$@cardprefix"+ 4244 +"$", "Seeker's";
+	setd "$@cardprefix"+ 4245 +"$", "Assassinator's";
+	setd "$@cardprefix"+ 4246 +"$", "Killing";
+	setd "$@cardprefix"+ 4247 +"$", "Starfish's";
+	setd "$@cardprefix"+ 4248 +"$", "Shining Cross";
+	setd "$@cardprefix"+ 4249 +"$", "Witch Doctor's";
+	setd "$@cardprefix"+ 4250 +"$", "Anti-Large";
+	setd "$@cardprefix"+ 4251 +"$", "Invasion";
+	setd "$@cardprefix"+ 4252 +"$", "Four Leaf Clover";
+	setd "$@cardprefix"+ 4253 +"$", "of Royal Guard";
+	setd "$@cardprefix"+ 4254 +"$", "Anti-Medium";
+	setd "$@cardprefix"+ 4255 +"$", "Smashing";
+	setd "$@cardprefix"+ 4256 +"$", "Desirable";
+	setd "$@cardprefix"+ 4257 +"$", "Wing";
+	setd "$@cardprefix"+ 4258 +"$", "Prodigy";
+	setd "$@cardprefix"+ 4259 +"$", "of Nature";
+	setd "$@cardprefix"+ 4260 +"$", "Confusion Resistant";
+	setd "$@cardprefix"+ 4261 +"$", "Bleed Resistant";
+	setd "$@cardprefix"+ 4262 +"$", "Dark Sky";
+	setd "$@cardprefix"+ 4263 +"$", "Bloodlust";
+	setd "$@cardprefix"+ 4264 +"$", "Thunderbolt";
+	setd "$@cardprefix"+ 4265 +"$", "of Dawn";
+	setd "$@cardprefix"+ 4266 +"$", "Magic Resistant";
+	setd "$@cardprefix"+ 4267 +"$", "Dragon Slayer's";
+	setd "$@cardprefix"+ 4268 +"$", "Extending";
+	setd "$@cardprefix"+ 4269 +"$", "Fatasm";
+	setd "$@cardprefix"+ 4270 +"$", "of Venom";
+	setd "$@cardprefix"+ 4271 +"$", "Yellow Stone";
+	setd "$@cardprefix"+ 4272 +"$", "Swift";
+	setd "$@cardprefix"+ 4273 +"$", "Shell";
+	setd "$@cardprefix"+ 4274 +"$", "of Undead Soul Eater";
+	setd "$@cardprefix"+ 4275 +"$", "Undead Killer's";
+	setd "$@cardprefix"+ 4276 +"$", "Crucial";
+	setd "$@cardprefix"+ 4277 +"$", "Dominatrix";
+	setd "$@cardprefix"+ 4278 +"$", "of Magical Immunity";
+	setd "$@cardprefix"+ 4279 +"$", "Soul Collector's";
+	setd "$@cardprefix"+ 4280 +"$", "Blessed";
+	setd "$@cardprefix"+ 4281 +"$", "Diligent";
+	setd "$@cardprefix"+ 4282 +"$", "of Reservoir";
+	setd "$@cardprefix"+ 4283 +"$", "Mana Sphere";
+	setd "$@cardprefix"+ 4284 +"$", "of Caress";
+	setd "$@cardprefix"+ 4285 +"$", "Elven-Enchanted";
+	setd "$@cardprefix"+ 4286 +"$", "Terrorizing";
+	setd "$@cardprefix"+ 4287 +"$", "Magically Shielded";
+	setd "$@cardprefix"+ 4288 +"$", "Maestro";
+	setd "$@cardprefix"+ 4289 +"$", "of Plant Soul Eater";
+	setd "$@cardprefix"+ 4290 +"$", "Mirror";
+	setd "$@cardprefix"+ 4291 +"$", "Deadly Kobold's";
+	setd "$@cardprefix"+ 4292 +"$", "Deadly Plant's";
+	setd "$@cardprefix"+ 4293 +"$", "of Chance";
+	setd "$@cardprefix"+ 4294 +"$", "Sneaky";
+	setd "$@cardprefix"+ 4295 +"$", "of Blackout";
+	setd "$@cardprefix"+ 4296 +"$", "Greedy";
+	setd "$@cardprefix"+ 4297 +"$", "Poaching";
+	setd "$@cardprefix"+ 4298 +"$", "of Mayhem";
+	setd "$@cardprefix"+ 4299 +"$", "Guardian's";
+	setd "$@cardprefix"+ 4300 +"$", "Venomous Charge";
+	setd "$@cardprefix"+ 4301 +"$", "Traumatic";
+	setd "$@cardprefix"+ 4302 +"$", "High Risk";
+	setd "$@cardprefix"+ 4303 +"$", "Mystic";
+	setd "$@cardprefix"+ 4304 +"$", "Shield Master's";
+	setd "$@cardprefix"+ 4305 +"$", "Explosive";
+	setd "$@cardprefix"+ 4306 +"$", "King's";
+	setd "$@cardprefix"+ 4307 +"$", "of Marine Soul Eater";
+	setd "$@cardprefix"+ 4308 +"$", "Power Draining";
+	setd "$@cardprefix"+ 4309 +"$", "Reinforced";
+	setd "$@cardprefix"+ 4310 +"$", "Fatally Evil";
+	setd "$@cardprefix"+ 4311 +"$", "Anti-Evil";
+	setd "$@cardprefix"+ 4312 +"$", "of the Soul";
+	setd "$@cardprefix"+ 4313 +"$", "Bogie";
+	setd "$@cardprefix"+ 4314 +"$", "Fire-Proof";
+	setd "$@cardprefix"+ 4315 +"$", "of Stone Curse";
+	setd "$@cardprefix"+ 4316 +"$", "of Angel Soul Eater";
+	setd "$@cardprefix"+ 4317 +"$", "Aural";
+	setd "$@cardprefix"+ 4318 +"$", "Storm-Bringer's";
+	setd "$@cardprefix"+ 4319 +"$", "Sword-Master's";
+	setd "$@cardprefix"+ 4320 +"$", "Meteoric";
+	setd "$@cardprefix"+ 4321 +"$", "Polymorphic";
+	setd "$@cardprefix"+ 4322 +"$", "of Retaliation";
+	setd "$@cardprefix"+ 4323 +"$", "of Frost";
+	setd "$@cardprefix"+ 4324 +"$", "Arctic";
+	setd "$@cardprefix"+ 4325 +"$", "Vicious";
+	setd "$@cardprefix"+ 4326 +"$", "Ocean Scented";
+	setd "$@cardprefix"+ 4327 +"$", "Spell Flow";
+	setd "$@cardprefix"+ 4328 +"$", "Hyper";
+	setd "$@cardprefix"+ 4329 +"$", "Soul Gain";
+	setd "$@cardprefix"+ 4330 +"$", "Curse Lift";
+	setd "$@cardprefix"+ 4331 +"$", "Evasion";
+	setd "$@cardprefix"+ 4332 +"$", "of Talent";
+	setd "$@cardprefix"+ 4333 +"$", "of Chaotic Venom";
+	setd "$@cardprefix"+ 4334 +"$", "Anti-Sniping";
+	setd "$@cardprefix"+ 4335 +"$", "Gnome";
+	setd "$@cardprefix"+ 4336 +"$", "of Vitality";
+	setd "$@cardprefix"+ 4337 +"$", "of Wildcat";
+	setd "$@cardprefix"+ 4338 +"$", "of Vital Switching";
+	setd "$@cardprefix"+ 4339 +"$", "of Stone Wall";
+	setd "$@cardprefix"+ 4340 +"$", "of Requiem";
+	setd "$@cardprefix"+ 4341 +"$", "Disarm";
+	setd "$@cardprefix"+ 4342 +"$", "Mammoth";
+	setd "$@cardprefix"+ 4343 +"$", "of Creator";
+	setd "$@cardprefix"+ 4344 +"$", "of Value";
+	setd "$@cardprefix"+ 4345 +"$", "Sylph";
+	setd "$@cardprefix"+ 4346 +"$", "of Power Switching";
+	setd "$@cardprefix"+ 4347 +"$", "Stamina";
+	setd "$@cardprefix"+ 4348 +"$", "Gangster";
+	setd "$@cardprefix"+ 4349 +"$", "Anti-Arrow";
+	setd "$@cardprefix"+ 4350 +"$", "Undine";
+	setd "$@cardprefix"+ 4351 +"$", "Low Level";
+	setd "$@cardprefix"+ 4352 +"$", "Undecided";
+	setd "$@cardprefix"+ 4353 +"$", "of Rejuvenation";
+	setd "$@cardprefix"+ 4354 +"$", "of Stability";
+	setd "$@cardprefix"+ 4355 +"$", "Healthy";
+	setd "$@cardprefix"+ 4356 +"$", "Magic Cancel";
+	setd "$@cardprefix"+ 4357 +"$", "of Fury";
+	setd "$@cardprefix"+ 4358 +"$", "Lost-Power";
+	setd "$@cardprefix"+ 4359 +"$", "of Shadow";
+	setd "$@cardprefix"+ 4360 +"$", "Assassin";
+	setd "$@cardprefix"+ 4361 +"$", "of Hollgren";
+	setd "$@cardprefix"+ 4362 +"$", "Heat";
+	setd "$@cardprefix"+ 4363 +"$", "Protection";
+	setd "$@cardprefix"+ 4364 +"$", "of Magic Sealing";
+	setd "$@cardprefix"+ 4365 +"$", "of Tempest";
+	setd "$@cardprefix"+ 4366 +"$", "of Caster";
+	setd "$@cardprefix"+ 4367 +"$", "of Squeezing";
+	setd "$@cardprefix"+ 4368 +"$", "Rapid";
+	setd "$@cardprefix"+ 4369 +"$", "of Luck Switching";
+	setd "$@cardprefix"+ 4370 +"$", "Weakening";
+	setd "$@cardprefix"+ 4371 +"$", "of Paladin";
+	setd "$@cardprefix"+ 4372 +"$", "Undecided";
+	setd "$@cardprefix"+ 4373 +"$", "Cursed";
+	setd "$@cardprefix"+ 4374 +"$", "Undecided";
+	setd "$@cardprefix"+ 4375 +"$", "Extra High Level";
+	setd "$@cardprefix"+ 4376 +"$", "Manful";
+	setd "$@cardprefix"+ 4377 +"$", "Sweetie";
+	setd "$@cardprefix"+ 4378 +"$", "Low Level";
+	setd "$@cardprefix"+ 4379 +"$", "Low Level";
+	setd "$@cardprefix"+ 4380 +"$", "Salamander";
+	setd "$@cardprefix"+ 4381 +"$", "of Wanderer";
+	setd "$@cardprefix"+ 4382 +"$", "of Scholar";
+	setd "$@cardprefix"+ 4383 +"$", "Chaotic";
+	setd "$@cardprefix"+ 4384 +"$", "Magic Eater";
+	setd "$@cardprefix"+ 4385 +"$", "Drink";
+	setd "$@cardprefix"+ 4386 +"$", "of Magic Shelter";
+	setd "$@cardprefix"+ 4387 +"$", "of Agility Switching";
+	setd "$@cardprefix"+ 4388 +"$", "Soul";
+	setd "$@cardprefix"+ 4389 +"$", "Elemental";
+	setd "$@cardprefix"+ 4390 +"$", "Blooding";
+	setd "$@cardprefix"+ 4391 +"$", "Snack";
+	setd "$@cardprefix"+ 4392 +"$", "of Dexterity Switching";
+	setd "$@cardprefix"+ 4393 +"$", "of Intelligence Switching";
+	setd "$@cardprefix"+ 4394 +"$", "Divine Cross";
+	setd "$@cardprefix"+ 4395 +"$", "Slug";
+	setd "$@cardprefix"+ 4396 +"$", "Dull";
+	setd "$@cardprefix"+ 4397 +"$", "Stupidity";
+	setd "$@cardprefix"+ 4398 +"$", "Darkness";
+	setd "$@cardprefix"+ 4399 +"$", "Penetration";
+	setd "$@cardprefix"+ 4400 +"$", "of Temptation";
+	setd "$@cardprefix"+ 4401 +"$", "Swift";
+	setd "$@cardprefix"+ 4402 +"$", "Strange";
+	setd "$@cardprefix"+ 4403 +"$", "Undecided";
+	setd "$@cardprefix"+ 4404 +"$", "of Chaotic Bleeding";
+	setd "$@cardprefix"+ 4405 +"$", "of Magic Mirror";
+	setd "$@cardprefix"+ 4406 +"$", "Twinkle";
+	setd "$@cardprefix"+ 4407 +"$", "of Elimination";
+	setd "$@cardprefix"+ 4408 +"$", "Abyss";
+	setd "$@cardprefix"+ 4409 +"$", "Panic";
+	setd "$@cardprefix"+ 4410 +"$", "Madness";
+	setd "$@cardprefix"+ 4411 +"$", "Shrewd";
+	setd "$@cardprefix"+ 4412 +"$", "Aria";
+	setd "$@cardprefix"+ 4413 +"$", "Resistance";
+	setd "$@cardprefix"+ 4414 +"$", "Gorgon";
+	setd "$@cardprefix"+ 4415 +"$", "Sweet";
+	setd "$@cardprefix"+ 4416 +"$", "Grain";
+	setd "$@cardprefix"+ 4417 +"$", "Flow";
+	setd "$@cardprefix"+ 4418 +"$", "Hailing";
+	setd "$@cardprefix"+ 4419 +"$", "Jack Frost";
+	setd "$@cardprefix"+ 4420 +"$", "Solace";
+	setd "$@cardprefix"+ 4421 +"$", "Crane";
+	setd "$@cardprefix"+ 4422 +"$", "Breeze";
+	setd "$@cardprefix"+ 4423 +"$", "Spread";
+	setd "$@cardprefix"+ 4424 +"$", "Stony";
+	setd "$@cardprefix"+ 4425 +"$", "Beast";
+	setd "$@cardprefix"+ 4426 +"$", "Exceed";
+	setd "$@cardprefix"+ 4427 +"$", "Force";
+	setd "$@cardprefix"+ 4428 +"$", "Shaft";
+	setd "$@cardprefix"+ 4429 +"$", "Nessus";
+	setd "$@cardprefix"+ 4430 +"$", "Inferno";
+	setd "$@cardprefix"+ 4431 +"$", "Stygia";
+	setd "$@cardprefix"+ 4432 +"$", "Scorching";
+	setd "$@cardprefix"+ 4433 +"$", "Ignite";
+	setd "$@cardprefix"+ 4434 +"$", "Miner's";
+	setd "$@cardprefix"+ 4435 +"$", "Violent";
+	setd "$@cardprefix"+ 4436 +"$", "Lunatic";
+	setd "$@cardprefix"+ 4437 +"$", "Mad Dog";
+	setd "$@cardprefix"+ 4438 +"$", "Mental";
+	setd "$@cardprefix"+ 4439 +"$", "Anathema";
+	setd "$@cardprefix"+ 4440 +"$", "Ignore";
+	setd "$@cardprefix"+ 4441 +"$", "Arrogant";
+	end;
+}

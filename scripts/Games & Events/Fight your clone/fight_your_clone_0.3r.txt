@@ -1,0 +1,60 @@
+//===== rAthena Script =======================================
+//= Fight Your Clone
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.3
+//===== Compatible With: =====================================
+//= rAthena 2018-04-28
+//===== Description: =========================================
+//= Fight Your Clone and survive as much as possible
+//===== Additional Comments: =================================
+//= it seems even without the patch, the server can crash when instance_destroy
+//============================================================
+
+prontera,150,180,0	script	fight your clone	123,{
+	mes "want to fight your clones ";
+	next;
+	select "yeah";
+	if ( getstrlen( instance_mapname("guild_vs2") ) ) {
+		if ( instance_mapname("guild_vs2") != "guild_vs2" ) {
+			instance_destroy;
+			end;
+		}
+	}
+	if ( instance_create( "Fight Your Clone", IM_CHAR ) < 0 ) {
+		mes "failed to create instance";
+		close;
+	}
+	instance_enter "Fight Your Clone";
+	dispbottom instance_id() +"";
+	'cid = getcharid(0);
+	clone instance_mapname("guild_vs2"), 49,49, instance_npcname( "FYC_instance_npc" )+"::Onaa", 'cid, 0, 0x8D;
+	end;
+OnPCDieEvent:
+	if ( getstrlen( instance_mapname("guild_vs2") ) && strcharinfo(3) == instance_mapname("guild_vs2") ) {
+		announce strcharinfo(0) +" die at killing "+ 'evil_clone_killed +" clones", bc_map;
+		.@inst = instance_id();
+		sleep 5000;
+		instance_destroy .@inst;
+	}
+	end;
+}
+
+guild_vs2,49,49,0	script	FYC_instance_npc	FAKE_NPC,{
+Onaa:
+	'evil_clone_killed++;
+	clone instance_mapname("guild_vs2"), 0,0, instance_npcname( "FYC_instance_npc" )+"::Onaa", 'cid, 0, 0x8D;
+	clone instance_mapname("guild_vs2"), 0,0, instance_npcname( "FYC_instance_npc" )+"::Onaa", 'cid, 0, 0x8D;
+	end;
+}
+
+guild_vs2	mapflag	nosave	SavePoint
+guild_vs2	mapflag	nowarp
+guild_vs2	mapflag	nowarpto
+guild_vs2	mapflag	noteleport
+guild_vs2	mapflag	nomemo
+guild_vs2	mapflag	nopenalty
+guild_vs2	mapflag	nobranch
+guild_vs2	mapflag	noicewall
+guild_vs2	mapflag	nochangeequip

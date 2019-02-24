@@ -1,0 +1,80 @@
+// http://herc.ws/board/topic/4848-woe-castle-auto-assign-on-guild/
+
+-	script	ksjfsdkjfsdk	FAKE_NPC,{
+OnInit:
+	bindatcmd "resetcastle", strnpcinfo(0)+"::Onaaa", 99, 99;
+	end;
+Onaaa:
+	.@gid = getcharid(2);
+	if ( !.@gid ) {
+		mes "you haven't joined a guild!";
+		close;
+	}
+	setarray .@castle$[0],
+		"aldeg_cas01","aldeg_cas02","aldeg_cas03","aldeg_cas04","aldeg_cas05",
+		"gefg_cas01","gefg_cas02","gefg_cas03","gefg_cas04","gefg_cas05",
+		"payg_cas01","payg_cas02","payg_cas03","payg_cas04","payg_cas05",
+		"prtg_cas01","prtg_cas02","prtg_cas03","prtg_cas04","prtg_cas05",
+		"arug_cas01","arug_cas02","arug_cas03","arug_cas04","arug_cas05",
+		"schg_cas01","schg_cas02","schg_cas03","schg_cas04","schg_cas05";
+//		"prontera";
+	sleep2 1;
+	for ( .@i = 0; .@i < 20; ++.@i ) {
+		killmonster .@castle$[.@i], "Agit#"+ .@castle$[.@i] +"::OnAgitBreak";
+		addtimer 1, "Agit#"+ .@castle$[.@i] +"::OnAgitBreak";
+		sleep2 1;
+	}
+	for ( .@i = 20; .@i < 30; ++.@i ) {
+		.@str$ = substr( .@castle$[.@i], 0, 1 ) + substr( .@castle$[.@i], 8, 9 );
+		killmonster .@castle$[.@i], "Steward#"+ .@str$ +"::OnStartArena";
+		addtimer 1, "Steward#"+ .@str$ +"::OnStartArena";
+		sleep2 1;
+	}
+//	killmonster "prontera", "test flag::OnEmpBreak";
+//	addtimer 1, "test flag::OnEmpBreak";
+//	sleep2 1;
+	dispbottom "All castles have been set to ["+ strcharinfo(2) +"]!";
+	end;
+}
+
+/* db/castle_db.txt
+99,prontera,Prontera Test Castle,test flag,1
+*/
+prontera,152,185,4	script	test flag	GUILD_FLAG,{
+	dispbottom "=========================";
+	.@gid = getcastledata("prontera", 1);
+	dispbottom "owner of the castle : "+( ( .@gid )? "["+ getguildname(.@gid) +"]" : "<none>" );
+	dispbottom "agit check : "+( ( agitcheck() )?"on":"off" );
+	dispbottom "gvg_castle mapflag : "+( ( getmapflag( strcharinfo(3), mf_gvg_castle )?"on":"off" ) );
+	dispbottom "=========================";
+	end;
+OnInit:
+	if ( agitcheck() == false && !getcastledata("prontera", 1) || agitcheck() == true )
+		donpcevent strnpcinfo(0)+"::OnAgitStart";
+	setmapflag "prontera", mf_gvg_castle;
+	flagemblem getcastledata("prontera", 1);
+	end;
+OnAgitStart:
+	.@mobid = monster("prontera",151,181,"EMPERIUM",1288,1,strnpcinfo(0)+"::OnEmpBreak");
+//	setunitdata .@mobid, UDT_HP, 5;
+	end;
+OnAgitEnd:
+	killmonster strnpcinfo(4), strnpcinfo(0)+"::OnEmpBreak";
+	end;
+OnEmpBreak:
+	announce "The Emperium has fallen", bc_map;
+	setcastledata "prontera", 1, getcharid(2);
+	donpcevent "::OnRecvCastle123";
+	sleep 7000;
+	if ( agitcheck() == false ) end;
+	goto OnAgitStart;
+OnAgitInit:
+	requestguildinfo getcastledata("prontera", 1);
+OnRecvCastle123:
+	flagemblem getcastledata("prontera", 1);
+	end;
+OnGuildBreak:
+	setcastledata "prontera", 1, 0;
+	donpcevent "::OnRecvCastle123";
+	end;
+}

@@ -1,0 +1,184 @@
+// http://herc.ws/board/topic/11651-request-a-bg-score-system/
+
+-	script	bg_pvp#main	FAKE_NPC,{
+OnInit:
+	.minplayer2start = 5; // minimum players to start (ex. if 3vs3, set to 3)
+	.score2win = 50; // how many kills needed to win this game
+	.eventlasting = 20*60; // event duration before auto-reset (20 minutes * seconds)
+	setarray .rewardwin, Red_Potion, 10, Orange_Potion, 5, Yellow_Potion, 3; // reward to winning team
+	setarray .rewardlose, Red_Potion, 5, Orange_Potion, 3, Yellow_Potion, 1; // reward to losing team
+
+	mapwarp "guild_vs3", "prontera", 155,185;
+	.rewardwinsize = getarraysize( .rewardwin );
+	.rewardlosesize = getarraysize( .rewardlose );
+	end;
+OnStart:
+	.start = true;
+	.red = bg_create_team( "guild_vs3", 13,50 );
+	.blue = bg_create_team( "guild_vs3", 86,50 );
+	.team[1] = .qred = queue();
+	.team[2] = .qblue = queue();
+	queueopt .qred, QUEUEOPT_DEATH, strnpcinfo(0)+"::OnRedDead";
+	queueopt .qred, QUEUEOPT_LOGOUT, strnpcinfo(0)+"::OnRedQuit";
+	queueopt .qred, QUEUEOPT_MAPCHANGE, strnpcinfo(0)+"::OnRedMapChange";
+	queueopt .qblue, QUEUEOPT_DEATH, strnpcinfo(0)+"::OnBlueDead";
+	queueopt .qblue, QUEUEOPT_LOGOUT, strnpcinfo(0)+"::OnBlueQuit";
+	queueopt .qblue, QUEUEOPT_MAPCHANGE, strnpcinfo(0)+"::OnBlueMapChange";
+	.@it = queueiterator( .rred );
+	for ( .@aid = qiget(.@it); qicheck(.@it); .@aid = qiget(.@it) ) {
+		bg_join_team .red, .@aid;
+		queueadd .qred, .@aid;
+	}
+	qiclear .@it;
+	.@it = queueiterator( .rblue );
+	for ( .@aid = qiget(.@it); qicheck(.@it); .@aid = qiget(.@it) ) {
+		bg_join_team .blue, .@aid;
+		queueadd .qblue, .@aid;
+	}
+	qiclear .@it;
+	queuedel .rred;
+	queuedel .rblue;
+	bg_warp .red, "guild_vs3", 13,50;
+	bg_warp .blue, "guild_vs3", 86,50;
+	.score[1] = .score[2] = .score2win;
+	bg_updatescore "guild_vs3", .score[1], .score[2];
+	sleep .eventlasting * 1000;
+	if ( .somebodyquit == 2 ) {
+		mapannounce "guild_vs3", "- Red Team is victorious! -", bc_map;
+		callsub L_Reward, .team[.winside], .rewardwin, .rewardwinsize;
+	}
+	else if ( .somebodyquit == 1 ) {
+		mapannounce "guild_vs3", "- Blue Team is victorious! -", bc_map;
+		callsub L_Reward, .team[.winside], .rewardwin, .rewardwinsize;
+	}
+	else if ( .score[1] > .score[2] ) {
+		mapannounce "guild_vs3", "- Red Team is victorious! -", bc_map;
+		callsub L_Reward, .team[.winside], .rewardwin, .rewardwinsize;
+		callsub L_Reward, ( .winside == 1 )? .team[2]:.team[1], .rewardlose, .rewardlosesize;
+	}
+	else if ( .score[1] < .score[2] ) {
+		mapannounce "guild_vs3", "- Blue Team is victorious! -", bc_map;
+		callsub L_Reward, .team[.winside], .rewardwin, .rewardwinsize;
+		callsub L_Reward, ( .winside == 1 )? .team[2]:.team[1], .rewardlose, .rewardlosesize;
+	}
+	else {
+		mapannounce "guild_vs3", "- The match has ended in a draw! -", bc_map;
+		callsub L_Reward, .team[.winside], .rewardlose, .rewardlosesize;
+		callsub L_Reward, ( .winside == 1 )? .team[2]:.team[1], .rewardlose, .rewardlosesize;
+	}
+	bg_destroy .red;
+	bg_destroy .blue;
+	queuedel .qred;
+	queuedel .qblue;
+	mapwarp "guild_vs3","prontera",155,185;
+	.team[1] = .team[2] = .score[1] = .score[2] = .red = .blue = .winside = .qred = .qblue = .somebodyquit = 0;
+	donpcevent "Blue Team#bg_pvp::OnInit";
+	donpcevent "Red Team#bg_pvp::OnInit";
+	.start = false;
+	end;
+L_Reward:
+	.@it = queueiterator( getarg(0) );
+	for ( .@aid = qiget(.@it); qicheck(.@it); .@aid = qiget(.@it) ) {
+		for ( .@i = 0; .@i < getarg(2); .@i += 2 )
+			getitem getelementofarray( getarg(1), .@i ), getelementofarray( getarg(1), .@i +1 ), .@aid;
+	}
+	qiclear .@it;
+	return;
+OnRedDead: callsub L_Dead, 1, 2;
+OnBlueDead: callsub L_Dead, 2, 1;
+L_Dead:
+	--.score[ getarg(0) ];
+	bg_updatescore "guild_vs3", .score[1], .score[2];
+	if ( !.score[ getarg(0) ] ) {
+		.winside = getarg(1);
+		awake strnpcinfo(0);
+	}
+	sleep2 1250;
+	percentheal 100,100;
+	end;
+OnRedMapChange:
+	if ( @Queue_Destination_Map$ == "guild_vs3" ) end;
+OnRedQuit:
+	callsub L_Quit, 1, "Red", 2;
+OnBlueMapChange:
+	if ( @Queue_Destination_Map$ == "guild_vs3" ) end;
+OnBlueQuit:
+	callsub L_Quit, 2, "Blue", 1;
+L_Quit:
+	announce strcharinfo(0) +" from "+ getarg(1) +" team has Quit this match !", bc_map, C_RED;
+	.somebodyquit = getarg(0);
+	.winside = getarg(2);
+	awake strnpcinfo(0);
+	end;
+}
+
+prontera,160,185,5	script	Blue Team#bg_pvp	4_M_JOB_KNIGHT1,{
+	callfunc "bg_pvp_register", "Blue", getvariableofnpc( .rblue, "bg_pvp#main" ), getvariableofnpc( .rred, "bg_pvp#main" );
+	end;
+OnInit:
+	.@main$ = "bg_pvp#main";
+	set getvariableofnpc( .rblue, .@main$ ), queue();
+	queueopt getvariableofnpc( .rblue, .@main$ ), QUEUEOPT_LOGOUT, strnpcinfo(0)+"::OnQuit";
+	queueopt getvariableofnpc( .rblue, .@main$ ), QUEUEOPT_MAPCHANGE, strnpcinfo(0)+"::OnQuit";
+	end;
+OnQuit:
+	queueremove getvariableofnpc( .rblue, "bg_pvp#main" ), getcharid(3);
+	end;
+}
+prontera,150,185,5	script	Red Team#bg_pvp	4_M_JOB_KNIGHT2,{
+	callfunc "bg_pvp_register", "Red", getvariableofnpc( .rred, "bg_pvp#main" ), getvariableofnpc( .rblue, "bg_pvp#main" );
+	end;
+OnInit:
+	.@main$ = "bg_pvp#main";
+	set getvariableofnpc( .rred, .@main$ ), queue();
+	queueopt getvariableofnpc( .rred, .@main$ ), QUEUEOPT_LOGOUT, strnpcinfo(0)+"::OnQuit";
+	queueopt getvariableofnpc( .rred, .@main$ ), QUEUEOPT_MAPCHANGE, strnpcinfo(0)+"::OnQuit";
+	end;
+OnQuit:
+	queueremove getvariableofnpc( .rred, "bg_pvp#main" ), getcharid(3);
+	end;
+}
+
+function	script	bg_pvp_register	{
+	.@main$ = "bg_pvp#main";
+	mes "["+ strnpcinfo(1) +"]";
+	if ( getvariableofnpc( .start, .@main$ ) ) {
+		mes "A match is in progress.";
+		close;
+	}
+	if ( queuesize( getarg(1) ) == getvariableofnpc( .minplayer2start, .@main$ ) ) {
+		mes "This team is full.";
+		close;
+	}
+	.@it = queueiterator( getarg(2) );
+	for ( .@aid = qiget(.@it); qicheck(.@it); .@aid = qiget(.@it) ) {
+		if ( .@aid == getcharid(3) ) {
+			mes "You already join the opposing team.";
+			qiclear .@it;
+			close;
+		}
+	}
+	qiclear .@it;
+	if ( queueadd( getarg(1), getcharid(3) ) == false ) {
+		mes "You already join this team";
+		close;
+	}
+	mes "Do you wish to join the "+ getarg(0) +" side ?";
+	next;
+	if ( select( "Yes", "No" ) == 2 ) close;
+	mes "Reminder: Once you sign up, you have to stay on this map, otherwise you'll forfeit the registration.";
+	close2;
+	if ( queuesize( getarg(1) ) == getvariableofnpc( .minplayer2start, .@main$ ) && queuesize( getarg(2) ) == getvariableofnpc( .minplayer2start, .@main$ ) )
+		donpcevent .@main$ +"::OnStart";
+	end;
+}
+
+guild_vs3	mapflag	battleground	2
+guild_vs3	mapflag	nosave	SavePoint
+guild_vs3	mapflag	nowarp
+guild_vs3	mapflag	nowarpto
+guild_vs3	mapflag	noteleport
+guild_vs3	mapflag	nomemo
+guild_vs3	mapflag	nopenalty
+guild_vs3	mapflag	nobranch
+guild_vs3	mapflag	noicewall

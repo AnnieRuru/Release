@@ -1,0 +1,142 @@
+//===== eAthena Script =====================================
+//= Run or Die ( aka. Poring Bomb Event )
+//===== By: ================================================
+//= AnnieRuru
+//===== Current Version: ===================================
+//= 2.1
+//===== Compatible With: ===================================
+//= Hercules 2015-10-29
+//===== Description: =======================================
+//= Avoid the poring bomb at all cost !
+//===== Topic ==============================================
+//= http://herc.ws/board/topic/11010-
+//===== Additional Comments: ===============================
+//= another script that finally has a release topic for it
+//==========================================================
+
+prontera,148,172,5	script	Run Or Die	1_F_MARIA,{
+	if ( ( .@size = getvariableofnpc( .aidtotal, "runordie" ) ) >= 100 ) { // 100 participant max
+		mes "Run Or Die";
+		mes "I'm sorry, the room is full";
+		close;
+	}
+	percentheal 100, 100;
+	warp "guild_vs5", 0,0;
+	set getvariableofnpc( .aid[ .@size ], "runordie" ), getcharid(3);
+	set getvariableofnpc( .aidtotal, "runordie" ), getvariableofnpc( .aidtotal, "runordie" ) +1;
+	end;
+}
+
+-	script	runordie	FAKE_NPC,{
+OnInit:
+	disablenpc "Run Or Die";
+	bindatcmd "runordie", strnpcinfo(0)+"::OnStart", 99,100;
+	.onesec = 1000; // use for script debugging... set to 100 to make the announcement run faster
+	end;
+OnStart:
+OnClock0145: // set your time here
+OnClock0445:
+OnClock0745:
+OnClock1045:
+OnClock1345:
+OnClock1645:
+OnClock1945:
+OnClock2245:
+	enablenpc "Run Or Die";
+	deletearray .aid;
+	.aidtotal = 0;
+	mapwarp "guild_vs5", "prontera", 148,172;
+	killmonsterall "guild_vs5";
+	.start = 1;
+	announce "Run Or Die!!!: Are you ready to join Run Or Die event???", bc_all;
+	sleep 4 * .onesec;
+	announce "Run Or Die: For Those who dare to join please '@warp prontera 148 172' to participate", bc_all;
+	sleep 6 * .onesec;
+	announce "Run Or Die: Register time will be closing after 1 minute", bc_all;
+	sleep 20 * .onesec;
+	announce "Run Or Die: Last 30 second", bc_all;
+	sleep 10 * .onesec;
+	announce "Run Or Die: Rush type in '@warp prontera 148 172' to join", bc_all;
+	sleep 10 * .onesec;
+	announce "Run Or Die: Last 10 second to register", bc_all;
+	sleep 5 * .onesec;
+	announce "Run Or Die: 5", bc_all;
+	sleep 1000;
+	announce "Run Or Die: 4", bc_all;
+	sleep 1000;
+	announce "Run Or Die: 3", bc_all;
+	sleep 1000;
+	announce "Run Or Die: 2", bc_all;
+	sleep 1000;
+	announce "Run Or Die: 1", bc_all;
+	sleep 1000;
+	announce "Run Or Die: Time is up...I will come again 3 hour later..", bc_all;
+	disablenpc "Run Or Die";
+	if ( .aidtotal < 2 ) { // cannot start event if nobody joins(0) or just having (1) player
+		announce "Run Or Die: Not enough players to start the event...", bc_all;
+		mapwarp "guild_vs5", "prontera", 148,172;
+		deletearray .aid;
+		.aidtotal = 0;
+		.start = 0;
+		end;
+	}
+	mapannounce "guild_vs5", "Welcome to Run Or Die event", bc_map;
+	sleep 3 * .onesec;
+	mapannounce "guild_vs5", "This is an easy event", bc_map;
+	sleep 3 * .onesec;
+	mapannounce "guild_vs5", "Just stay AWAY from anything that you think its DANGEROUS!!", bc_map;
+	sleep 3 * .onesec;
+	mapannounce "guild_vs5", "Stay alive as long as YOU CAN!!!!", bc_map;
+	sleep 3 * .onesec;
+	mapannounce "guild_vs5", "The LAST SURVIVOR will be the WINNER", bc_map;
+	sleep 3 * .onesec;
+	mapannounce "guild_vs5", "event will start in 3", bc_map;
+	sleep 1 * .onesec;
+	mapannounce "guild_vs5", "2...", bc_map;
+	sleep 1 * .onesec;
+	mapannounce "guild_vs5", "1...", bc_map;
+	sleep 1 * .onesec;
+	mapannounce "guild_vs5", "Its time to run !!", bc_map;
+	while ( .start ) {
+		.@more += rand(1,2);
+		monster "guild_vs5", 0,0, "Come On Baby!!!", 1904, 2 + .@more, "", 0;
+		monster "guild_vs5", 0,0, "Come On Baby!!!", 1904, 2 + .@more, "", 1;
+		monster "guild_vs5", 0,0, "Come On Baby!!!", 1904, 2 + .@more, "", 2;
+		sleep 5000;
+	}
+	end;
+OnPCDieEvent:
+OnPCLogoutEvent:
+	if ( strcharinfo(3) == "guild_vs5" && .start ) {
+		if ( .aidtotal > 1 ) {
+			for ( .@i = 0; .@i < .aidtotal; .@i++ ) {
+				if ( getcharid(3) == .aid[.@i] ) {
+					deletearray .aid[.@i], 1;
+					.aidtotal--;
+				}
+			}
+		}
+		if ( .aidtotal == 1 ) {
+			.start = 0;
+			killmonsterall "guild_vs5";
+			announce "Run Or Die: Congratulations ~ the winner is "+ rid2name(.aid), bc_all;
+			sleep 5000;
+			if ( isloggedin( .aid ) ) {
+				attachrid .aid;
+				getitem Poring_Coin, 5; // winner prize
+				warp "prontera", 148,172;
+			}
+			deletearray .aid;
+			.aidtotal = 0;
+		}
+	}
+	end;
+}
+guild_vs5	mapflag	nowarp
+guild_vs5	mapflag	nowarpto
+guild_vs5	mapflag	noteleport
+guild_vs5	mapflag	nosave	SavePoint
+guild_vs5	mapflag	noskill
+guild_vs5	mapflag	nomemo
+guild_vs5	mapflag	nopenalty
+guild_vs5	mapflag	noicewall

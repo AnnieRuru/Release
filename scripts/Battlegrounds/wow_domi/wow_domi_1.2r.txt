@@ -1,0 +1,460 @@
+function	script	F_ShuffleNumbers	{
+	deletearray getarg(2);
+	.@static = getarg(0);
+	.@range = getarg(1) +1 - .@static;
+	.@count = getarg(3, .@range);
+	if ( .@range <= 0 || .@count <= 0 )
+		return 0;
+	if ( .@count > .@range )
+		.@count = .@range;
+	for ( .@i = 0; .@i < .@range; .@i++ )
+		.@temparray[.@i] = .@i;
+	for ( .@i = 0; .@i < .@count; .@i++ ) {
+		.@rand = rand(.@range);
+		set getelementofarray( getarg(2), .@i ), .@temparray[.@rand] + .@static;
+		.@range--;
+		.@temparray[.@rand] = .@temparray[.@range];
+	}
+	return .@count;
+}
+
+//===== rAthena Script =======================================
+//= WoW domination Battleground : Arathi Basin
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.2
+//===== Compatible With: ===================================== 
+//= rAthena 2016-01-04
+//===== Description: =========================================
+//= rAthena version
+//===== Topic ================================================
+//= https://rathena.org/board/topic/104325-wow-arathi-basin/
+//===== Additional Comments: =================================  
+//= it seems the cell_shootable can't work without cell_walkable
+//============================================================
+
+-	script	wow_domi#main	FAKE_NPC,{
+OnInit:
+	.eventlasting = 25*60; // how long will the event last or it auto-reset. 25*60 = 25 mins
+	.minplayer2start = 1; // how many players require to start ? if 3vs3, set to 3
+
+	.score2win = 100; // score will start at 0, and end at this value
+	.time2capture = 3; // when capture a flag, how long does it takes to turn to your side
+	.distance = 3; // how far does the player allow to capture a flag ? example, if set to 15, will allow archers to capture the flag using bows
+
+	.minlevel2join = 70; // the minimum level requirement to join this game
+	setarray .denyjob, // the array of jobs that has to be deny from joining this game. The check is done with Class
+		Job_Novice,
+		Job_Wedding,
+		Job_Summer,
+		Job_Xmas; // please keep these sprite-only-job in-tact, the Job_Novice is equal to 0, and getarraysize can't detect a 0 at the end of the array @_@
+
+	.tick[1] = 12000; // when capture 1 flag ...
+	.point[1] = 1; // 12 seconds to gain 1 point
+
+	.tick[2] = 9000; // when capture 2 flags ...
+	.point[2] = 1; // 9 seconds to gain 1 point
+
+	.tick[3] = 6000; // when capture 3 flags ...
+	.point[3] = 1; // 6 seconds to gain 1 point
+
+	.tick[4] = 3000; // when capture 4 flags ...
+	.point[4] = 1; // 3 seconds to gain 1 point
+
+	.tick[5] = 1000; // when capture ALL flags ...
+	.point[5] = 3; // gain 3 points every second !
+
+	.color[0] = 0xFFFFFF; // white color for uncaptured flag
+	.color[1] = 0x0099FF; // blue color for Alliance
+	.color[2] = 0xFF0000; // red color for Horde
+
+	setarray .rewardwin, 501,10, 502,5, 503,3; // reward to winning team
+	setarray .rewardlose, 501,5, 502,3, 503,1; // reward to losing team
+
+	.back2map$ = "prontera"; // after event ends, they will warp back to this location
+	.back2x = 150;
+	.back2y = 190;
+
+//	for those who want to translate this script ...
+	.teamname$[1] = "Alliance";
+	.teamname$[2] = "Horde";
+
+	.teambase$[1] = "Alliance Base";
+	.teambase$[2] = "Horde Base";
+
+	.flagname$[1] = "Alliance Watch Tower";
+	.flagname$[2] = "Horde Watch Tower";
+	.flagname$[3] = "Blacksmith";
+	.flagname$[4] = "Lumber Mill";
+	.flagname$[5] = "Gold Mine";
+
+	.ann$[0] = "[WoW Battleground] Registered : %d/%d";
+	.ann$[1] = "[WoW Battleground] Battleground has started";
+	.ann$[2] = "[WoW Battleground] %s has captured %s !"; // Alliance has captured Gold Mine !
+	.ann$[3] = "[WoW Battleground] All %s members has quit !";
+	.ann$[4] = "[WoW Battleground] %s has won !";
+	.ann$[5] = "[WoW Battleground] Time out ! Aborting the match.";
+	
+	.msg$[0] = "Get out"; // not a battleground member
+	.msg$[1] = "Event has ended";
+	.msg$[2] = "Your team has captured this flag";
+	.msg$[3] = "You can't capture a flag while hiding";
+	.msg$[4] = "You have to stand nearer to the flag";
+	.msg$[5] = "This is %s base";
+
+//	---- END of Config ---
+	.tick = .eventlasting * 1000;
+	.rewardwinsize = getarraysize( .rewardwin );
+	.rewardlosesize = getarraysize( .rewardlose );
+	setnpcdisplay "wow_domi_base#1", .teambase$[1];
+	setnpcdisplay "wow_domi_base#2", .teambase$[2];
+//	mapwarp "arathi", .back2map$, .back2x, .back2y;
+	for ( .@i = 1; .@i <= 5; .@i++ )
+		setnpcdisplay "wow_domi_flag#"+ .@i, .flagname$[.@i] +"#"+ .@i;
+	.denyjobsize = getarraysize( .denyjob );
+	end;
+OnStart:
+	.start = 1;
+	announce .ann$[1], bc_all, 0x00CED1;
+	.team[1] = .alliance = createbgid( "arathi", 181, 19, strnpcinfo(0)+"::OnAllianceQuit", strnpcinfo(0)+"::OnAllianceDied" );
+	.team[2] = .horde = createbgid( "arathi", 19, 181, strnpcinfo(0)+"::OnHordeQuit", strnpcinfo(0)+"::OnHordeDied" );
+	callfunc "F_ShuffleNumbers", 0, .minplayer2start *2 -1, .@output;
+	for ( .@i = 0; .@i < .minplayer2start *2; .@i++ )
+		setbgid ( .@i % 2 )? .alliance : .horde, .aid_[.@output[.@i]];
+	donpcevent "wow_domi_score_team#1::OnStart";
+	donpcevent "wow_domi_score_team#2::OnStart";
+	bg_warp .alliance, "arathi", 177,22;
+	bg_warp .horde, "arathi", 22,177;
+	donpcevent "wow_domi_viewpoint::OnStart";
+	sleep .eventlasting * 1000;
+	.start = 2;
+	awake "wow_domi_score_team#1";
+	awake "wow_domi_score_team#2";
+	if ( .winside ) {
+		mapannounce "arathi", sprintf( .ann$[4], .teamname$[ .winside ] ), bc_map, 0x00CED1;
+		callsub L_reward, .team[.winside], .rewardwin, .rewardwinsize;
+		callsub L_reward, ( .winside == 1 )? .team[2]:.team[1], .rewardlose, .rewardlosesize;
+		sleep 5000;
+	}
+	else
+		mapannounce "arathi", .ann$[5], bc_map, 0x00CED1;
+	donpcevent "wow_domi_viewpoint::OnEnd";
+	mapwarp "arathi", .back2map$, .back2x, .back2y;
+	bg_destroy .alliance;
+	bg_destroy .horde;
+	for ( .@i = 1; .@i <= 5; .@i++ )
+		setnpcdisplay .flagname$[.@i], GUILD_FLAG;
+	cleararray .flag[1], 0, 5;
+	deletearray .team1capture;
+	deletearray .team2capture;
+	.start = .team[1] = .team[2] = .score[1] = .score[2] = .alliance = .horde = .winside = .team1capturesize = .team2capturesize = 0;
+	end;
+L_reward:
+	getbgusers getarg(0);
+	for ( .@i = 0; .@i < $@arenamembersnum; .@i++ )
+		for ( .@j = 0; .@j < getarg(2); .@j += 2 )
+			getitem getelementofarray( getarg(1), .@j ), getelementofarray( getarg(1), .@j +1 ), $@arenamembers[.@i];
+	return;
+OnAllianceDied: callsub L_died;
+OnHordeDied: callsub L_died;
+L_died:
+	sleep2 1250;
+	percentheal 100,100;
+	if ( getcharid(4) )
+		for ( .@i = 1; .@i <= 5; .@i++ )
+			viewpoint 1, .flagx[.@i], .flagy[.@i], .@i, .color[ .flag[.@i] ];
+	end;
+OnAllianceQuit: callsub L_quit, .alliance, 1, 2;
+OnHordeQuit: callsub L_quit, .horde, 2, 1;
+L_quit:
+	if ( bg_get_data( getarg(0), 0 ) ) end;
+	announce sprintf( .ann$[3], .teamname$[ getarg(1) ] ), bc_map, 0xFF0000;
+	.winside = getarg(2);
+	awake strnpcinfo(0);
+	end;
+//OnDebug:
+	announce "Alliance", bc_all;
+	for ( .@i = 0; .@i < .team1capturesize; .@i++ )
+		announce ( .@i +1 )+". "+ .flagname$[ .team1capture[.@i] ], bc_all;
+	announce "Horde", bc_all;
+	for ( .@i = 0; .@i < .team2capturesize; .@i++ )
+		announce ( .@i +1 )+". "+ .flagname$[ .team2capture[.@i] ], bc_all;
+	end;
+}
+
+-	script	wow_domi_viewpoint	FAKE_NPC,{
+OnStart:
+	sleep 7000; // long enough I guess ?
+OnCapture:
+	callsub L_display, 1;
+	end;
+OnEnd:
+	callsub L_display, 2;
+	end;
+L_display:
+	.@main$ = "wow_domi#main";
+	for ( .@k = 1; .@k <= 2; .@k++ ) {
+		getbgusers getvariableofnpc( .team[.@k], .@main$ );
+		for ( .@i = 0; .@i < $@arenamembersnum; .@i++ ) {
+			attachrid $@arenamembers[.@i];
+			for ( .@j = 1; .@j <= 5; .@j++ ) {
+				viewpoint getarg(0), getvariableofnpc( .flagx[.@j], .@main$ ), getvariableofnpc( .flagy[.@j], .@main$ ), .@j, getvariableofnpc( getelementofarray( .color, getvariableofnpc( .flag[.@j], .@main$ ) ), .@main$ );
+			}
+		}
+	}
+	end;
+}
+
+-	script	wow_domi_score_team	FAKE_NPC,{
+OnStart:
+	.@team = atoi( strnpcinfo(2) );
+	.@main$ = "wow_domi#main";
+	while ( getvariableofnpc( .start, .@main$ ) == 1 ) {
+		.@catched = getvariableofnpc( getd( ".team"+ .@team +"capturesize" ), .@main$ );
+		.@tick = getvariableofnpc( .tick[ .@catched ], .@main$ );
+		set getvariableofnpc( .score[.@team], .@main$ ), getvariableofnpc( .score[.@team], .@main$ ) + getvariableofnpc( .point[ .@catched ], .@main$ );
+		if ( getvariableofnpc( .score[.@team], .@main$ ) >= getvariableofnpc( .score2win, .@main$ ) ) {
+			set getvariableofnpc( .winside, .@main$ ), .@team;
+			awake .@main$;
+			if ( .@team == 1 )
+				bg_updatescore "arathi", 100, getvariableofnpc( .score[2], .@main$ );
+			else
+				bg_updatescore "arathi", getvariableofnpc( .score[1], .@main$ ), 100;
+			break;
+		}
+		bg_updatescore "arathi", getvariableofnpc( .score[1], .@main$ ), getvariableofnpc( .score[2], .@main$ );
+		sleep .@tick;
+	}
+	end;
+}
+-	duplicate(wow_domi_score_team)	wow_domi_score_team#1	FAKE_NPC
+-	duplicate(wow_domi_score_team)	wow_domi_score_team#2	FAKE_NPC
+
+-	script	wow_domi_flag	-1,{
+	.@id = atoi( strnpcinfo(2) );
+	.@main$ = "wow_domi#main";
+	.@alliance = getvariableofnpc( .alliance, .@main$ );
+	.@horde = getvariableofnpc( .horde, .@main$ );
+	.@flag = getvariableofnpc( .flag[.@id], .@main$ );
+	if ( !getcharid(4) || ( getcharid(4) != .@alliance && getcharid(4) != .@horde ) ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[0], .@main$ );
+		end;
+	}
+	if ( getvariableofnpc( .start, .@main$ ) != 1 ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[1], .@main$ );
+		end;
+	}
+	if ( getcharid(4) == .@alliance && .@flag == 1 || getcharid(4) == .@horde && .@flag == 2 ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[2], .@main$ );
+		end;
+	}
+	if ( checkoption(0x4046) ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[3], .@main$ );
+		end;
+	}
+	getmapxy .@map$, .@x, .@y, 0;
+	getmapxy .@map$, .@x1, .@y1, 1;
+	if ( distance( .@x, .@y, .@x1, .@y1 ) > getvariableofnpc( .distance, .@main$ ) ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[4], .@main$ );
+		end;
+	}
+	progressbar "", getvariableofnpc( .time2capture, .@main$ );
+	if ( getvariableofnpc( .start, .@main$ ) != 1 ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[1], .@main$ );
+		end;
+	}
+	.@flag = getvariableofnpc( .flag[.@id], .@main$ );
+	if ( getcharid(4) == .@alliance && .@flag == 1 || getcharid(4) == .@horde && .@flag == 2 ) {
+		message strcharinfo(0), getvariableofnpc( .msg$[2], .@main$ );
+		end;
+	}
+	.@team = ( getcharid(4) == .@alliance )? 1 : 2;
+	set getvariableofnpc( .flag[.@id], .@main$ ), .@team;
+	setnpcdisplay "wow_domi_flag#"+ .@id, ( .@team == 1 )? 1_FLAG_LION : 1_FLAG_EAGLE;
+	announce sprintf( getvariableofnpc( .ann$[2], .@main$ ), getvariableofnpc( .teamname$[.@team], .@main$ ), getvariableofnpc( .flagname$[.@id], .@main$ ) ), bc_map, 0x00CED1;
+	bg_team_setxy getcharid(4), getvariableofnpc( .flagx[.@id], .@main$ ), getvariableofnpc( .flagy[.@id], .@main$ );
+	set getvariableofnpc( getd( ".team"+ .@team +"capture["+ getvariableofnpc( getd( ".team"+ .@team +"capturesize" ), .@main$ ) +"]" ), .@main$ ), .@id;
+	set getvariableofnpc( getd( ".team"+ .@team +"capturesize" ), .@main$ ), getvariableofnpc( getd( ".team"+ .@team +"capturesize" ), .@main$ ) +1;
+	awake "wow_domi_score_team#"+ .@team;
+	.@team = ( .@team == 1 )? 2 : 1;
+	while ( getvariableofnpc( getd( ".team"+ .@team +"capture["+ .@i +"]" ), .@main$ ) != .@id && .@i < getvariableofnpc( getd( ".team"+ .@team +"capturesize" ), .@main$ ) ) .@i++;
+	if ( .@i < getvariableofnpc( getd( ".team"+ .@team +"capturesize" ), .@main$ ) ) {
+		copyarray getelementofarray( getvariableofnpc( getd( ".team"+ .@team +"capture" ), .@main$ ), .@i ), getelementofarray( getvariableofnpc( getd( ".team"+ .@team +"capture" ), .@main$ ), .@i +1 ), getvariableofnpc( getd( ".team"+ .@team +"capturesize" ), .@main$ );
+		set getvariableofnpc( getd( ".team"+ .@team +"capturesize" ), .@main$ ), getvariableofnpc( getd( ".team"+ .@team +"capturesize" ), .@main$ ) -1;
+		.@teamid = ( getcharid(4) == .@alliance )? .@horde : .@alliance;
+		if ( getvariableofnpc( getd( ".team"+ .@team +"capturesize" ), .@main$ ) ) {
+			.@id = getelementofarray( getvariableofnpc( getd( ".team"+ .@team +"capture" ), .@main$ ), getvariableofnpc( getd( ".team"+ .@team +"capturesize" ), .@main$ ) -1 );
+//			announce ".@id = "+ .@id +" means "+ getvariableofnpc( .teamname$[ .@team ], .@main$ ) +" last id is "+ getelementofarray( getvariableofnpc( .flagname$, .@main$ ), .@id ) , 0;
+			bg_team_setxy .@teamid, getvariableofnpc( .flagx[.@id], .@main$ ), getvariableofnpc( .flagy[.@id], .@main$ );
+		}
+		else if ( .@teamid == .@alliance )
+			bg_team_setxy .@teamid, 181, 19;
+		else
+			bg_team_setxy .@teamid, 19, 181;
+	}
+	donpcevent "wow_domi_viewpoint::OnCapture";
+//	donpcevent .@main$ +"::OnDebug";
+	end;
+OnInit:
+	sleep 1;
+	.@id = atoi( strnpcinfo(2) );
+	.@main$ = "wow_domi#main";
+	getmapxy .@map$, getvariableofnpc( .flagx[.@id], .@main$ ), getvariableofnpc( .flagy[.@id], .@main$ ), 1;
+	set getvariableofnpc( .flagx[.@id], .@main$ ), getvariableofnpc( .flagx[.@id], .@main$ )+1;
+	end;
+}
+arathi,154,59,4	duplicate(wow_domi_flag)	wow_domi_flag#1	GUILD_FLAG
+arathi,58,140,4	duplicate(wow_domi_flag)	wow_domi_flag#2	GUILD_FLAG
+arathi,115,90,4	duplicate(wow_domi_flag)	wow_domi_flag#3	GUILD_FLAG
+arathi,72,50,4	duplicate(wow_domi_flag)	wow_domi_flag#4	GUILD_FLAG
+arathi,110,154,4	duplicate(wow_domi_flag)	wow_domi_flag#5	GUILD_FLAG
+
+-	script	wow_domi_base	-1,{
+	end;
+}
+arathi,178,21,4	duplicate(wow_domi_base)	wow_domi_base#1	1_FLAG_LION
+arathi,22,178,4	duplicate(wow_domi_base)	wow_domi_base#2	1_FLAG_EAGLE
+
+prontera,150,190,4	script	wow_domi_register	8W_SOLDIER,{
+	.@main$ = "wow_domi#main";
+	.@start = getvariableofnpc( .start, .@main$ );
+	.@minplayer2start = getvariableofnpc( .minplayer2start, .@main$ );
+	if ( .@start == 2 ) {
+		mes "["+ strnpcinfo(1) +"]";
+		mes "Currently busy, please wait a few more seconds.";
+		close;
+	}
+	if ( .@start == 1 ) {
+		copyarray .@team[1], getvariableofnpc( .team[1], .@main$ ), 2;
+		callfunc "F_ShuffleNumbers", 1, 2, .@output;
+		for ( .@i = 0; .@i < 2; .@i++ )
+			if ( bg_get_data( .@team[.@output[.@i]], 0 ) < .@minplayer2start )
+				callsub L_rejoin, .@team[.@output[.@i]];
+		mes "["+ strnpcinfo(1) +"]";
+		mes "Battleground currently in progress.\rNo extra slot available at the moment.";
+		close;
+	}
+	mes "["+ strnpcinfo(1) +"]";
+	.@i = 0;
+	while ( Class != getvariableofnpc( .denyjob[.@i], .@main$ ) && .@i <= getvariableofnpc( .denyjobsize, .@main$ ) ) .@i++;
+	if ( .@i < getvariableofnpc( .denyjobsize, .@main$ ) ) {
+		mes "You are forbidden from joining this game.\rYou can't join this game as a "+ jobname( Class ) +".";
+		close;
+	}
+	.@minlevel2join = getvariableofnpc( .minlevel2join, .@main$ );
+	if ( BaseLevel < .@minlevel2join ) {
+		mes "You are forbidden from joining this game.\rYou have to be at least level "+ .@minlevel2join +" to join.";
+		close;
+	}
+	mes "Do you want to sign up for \rWoW battleground : Arathi Basin ?";
+	next;
+	if ( select ( "Yes:No" ) == 2 ) close;
+	mes "["+ strnpcinfo(1) +"]";
+	.@i = 0;
+	while ( .aid[.@i] != getcharid(3) && .@i < .size ) .@i++;
+	if ( .@i < .size ) {
+		mes "You already join the queue.";
+		close;
+	}
+	.aid[ .size ] = getcharid(3);
+	.size++;
+	mes "Reminder: Once you sign up, you have to stay on this map, otherwise you'll forfeit the registration.";
+	close2;
+	for ( .@i = 0; .@i < .size; .@i++ ) {
+		if ( !isloggedin( .aid[.@i] ) ) {
+			deletearray .aid[.@i], 1;
+			.@i--;
+			.size--;
+		}
+		else {
+			attachrid .aid[.@i];
+			if ( strcharinfo(3) != strnpcinfo(4) ) {
+				deletearray .aid[.@i], 1;
+				.@i--;
+				.size--;
+			}
+		}
+	}
+	detachrid;
+	if ( .size == .@minplayer2start *2 ) {
+		copyarray getvariableofnpc( .aid_, .@main$ ), .aid, .size;
+		donpcevent "wow_domi#main::OnStart";
+		deletearray .aid;
+		.size = 0;
+	}
+	else
+		announce sprintf( getvariableofnpc( .ann$[0], .@main$ ), .size, .@minplayer2start *2 ), bc_all, 0x00CED1;
+	end;
+L_rejoin:
+	.@main$ = "wow_domi#main";
+	setbgid getarg(0);
+	if ( getarg(0) == getvariableofnpc( .alliance, .@main$ ) )
+		warp "arathi", 177, 22;
+	else
+		warp "arathi", 22, 177;
+	sleep2 7000;
+	for ( .@i = 1; .@i <= 5; .@i++ )
+		viewpoint 1, getvariableofnpc( .flagx[.@i], .@main$ ), getvariableofnpc( .flagy[.@i], .@main$ ), .@i, getvariableofnpc( getelementofarray( .color, getvariableofnpc( .flag[.@i], .@main$ ) ), .@main$ );
+	end;
+}
+
+arathi	mapflag	battleground	2
+arathi	mapflag	nosave	SavePoint
+arathi	mapflag	nowarp
+arathi	mapflag	nowarpto
+arathi	mapflag	noteleport
+arathi	mapflag	nomemo
+arathi	mapflag	nopenalty
+arathi	mapflag	nobranch
+arathi	mapflag	noicewall
+
+/*	it seems the cell_shootable can't work without cell_walkable
+function	script	F_wow_domi_wall	{
+	if ( getcharid(4) == getarg(0) )
+		pushpc getarg(1), 2;
+	else if ( getcharid(4) != getarg(2) )
+		message strcharinfo(0), sprintf( getvariableofnpc( .msg$[5], .@main$ ), getarg(3) );
+	end;
+}
+arathi,178,27,5	script	wow_domi_wall#alliance1	-1,6,0,{
+	end;
+OnTouch:
+	.@main$ = "wow_domi#main";
+	callfunc "F_wow_domi_wall", getvariableofnpc( .horde, .@main$ ), DIR_NORTH, getvariableofnpc( .alliance, .@main$ ), getvariableofnpc( .teamname[1], .@main$ );
+	end;
+OnInit:
+	setcell "arathi", 174, 27, 183, 27, cell_shootable, false;
+	end;
+}
+arathi,173,21,5	script	wow_domi_wall#alliance2	-1,0,6,{
+	end;
+OnTouch:
+	.@main$ = "wow_domi#main";
+	callfunc "F_wow_domi_wall", getvariableofnpc( .horde, .@main$ ), DIR_WEST, getvariableofnpc( .alliance, .@main$ ), getvariableofnpc( .teamname[1], .@main$ );
+	end;
+OnInit:
+	setcell "arathi", 173, 16, 173, 27, cell_shootable, false;
+	end;
+}
+arathi,26,179,5	script	wow_domi_wall#horde1	-1,0,6,{
+	end;
+OnTouch:
+	.@main$ = "wow_domi#main";
+	callfunc "F_wow_domi_wall", getvariableofnpc( .alliance, .@main$ ), DIR_EAST, getvariableofnpc( .horde, .@main$ ), getvariableofnpc( .teamname[2], .@main$ );
+	end;
+OnInit:
+	setcell "arathi", 26, 173, 26, 183, cell_shootable, 0;
+	end;
+}
+arathi,22,172,5	script	wow_domi_wall#horde2	-1,6,0,{
+	end;
+OnTouch:
+	.@main$ = "wow_domi#main";
+	callfunc "F_wow_domi_wall", getvariableofnpc( .alliance, .@main$ ), DIR_SOUTH, getvariableofnpc( .horde, .@main$ ), getvariableofnpc( .teamname[2], .@main$ );
+	end;
+OnInit:
+	setcell "arathi", 16, 172, 27, 172, cell_shootable, false;
+	end;
+}
+*/

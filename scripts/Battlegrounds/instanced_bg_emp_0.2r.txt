@@ -1,0 +1,248 @@
+// http://herc.ws/board/topic/15913-annieruru-emp-bg/
+
+/* db\re\instance_db.txt
+34,BG_EMP,86400,86400,bat_a02,100,95
+*/
+
+function	script	F_ShuffleNumbers	{
+	deletearray getarg(2);
+	.@static = getarg(0);
+	.@range = getarg(1) +1 - .@static;
+	.@count = getarg(3, .@range);
+	if (.@range <= 0 || .@count <= 0)
+		return 0;
+	if (.@count > .@range)
+		.@count = .@range;
+	for (.@i = 0; .@i < .@range; ++.@i)
+		.@temparray[.@i] = .@i;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@rand = rand(.@range);
+		set getelementofarray( getarg(2), .@i ), .@temparray[.@rand] + .@static;
+		.@temparray[.@rand] = .@temparray[--.@range];
+	}
+	return .@count;
+}
+
+prontera,150,185,5	script	bg_emp	1_F_MARIA,{
+	while ( .aid[.@i] != getcharid(3) && .@i < .size ) ++.@i;
+	if ( .@i < .size ) {
+		mes "You already join the queue.";
+		close;
+	}
+	select "join";
+	mes "you have to stick to this map";
+	close2;
+	.@name$ = strcharinfo(0);
+	.aid[ .size++ ] = getcharid(3);
+	for ( .@i = 0; .@i < .size; ++.@i ) {
+		if ( !isloggedin( .aid[.@i] ) ) {
+			deletearray .aid[.@i], 1;
+			--.@i;
+			--.size;
+		}
+		else {
+			attachrid .aid[.@i];
+			if ( strcharinfo(3) != strnpcinfo(4) ) {
+				deletearray .aid[.@i], 1;
+				--.@i;
+				--.size;
+			}
+		}
+	}
+	detachrid;
+	announce "["+ .@name$ +"] has register the battleground. ["+ .size +"/"+( .minplayer2start *2 )+"]", bc_npc | bc_area;
+	if ( .size < .minplayer2start *2 )
+		end;
+	if ( instance_create( "BG_EMP", IM_NONE ) < 0 ) {
+		announce "Fail to create instanced battleground.", bc_all;
+		end;
+	}
+	else {
+		deletearray .aid, .minplayer2start *2;
+		.size -= .minplayer2start *2;
+	}
+	end;
+OnPCLoginEvent:
+	if ( bug_showdigit == true )
+		showdigit 0, 3;
+	end;
+OnInit:
+	.minplayer2start = 1; // minimum player to start. If 2vs2, set to 2
+	.eventlasting = 20*60; // abort the system if there's no progress, 20 mins * seconds
+	.winningscore = 2; // how many rounds needed for the team to win the game
+	setarray .rewardwin, 501, 10, 502, 5, 503, 3; // reward to the winning team
+	setarray .rewardlose, 501, 3, 502, 2, 503, 1; // reward to the losing team. Note: in case of draw/timeout, both teams gets lose item
+	.reward_by_mail = false; // if 'false', the reward is sent by *getitem, if 'true' the reward is sent by *mail
+
+	//	display a clock at the top middle of the screen
+	// 0 - OFF
+	// 1 - the clock shows the time progress for each round
+	// 2 - the clock shows the time progress from the beginning of the battleground match
+	.showdigit = 1;
+
+	.rewardwinsize = getarraysize( .rewardwin );
+	.rewardlosesize = getarraysize( .rewardlose );
+	end;
+}
+
+bat_a02,0,0,0	script	bg_emp#ins	-1,{
+OnInstanceInit:
+	'main$ = "bg_emp"; // this name must match the register npc name
+	'map$ = strnpcinfo(4);
+	'red = bg_create( 'map$, 157,347, instance_npcname( strnpcinfo(0) )+"::OnRedQuit", instance_npcname( strnpcinfo(0) )+"::OnRedDead" );
+	'blue = bg_create( 'map$, 142,51, instance_npcname( strnpcinfo(0) )+"::OnBlueQuit", instance_npcname( strnpcinfo(0) )+"::OnBlueDead" );
+	.@size = getvariableofnpc( .minplayer2start, 'main$ ) *2;
+	callfunc "F_ShuffleNumbers", 0, .@size -1, .@r;
+	for ( .@i = 0; .@i < .@size; ++.@i ) {
+		attachrid getvariableofnpc( getd( ".aid["+ .@r[.@i] +"]" ), 'main$ );
+		bg_join ( .@i % 2 )? 'red : 'blue;
+	}
+	if ( getvariableofnpc( .showdigit, 'main$ ) == 2 ) {
+		'time = gettimetick(2);
+		callsub L_ShowdigitAll, 0, 1;
+	}
+	detachrid;
+	bg_warp 'red, 'map$, 171,346;
+	bg_warp 'blue, 'map$, 162,50;
+	setwall 'map$, 164,347, 6, 4, 0, "bg_emp_red"+ 'red;
+	setwall 'map$, 154,51, 6, 4, 0, "bg_emp_blue"+ 'blue;
+	if ( !'skip ) sleep 6000;
+	instance_announce 0, "The rules are simple. The first team to break the opponent's Emperium wins!", bc_map;
+	if ( !'skip ) sleep 3000;
+	bg_updatescore 'map$, 'score[ 'red ], 'score[ 'blue ];
+	while ( true ) {
+		for ( .@i = 5; .@i > 0; --.@i ) {
+			instance_announce 0, "["+ .@i +"]", bc_map;
+			if ( !'skip ) sleep 1000;
+		}
+		if ( 'score[ 'red ] == getvariableofnpc( .winningscore, 'main$ ) -1 && 'score[ 'blue ] == getvariableofnpc( .winningscore, 'main$ ) -1 )
+			instance_announce 0, "Final Round start!", bc_map;
+		else
+			instance_announce 0, "Round "+ ++.round +" start!", bc_map;
+		if ( getvariableofnpc( .showdigit, 'main$ ) == 1 ) {
+			'time = gettimetick(2);
+			callsub L_ShowdigitAll, 0, 1;
+		}
+		.@red_crystal = bg_monster( 'red, 'map$, 171,346, "--ja--",1915, instance_npcname( strnpcinfo(0) )+"::OnRedDown" );
+//		setunitdata .@red_crystal, UMOB_HP, 5;
+		.@blue_crystal = bg_monster( 'blue, 'map$, 162,50, "--ja--",1914, instance_npcname( strnpcinfo(0) )+"::OnBlueDown" );
+//		setunitdata .@blue_crystal, UMOB_HP, 5;
+		delwall "bg_emp_red"+ 'red;
+		delwall "bg_emp_blue"+ 'blue;
+		if ( !'skip ) sleep getvariableofnpc( .eventlasting, 'main$ ) * 1000;
+		bg_updatescore 'map$, 'score[ 'red ], 'score[ 'blue ];
+		if ( getvariableofnpc( .showdigit, 'main$ ) == 1 )
+			callsub L_ShowdigitAll, gettimetick(2) - 'time, 0;
+		if ( 'score[ 'red ] == getvariableofnpc( .winningscore, 'main$ ) || 'score[ 'blue ] == getvariableofnpc( .winningscore, 'main$ ) || !'winside ) break;
+		killmonster 'map$, instance_npcname( strnpcinfo(0) )+"::OnRedDown";
+		killmonster 'map$, instance_npcname( strnpcinfo(0) )+"::OnBlueDown";
+		if ( !'skip ) sleep 5000;
+		bg_warp 'red, 'map$, 171,346;
+		bg_warp 'blue, 'map$, 162,50;
+		bg_updatescore 'map$, 'score[ 'red ], 'score[ 'blue ];
+		setwall 'map$, 164,347, 6, 4, 0, "bg_emp_red"+ 'red;
+		setwall 'map$, 154,51, 6, 4, 0, "bg_emp_blue"+ 'blue;
+		if ( !'skip ) sleep 1000;
+		'winside = 0;
+	}
+	if ( 'winside == 'red ) {
+		instance_announce 0, "- Red Team is victorious! -", bc_map;
+		callsub L_Reward, 'red, getvariableofnpc( .rewardwin, 'main$ ), getvariableofnpc( .rewardwinsize, 'main$ );
+		callsub L_Reward, 'blue, getvariableofnpc( .rewardlose, 'main$ ), getvariableofnpc( .rewardlosesize, 'main$ );
+	}
+	else if ( 'winside == 'blue ) {
+		instance_announce 0, "- Blue Team is victorious! -", bc_map;
+		callsub L_Reward, 'blue, getvariableofnpc( .rewardwin, 'main$ ), getvariableofnpc( .rewardwinsize, 'main$ );
+		callsub L_Reward, 'red, getvariableofnpc( .rewardlose, 'main$ ), getvariableofnpc( .rewardlosesize, 'main$ );
+	}
+	else {
+		instance_announce 0, "- The match has ended in a draw! -", bc_map;
+		callsub L_Reward, 'red, getvariableofnpc( .rewardlose, 'main$ ), getvariableofnpc( .rewardlosesize, 'main$ );
+		callsub L_Reward, 'blue, getvariableofnpc( .rewardlose, 'main$ ), getvariableofnpc( .rewardlosesize, 'main$ );
+	}
+	if ( getvariableofnpc( .showdigit, 'main$ ) )
+		callsub L_ShowdigitAll, gettimetick(2) - 'time, 0;
+	sleep 6000;
+	bg_warp 'red, "prontera", 155,182;
+	bg_warp 'blue, "prontera", 158,182;
+	bg_destroy 'red;
+	bg_destroy 'blue;
+	instance_destroy;
+	end;
+L_ShowdigitAll:
+	bg_get_data 'red, 1;
+	for ( .@i = 0; .@i < $@arenamemberscount; ++.@i ) {
+		attachrid $@arenamembers[.@i];
+		showdigit getarg(0), getarg(1);
+	}
+	bg_get_data 'blue, 1;
+	for ( .@i = 0; .@i < $@arenamemberscount; ++.@i ) {
+		attachrid $@arenamembers[.@i];
+		showdigit getarg(0), getarg(1);
+	}
+	detachrid;
+	return;
+L_Reward:
+	bg_get_data getarg(0), 1;
+	if ( getvariableofnpc( .reward_by_mail, 'main$ ) ) {
+		deletearray .@itemid;
+		deletearray .@itemamount;
+		for ( .@i = 0; .@i < getarg(2) /2; ++.@i ) {
+			.@itemid[.@i] = getelementofarray( getarg(1), .@i *2 );
+			.@itemamount[.@i] =  getelementofarray( getarg(1), ( .@i *2 ) +1 );
+		}
+		for ( .@i = 0; .@i < $@arenamemberscount; ++.@i ) {
+			attachrid $@arenamembers[.@i];
+			mail getcharid(0),
+				"XXXRO auto-reward", // mail sender name
+				"Battleground Emperium", // mail title
+				"Congratulations ~ This is your reward for participating.", // mail body
+				0, // mail attached Zeny
+				.@itemid, .@itemamount;
+		}
+		detachrid;
+	}
+	else {
+		for ( .@i = 0; .@i < $@arenamemberscount; ++.@i )
+			for ( .@j = 0; .@j < getarg(2); .@j += 2 )
+				getitem getelementofarray( getarg(1), .@j ), getelementofarray( getarg(1), .@j +1 ), $@arenamembers[.@i];
+	}
+	return;
+OnRedDown:  callsub L_EmpDown, "Red", 'blue;
+OnBlueDown: callsub L_EmpDown, "Blue", 'red;
+L_EmpDown:
+	instance_announce 0, strcharinfo(0) +" has destroyed "+ getarg(0) +" Team's Emperium.", bc_map;
+	'winside = getarg(1);
+	++'score[ getarg(1) ];
+	awake instance_npcname( strnpcinfo(0) );
+	end;
+OnRedDead:
+OnBlueDead:
+	sleep2 1250;
+	percentheal 100,100;
+	end;
+OnRedQuit:  callsub L_Quit, 'red, "Red", 'blue;
+OnBlueQuit: callsub L_Quit, 'blue, "Blue", 'red;
+L_Quit:
+	bg_leave;
+	percentheal 100, 100;
+	showdigit 0, 3;
+	bug_showdigit = true;
+	if ( !bg_get_data( getarg(0), 0 ) ) {
+		instance_announce 0, "All "+ getarg(1) +" team members have quit!", bc_map, 0xff3333;
+		'winside = getarg(2);
+		'skip = true;
+		awake instance_npcname( strnpcinfo(0) );
+	}
+	end;
+}
+
+bat_a02	mapflag	battleground	2
+bat_a02	mapflag	nosave	SavePoint
+bat_a02	mapflag	nowarp
+bat_a02	mapflag	nowarpto
+bat_a02	mapflag	noteleport
+bat_a02	mapflag	nomemo
+bat_a02	mapflag	nopenalty
+bat_a02	mapflag	nobranch
+bat_a02	mapflag	noicewall

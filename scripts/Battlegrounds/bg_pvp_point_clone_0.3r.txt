@@ -1,0 +1,174 @@
+// https://rathena.org/board/topic/114033-battleground-multiplayer-whith-evilclone/
+
+function	script	F_ShuffleNumbers	{
+	deletearray getarg(2);
+	.@static = getarg(0);
+	.@range = getarg(1) +1 - .@static;
+	.@count = getarg(3, .@range);
+	if (.@range <= 0 || .@count <= 0)
+		return 0;
+	if (.@count > .@range)
+		.@count = .@range;
+	for (.@i = 0; .@i < .@range; ++.@i)
+		.@temparray[.@i] = .@i;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@rand = rand(.@range);
+		set getelementofarray( getarg(2), .@i ), .@temparray[.@rand] + .@static;
+		.@temparray[.@rand] = .@temparray[--.@range];
+	}
+	return .@count;
+}
+
+prontera,155,185,5	script	bg_pvp_clone	1_F_MARIA,{
+	.minplayer2start = 1; // 1vs1
+	mes "bg_pvp_clone";
+	if ( .start == true ) {
+		mes "bg_pvp_clone is on-going";
+		close;
+	}
+	while ( .aid[.@i] != getcharid(3) && .@i < .size ) ++.@i;
+	if ( .@i < .size ) {
+		mes "You already join the queue.";
+		close;
+	}
+	select "join";
+	mes "you have to stick to this map";
+	close2;
+	.aid[ .size++ ] = getcharid(3);
+	for ( .@i = 0; .@i < .size; ++.@i ) {
+		if ( !isloggedin( .aid[.@i] ) ) {
+			deletearray .aid[.@i], 1;
+			--.@i;
+			--.size;
+		}
+		else {
+			attachrid .aid[.@i];
+			if ( strcharinfo(3) != strnpcinfo(4) ) {
+				deletearray .aid[.@i], 1;
+				--.@i;
+				--.size;
+			}
+		}
+	}
+	detachrid;
+	if ( .size < .minplayer2start *2 ) {
+		announce .size +" players join", bc_npc | bc_area;
+		end;
+	}
+	.start = true;
+	.red = bg_create( "bat_c03",53,128, strnpcinfo(0)+"::OnRedQuit", strnpcinfo(0)+"::OnRedDead" );
+	.blue = bg_create( "bat_c03",146,56, strnpcinfo(0)+"::OnBlueQuit", strnpcinfo(0)+"::OnBlueDead" );
+	callfunc "F_ShuffleNumbers", 0, .size -1, .@r;
+	for ( .@i = 0; .@i < .size; ++.@i ) {
+		attachrid .aid[ .@r[.@i] ];
+		bg_join ( .@i % 2 )? .red : .blue;
+	}
+	detachrid;
+	bg_warp .red, "bat_c03", 53,128;
+	bg_warp .blue, "bat_c03", 146,56;
+	for ( .@i = 0; .@i < 10; ++.@i ) // spawn 10 of them
+		callsub L_spawn, .red, getcharid(0, rid2name( .aid[ rand(.size) ] ) ), "::OnRedCloneKill";
+	for ( .@i = 0; .@i < 10; ++.@i )
+		callsub L_spawn, .blue, getcharid(0, rid2name( .aid[ rand(.size) ] ) ), "::OnBlueCloneKill";
+	deletearray .aid;
+	.size = 0;
+	sleep 30000; // Match Duration
+	if ( .winside == .red || .redscore > .bluescore ) {
+		mapannounce "bat_c03", "- Red side Won the match !", bc_map;
+		callsub L_reward, .red;
+	}
+	else if ( .winside == .blue || .bluescore > .redscore ) {
+		mapannounce "bat_c03", "- Blue side Won the match !", bc_map;
+		callsub L_reward, .blue;
+	}
+	else
+		mapannounce "bat_c03", "Battle end as a draw", bc_map;
+	bg_destroy .red;
+	bg_destroy .blue;
+	mapwarp "bat_c03", "prontera",150,185;
+	.redscore = .bluescore = .start = false;
+	bg_updatescore "bat_c03", 0, 0;
+	end;
+L_reward:
+	bg_get_data getarg(0), 1;
+	for ( .@i = 0; .@i < $@arenamemberscount; ++.@i )
+		getitem 501,1, $@arenamembers[.@i];
+	return;
+OnRedCloneKill: callsub L_CloneKill, .red, .blue, .bluescore, "::OnRedCloneKill";
+OnBlueCloneKill: callsub L_CloneKill, .blue, .red, .redscore, "::OnBlueCloneKill";
+L_CloneKill:
+	callsub L_spawn, getarg(0), getcharid(0), getarg(3);
+	set getarg(2), getarg(2) +1; // killing clones add 1 point
+	if ( .redscore < 100 && .bluescore < 100 )
+		bg_updatescore "bat_c03", .redscore, .bluescore;
+	if ( getarg(2) == 100 ) {
+		.winside = getarg(1);
+		awake strnpcinfo(0);
+	}
+	end;
+OnRedQuit: callsub L_Quit, .red, .blue, "Red";
+OnBlueQuit: callsub L_Quit, .blue, .red, "Blue";
+L_Quit:
+	if ( bg_get_data( getarg(0), 0 ) ) end;
+	mapannounce "bat_c03", "All "+ getarg(2) +" team members has Quit!", bc_map;
+	.winside = getarg(1);
+	awake strnpcinfo(0);
+	end;
+OnRedDead: callsub L_Dead, .red, .blue, .bluescore;
+OnBlueDead: callsub L_Dead, .blue, .red, .redscore;
+L_Dead:
+	set getarg(2), getarg(2) +3; // killing players add 3 points
+	if ( .redscore < 100 && .bluescore < 100 )
+		bg_updatescore "bat_c03", .redscore, .bluescore;
+	if ( getarg(2) == 100 ) {
+		.winside = getarg(1);
+		awake strnpcinfo(0);
+	}
+	sleep2 1250;
+	percentheal 100,100;
+	end;
+L_spawn:
+	.@mobid = bg_monster( getarg(0), "bat_c03", 0,0, "--ja--", callsub( L_mobid, readparam( BaseJob, getarg(1) ) ), strnpcinfo(0) + getarg(2) );
+	setunitdata .@mobid, UMOB_LEVEL, readparam( BaseLevel, getarg(1) );
+	setunitdata .@mobid, UMOB_MAXHP, readparam( MaxHp, getarg(1) );
+	setunitdata .@mobid, UMOB_HP, readparam( Hp, getarg(1) );
+	setunitdata .@mobid, UMOB_STR, readparam( bStr, getarg(1) );
+	setunitdata .@mobid, UMOB_AGI, readparam( bAgi, getarg(1) );
+	setunitdata .@mobid, UMOB_VIT, readparam( bVit, getarg(1) );
+	setunitdata .@mobid, UMOB_INT, readparam( bInt, getarg(1) );
+	setunitdata .@mobid, UMOB_DEX, readparam( bDex, getarg(1) );
+	setunitdata .@mobid, UMOB_LUK, readparam( bLuk, getarg(1) );
+	setunitdata .@mobid, UMOB_CLASS, readparam( Class, getarg(1) );
+	setunitdata .@mobid, UMOB_SEX, readparam( Sex, getarg(1) );
+	setunitdata .@mobid, UMOB_HAIRSTYLE, getlook( LOOK_HAIR, getarg(1) );
+	setunitdata .@mobid, UMOB_HAIRCOLOR, getlook( LOOK_HAIR_COLOR, getarg(1) );
+	return;
+L_mobid:
+	switch( getarg(0) ) {
+	case Job_Knight: return 1634;
+	case Job_Priest: return 1637;
+	case Job_Wizard: return 1639;
+	case Job_Blacksmith: return 1636;
+	case Job_Hunter: return 1638;
+	case Job_Assassin: return 1635;
+	case Job_Crusader: return 2221;
+	case Job_Monk: return 2224;
+	case Job_Sage: return 2223;
+	case Job_Rogue: return 2225;
+	case Job_Alchemist: return 2222;
+	case Job_Bard: return 2226;
+	case Job_Dancer: return 2227;
+	default: return 1002; // if not 3rd job then summon a poring muahahahaha .... nah, I'm just lazy
+	}
+}
+
+bat_c03	mapflag	battleground	2
+bat_c03	mapflag	nosave	SavePoint
+bat_c03	mapflag	nowarp
+bat_c03	mapflag	nowarpto
+bat_c03	mapflag	noteleport
+bat_c03	mapflag	nomemo
+bat_c03	mapflag	nopenalty
+bat_c03	mapflag	nobranch
+bat_c03	mapflag	noicewall
+bat_c03	mapflag	nomobloot

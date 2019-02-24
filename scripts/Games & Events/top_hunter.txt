@@ -1,0 +1,128 @@
+// https://rathena.org/board/topic/115299-how-to-make-when-event-ends-announce-the-top-3-winners/
+
+//	my improved counting sort, idea from keyworld <3
+//	http://herc.ws/board/topic/4321-help-me-improve-this-merge-sort-algorithm/?do=findComment&comment=28247
+//	callfunc "counting_sort_index_desc", <input array>, <output array>, <total index>;
+function	script	counting_sort_index_desc	{
+	.@total = .@size = getarg( 2, getarraysize( getarg(0) ) );
+	copyarray .@arr, getarg(0), .@size;
+	for ( .@i = 0; .@i < .@size; ++.@i ) {
+		setd ".@index_"+ .@arr[.@i] +"["+( .@tmp[.@arr[.@i]] )+"]", .@i;
+		++.@tmp[.@arr[.@i]];
+	}
+	for ( ; .@size; --.@size ) {
+		.@index = getarraysize(.@tmp) -1;
+		--.@tmp[.@index];
+		.@out[.@total - .@size] = getd( ".@index_"+ .@index +"["+( .@tmp[.@index] )+"]" );
+	}
+	copyarray getarg(1), .@out, .@total;
+	return;
+}
+
+prontera,150,180,5	script	Top Hunter	1_F_MARIA,{
+	if ( .start == false ) {
+		mes "registration closed";
+		close;
+	}
+	if ( getgmlevel() >= 99 ) { // GMs should skip registration. MAKE SURE Turn this off if you are debugging this script with GM account
+		warp "guild_vs2", 49,49;
+		end;
+	}
+	if ( .register_count >= 100 ) {
+		mes "only accept 100 registration";
+		close;
+	}
+	.register_aid[.register_count++] = getcharid(3);
+	warp "guild_vs2", 0,0;
+	end;
+OnInit:
+	bindatcmd "tophunter", strnpcinfo(0)+"::OnStart", 99,100;
+	end;
+OnStart:
+OnClock1030: // put all start timer here
+OnClock2314:
+	.start = true;
+	mapwarp "guild_vs2", "prontera", 156,191;
+	announce "Top Hunter event started ~ accepting registrations ", bc_all;
+
+	sleep 20000; // 20 seconds to register, to debug this script of course
+
+	announce "Top Hunter event registration closed", bc_all;
+	.start = false;
+	if ( .register_count < 3 ) {
+		announce "Top Hunter event aborted ... not enough players to start this event", bc_all; 
+		mapwarp "guild_vs2", "prontera", 156,191;
+		end;
+	}
+	sleep 3000;
+	monster "guild_vs2", 0,0, "this", 1002, 30, strnpcinfo(3)+"::OnMobDead";
+	monster "guild_vs2", 0,0, "this", 1002, 20, strnpcinfo(3)+"::OnMobDead";
+	monster "guild_vs2", 0,0, "this", 1002, 10, strnpcinfo(3)+"::OnMobDead";
+
+	sleep 60000; // event runs 60 seconds
+
+	mapannounce "guild_vs2", "Top Hunter: Times Up~", bc_all;
+	killmonsterall "guild_vs2";
+	sleep 3000;
+	freeloop true;
+
+	//	here comes the magic ~ save all participants killcount into a temporary array
+	for ( .@i = 0; .@i < .register_count; ++.@i ) {
+		attachrid .register_aid[.@i];
+		.@aid[.@i] = .register_aid[.@i];
+		.@name$[.@i] = strcharinfo(0);
+		.@killed[.@i] = @tophunter_killcount;
+		@tophunter_killcount = 0;
+	}
+	detachrid;
+
+	//	magic !! sort the array from biggest number to smallest number, output in index format
+	callfunc "counting_sort_index_desc", .@killed, .@s, .register_count;
+
+/*	announce "Top hunter Script Debugging Mode - List all players' killcount sorted", bc_all;
+	for ( .@i = 0; .@i < .register_count; ++.@i )
+		announce "No."+( .@i +1 )+" : "+ .@name$[ .@s[.@i] ] +" ["+ .@aid[ .@s[.@i] ]+"] with "+ .@killed[ .@s[.@i] ]+" kills.", bc_all;
+	announce " ====== ", bc_all;
+*/
+	for ( .@i = 0; .@i < 3; ++.@i ) {
+		if ( .@killed[ .@s[.@i] ] ) { // must make at least 1 kill
+			.@winnername$[.@i] = .@name$[ .@s[.@i] ];
+			getitem 501, 10, .@aid[ .@s[.@i] ]; // give 10 red potions to these winners
+		}
+	}
+
+	if ( .@killed[.@s[0]] )// make sure even the top place has score a kill
+		announce "Top Hunter: The Top Hunters are ["+ implode( .@winnername$, "],[" )+"] !", bc_all;
+	else
+		announce "Top Hunter: WOOT ! Every one just come in here and AFK ??", bc_all;
+
+	freeloop false;
+	sleep 5000;
+	mapwarp "guild_vs2", "prontera", 156,191;
+	deletearray .register_aid;
+	.register_count = 0;
+	end;
+OnMobDead:
+	++@tophunter_killcount;
+	if ( !mobcount( strcharinfo(3), strnpcinfo(3)+"::OnMobDead" ) )
+		awake strnpcinfo(0);
+	end;
+OnPCLogoutEvent:
+	if ( strcharinfo(3) == "guild_vs2" ) {
+		for ( .@i = 0; .@i < .register_count; ++.@i ) {
+			if ( getcharid(3) == .register_aid[.@i] ) {
+				deletearray .register_aid[.@i], 1;
+				--.register_count;
+			}
+		}
+	}
+	end;
+}
+guild_vs2	mapflag	nowarp
+guild_vs2	mapflag	nowarpto
+guild_vs2	mapflag	noteleport
+guild_vs2	mapflag	nosave	SavePoint
+guild_vs2	mapflag	nomemo
+guild_vs2	mapflag	nopenalty
+guild_vs2	mapflag	noicewall
+guild_vs2	mapflag	nobranch

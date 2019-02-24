@@ -1,0 +1,82 @@
+// counting_sort_index <input array>, <output index>{, <total index>};
+function	script	counting_sort_index	{
+	.@total = .@size = getarg( 2, getarraysize( getarg(0) ) );
+	copyarray .@arr, getarg(0), .@size;
+	for ( .@i = 0; .@i < .@size; ++.@i )
+		setd ".@index_"+ .@arr[.@i] +"["+( .@tmp[.@arr[.@i]]++ )+"]", .@i;
+	for ( ; .@size; --.@size ) {
+		.@index = getarraysize(.@tmp) -1;
+		.@out[.@size-1] = getd( ".@index_"+ .@index +"["+( --.@tmp[.@index] )+"]" );
+	}
+	copyarray getarg(1), .@out, .@total;
+	return;
+}
+
+//===== Hercules Script ======================================
+//= Pet egg deleter
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: ===================================== 
+//= Hercules 2019-02-21
+//===== Description: ========================================= 
+//= list pet egg in your inventory, and attempt to delete it
+//===== Topic ================================================
+//= http://herc.ws/board/topic/16567-hpet-egg-renewal-fixing/?do=findComment&comment=90504
+//===== Additional Comments: =================================
+//= 
+//============================================================
+
+prontera,155,185,5	script	F_PetTrader	1_F_MARIA,{
+	disable_items;
+	if ( getpetinfo(1) ) {
+		mes "please return your pet into egg state to continue";
+		close;
+	}
+	getinventorylist;
+	for ( .@i = 0; .@i < @inventorylist_count; ++.@i ) {
+		if ( @inventorylist_card1[.@i] == -256 ) {
+			.@egg_id[.@c] = @inventorylist_id[.@i];
+			.@pet_id[.@c] = @inventorylist_card2[.@i] + @inventorylist_card3[.@i] * ( 1 << 16 );
+			++.@c;
+		}
+	}
+	if ( !.@c ) {
+		mes "your inventory doesn't have any pet egg";
+		close;
+	}
+	counting_sort_index .@petid, .@s, .@c; // never thought a time need a sorting algorithm
+	for ( .@i = 0; .@i < .@c; ++.@i ) {
+		.@petid[.@i] = .@pet_id[.@s[.@i]];
+		.@eggid[.@i] = .@egg_id[.@s[.@i]];
+	}
+	.@pet_field$ = .@petid[0];
+	for ( .@i = 1; .@i < .@c; ++.@i )
+		.@pet_field$ += ","+ .@petid[.@i];
+	.@nb = query_sql( "select intimate, class, equip, name from pet where pet_id in ("+ .@pet_field$ +") order by pet_id", .@intimate, .@class, .@equipped, .@name$ );
+	if ( .@nb != .@c ) {
+		mes "Error ... ";
+		close;
+	}
+	mesf "There are %d pet egg inside your inventory", .@c;
+	for ( .@i = 0; .@i < .@nb; ++.@i ) {
+		mes " ";
+		mesf "Pet ID : %d", .@petid[.@i];
+		mesf "Pet Name : %s", .@name$[.@i];
+		mesf "Pet Class : %d", .@class[.@i];
+		mesf "Egg ID : %d", .@eggid[.@i];
+		mesf "Intimacy : %d", .@intimate[.@i];
+	}
+	next;
+	for ( .@i = 0; .@i < .@nb; ++.@i )
+		.@menu$ += sprintf( ("[%d] %s:"), .@petid[.@i], replacestr( .@name$[.@i], ":", ";" ) );
+	.@s = select(.@menu$) -1;
+	mesf "Selected #%d %s", .@petid[.@s], .@name$;
+	// then decide what you want to do here
+	mes "delete it ?";
+	next;
+	if ( select( "Yes", "No" ) == 2 ) close;
+	delitem2 .@eggid[.@s], 1,1,0,0, -256, .@petid[.@s] % ( 1 << 16 ), .@petid[.@s] / ( 1 << 16 ), 0;
+	close;
+}

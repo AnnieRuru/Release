@@ -1,0 +1,120 @@
+Index: common/mmo.h
+===================================================================
+--- common/mmo.h	(revision 14843)
++++ common/mmo.h	(working copy)
+@@ -175,6 +175,7 @@
+ 	IT_UNKNOWN2,//9
+ 	IT_AMMO,    //10
+ 	IT_DELAYCONSUME,//11
++	IT_CHARM,
+ 	IT_CASH = 18,
+ 	IT_MAX 
+ };
+Index: map/clif.c
+===================================================================
+--- map/clif.c	(revision 14843)
++++ map/clif.c	(working copy)
+@@ -59,7 +59,7 @@
+ //Converts item type in case of pet eggs.
+ inline int itemtype(int type)
+ {
+-	return ( type == IT_PETEGG ) ? IT_WEAPON : type;
++	return ( type == IT_PETEGG ) ? IT_WEAPON : ( type == IT_CHARM )? IT_ETC : type;
+ }
+ 
+ #define WBUFPOS(p,pos,x,y,dir) \
+Index: map/itemdb.c
+===================================================================
+--- map/itemdb.c	(revision 14843)
++++ map/itemdb.c	(working copy)
+@@ -196,6 +196,7 @@
+ 		case IT_PETARMOR:       return "Pet Accessory";
+ 		case IT_AMMO:           return "Arrow/Ammunition";
+ 		case IT_DELAYCONSUME:   return "Delay-Consume Usable";
++		case IT_CHARM:          return "Charms";
+ 		case IT_CASH:           return "Cash Usable";
+ 	}
+ 	return "Unknown Type";
+@@ -371,6 +372,7 @@
+ 	  case IT_ARMOR:
+ 	  case IT_PETEGG:
+ 	  case IT_PETARMOR:
++	  case IT_CHARM:
+ 		  return 0;
+ 	  default:
+ 		  return 1;
+@@ -388,6 +390,7 @@
+ 	  case IT_ARMOR:
+ 	  case IT_PETEGG:
+ 	  case IT_PETARMOR:
++	  case IT_CHARM:
+ 		  return 0;
+ 	  default:
+ 		  return 1;
+@@ -736,7 +739,7 @@
+ 
+ 	id->type = atoi(str[3]);
+ 
+-	if( id->type < 0 || id->type == IT_UNKNOWN || id->type == IT_UNKNOWN2 || ( id->type > IT_DELAYCONSUME && id->type < IT_CASH ) || id->type >= IT_MAX )
++	if( id->type < 0 || id->type == IT_UNKNOWN || id->type == IT_UNKNOWN2 || ( id->type > IT_CHARM && id->type < IT_CASH ) || id->type >= IT_MAX )
+ 	{// catch invalid item types
+ 		ShowWarning("itemdb_parse_dbrow: Invalid item type %d for item %d. IT_ETC will be used.\n", id->type, nameid);
+ 		id->type = IT_ETC;
+Index: map/pc.c
+===================================================================
+--- map/pc.c	(revision 14843)
++++ map/pc.c	(working copy)
+@@ -3444,6 +3444,7 @@
+ 	clif_updatestatus(sd,SP_WEIGHT);
+ 	//Auto-equip
+ 	if(data->flag.autoequip) pc_equipitem(sd, i, data->equip);
++	if(data->type == IT_CHARM) status_calc_pc(sd,0);//dh
+ 	return 0;
+ }
+ 
+@@ -3452,6 +3453,7 @@
+  *------------------------------------------*/
+ int pc_delitem(struct map_session_data *sd,int n,int amount,int type, short reason)
+ {
++	int mem = 0;
+ 	nullpo_retr(1, sd);
+ 
+ 	if(sd->status.inventory[n].nameid==0 || amount <= 0 || sd->status.inventory[n].amount<amount || sd->inventory_data[n] == NULL)
+@@ -3462,6 +3464,7 @@
+ 	if(sd->status.inventory[n].amount<=0){
+ 		if(sd->status.inventory[n].equip)
+ 			pc_unequipitem(sd,n,3);
++		mem = sd->inventory_data[n]->type;
+ 		memset(&sd->status.inventory[n],0,sizeof(sd->status.inventory[0]));
+ 		sd->inventory_data[n] = NULL;
+ 	}
+@@ -3470,6 +3473,8 @@
+ 	if(!(type&2))
+ 		clif_updatestatus(sd,SP_WEIGHT);
+ 
++	if(mem == IT_CHARM) status_calc_pc(sd,0);//dh
++
+ 	return 0;
+ }
+ 
+Index: map/status.c
+===================================================================
+--- map/status.c	(revision 14843)
++++ map/status.c	(working copy)
+@@ -1872,6 +1872,16 @@
+ 	pc_delautobonus(sd,sd->autobonus2,ARRAYLENGTH(sd->autobonus2),true);
+ 	pc_delautobonus(sd,sd->autobonus3,ARRAYLENGTH(sd->autobonus3),true);
+ 
++	for ( i=0; i < MAX_INVENTORY; i++ ) {  //dh
++		if ( !sd->inventory_data[i] || sd->inventory_data[i]->type != IT_CHARM )
++			continue;
++		if ( sd->inventory_data[i]->script && sd->inventory_data[i]->elv <= sd->status.base_level && ( 1 << sd->class_ & MAPID_BASEMASK ) & sd->inventory_data[i]->class_base[ sd->class_ & JOBL_2_1? 1: sd->class_ & JOBL_2_2? 2:0  ] && ( 1 << ( sd->class_ & JOBL_UPPER? 1: sd->class_ & JOBL_BABY? 2:0 ) ) & sd->inventory_data[i]->class_upper ) {
++			run_script( sd->inventory_data[i]->script, 0, sd->bl.id, 0 );
++			if ( !calculating ) //Abort, run_script retriggered this. [Skotlex]
++				return 1;
++		}
++	}
++
+ 	// Parse equipment.
+ 	for(i=0;i<EQI_MAX-1;i++) {
+ 		current_equip_item_index = index = sd->equip_index[i]; //We pass INDEX to current_equip_item_index - for EQUIP_SCRIPT (new cards solution) [Lupus]

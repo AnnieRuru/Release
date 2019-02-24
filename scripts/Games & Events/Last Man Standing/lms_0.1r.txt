@@ -1,0 +1,97 @@
+//===== rAthena Script =====================================
+//= Last Man Standing
+//===== By: ================================================
+//= AnnieRuru
+//===== Current Version: ===================================
+//= 0.1
+//===== Compatible With: ===================================
+//= rAthena 2013-12-20
+//===== Description: =======================================
+//= Stay Alive and Kill Everyone Else !!!
+//===== Topic ==============================================
+//= https://rathena.org/board/topic/90441-last-man-standing/
+//===== Additional Comments: ===============================
+//= 
+//==========================================================
+
+prontera,154,178,5	script	Last Man Standing	100,{
+	if ( !.start ) {
+		mes "no event atm";
+		close;
+	}
+	if ( .start == 2 ) {
+		mes "event is running";
+		close;
+	}
+	if ( .register_count >= .register_limit ) {
+		mes "this event has reach the maximum player participations";
+		close;
+	}
+	percentheal 100,100;
+	warp "guild_vs5", 0,0;
+	.register_aid[ .register_count ] = getcharid(3);
+	.register_count+++;
+	end;
+OnWhisperGlobal:
+	if ( getgmlevel() < 60 ) end;
+//OnClock0000: // put all your start timer here
+OnMinute00:
+	if ( .start == 2 )
+		callsub L_resetmap;
+	else if ( .start == 1 )
+		end;
+	announce "LMS event registration start", 0;
+	.start = 1;
+	sleep 10000; // registration timer here
+	announce "LMS event registration close", 0;
+	.start = 2;
+	sleep 3000;
+	mapannounce "guild_vs5", "THIS IS SPARTA !!!!!", 0;
+	if ( .register_count < .register_min ) {
+		announce "not enough participants for LMS event", 0;
+		mapwarp "guild_vs5", .map$, .x, .y;
+		callsub L_resetmap;
+		end;
+	}
+	pvpon "guild_vs5";
+	end;
+OnPCDieEvent:
+OnPCLogoutEvent:
+	if ( .start != 2 || strcharinfo(3) != "guild_vs5" ) end;
+	while ( .register_aid != getcharid(3) && .@i < .register_count ) .@i++;
+	deletearray .register_aid[.@i], 1;
+	.register_count--;
+	warp "SavePoint", 0,0;
+	if ( .register_count > 1 ) end;
+	killmonsterall "guild_vs5";
+	announce "congratulations ~ the winner of LMS event is "+ rid2name( .register_aid ), 0;
+	getitem .reward_item_id, .reward_item_amount, .register_aid; // winner prize
+	warpchar "SavePoint", 0,0, getcharid( 0, rid2name( .register_aid ) );
+	callsub L_reset;
+	end;
+L_resetmap:
+	mapwarp "guild_vs5", .map$, .x, .y;
+L_reset:
+	.start = 0;
+	deletearray .register_aid;
+	.register_count = 0;
+	pvpoff "guild_vs5";
+	return;
+OnInit:
+	getmapxy .map$, .x, .y, 1;
+	.register_min = 2; // minimum amount of players to start this event, or else it auto-abort
+	.register_limit = 100; // maximum amount of players able to participate in this event
+	.reward_item_id = 9524;
+	.reward_item_amount = 500;
+	end;
+}
+guild_vs5	mapflag	nosave	SavePoint
+guild_vs5	mapflag	nowarp
+guild_vs5	mapflag	nowarpto
+guild_vs5	mapflag	noteleport
+guild_vs5	mapflag	nomemo
+guild_vs5	mapflag	nopenalty
+//guild_vs5	mapflag	nobranch
+guild_vs5	mapflag	noicewall
+guild_vs5	mapflag	pvp_noparty
+guild_vs5	mapflag	pvp_noguild

@@ -1,0 +1,58 @@
+//===== rAthena Patch ========================================
+//= spam_help
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: ===================================== 
+//= rAthena 2019-02-12
+//===== Description: =========================================
+//= make the player automatically spam help chat and emoticon
+//===== Topic ================================================
+//= https://rathena.org/board/topic/117966-how-to-find-nearest-enemyobtain-a-list-of-units-on-the-same-map-etc/?do=findComment&comment=357634
+//===== Additional Comments: =================================  
+//= it has a cooldown of 10 seconds, so it wont spam repeatedly
+//============================================================
+
+ src/map/pc.cpp | 8 ++++++++
+ src/map/pc.hpp | 1 +
+ 2 files changed, 9 insertions(+)
+
+diff --git a/src/map/pc.cpp b/src/map/pc.cpp
+index 5aace7ecb..e7145e110 100755
+--- a/src/map/pc.cpp
++++ b/src/map/pc.cpp
+@@ -1356,6 +1356,8 @@ bool pc_authok(struct map_session_data *sd, uint32 login_id2, time_t expiration_
+ 
+ 	// Request all registries (auth is considered completed whence they arrive)
+ 	intif_request_registry(sd,7);
++
++	sd->spam_help = (int)time(NULL);
+ 	return true;
+ }
+ 
+@@ -7637,6 +7639,12 @@ void pc_damage(struct map_session_data *sd,struct block_list *src,unsigned int h
+ 
+ 	if(battle_config.prevent_logout_trigger&PLT_DAMAGE)
+ 		sd->canlog_tick = gettick();
++
++	if ( pc_readparam( sd, SP_HP ) * 100 / pc_readparam( sd, SP_MAXHP ) < 25 && sd->spam_help + 10 <= (int)time(NULL) ) {
++		clif_disp_overhead( &sd->bl, "I need Healing !!" );
++		clif_emotion( &sd->bl, ET_HELP );
++		sd->spam_help = (int)time(NULL);
++	}
+ }
+ 
+ TIMER_FUNC(pc_close_npc_timer){
+diff --git a/src/map/pc.hpp b/src/map/pc.hpp
+index ea5465bc8..78bf4a009 100644
+--- a/src/map/pc.hpp
++++ b/src/map/pc.hpp
+@@ -730,6 +730,7 @@ struct map_session_data {
+ 	uint32* hatEffectIDs;
+ 	uint8 hatEffectCount;
+ #endif
++	int spam_help;
+ };
+ 
+ extern struct eri *pc_sc_display_ers; /// Player's SC display table

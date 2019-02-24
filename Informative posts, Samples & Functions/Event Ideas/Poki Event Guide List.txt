@@ -1,0 +1,234 @@
+//	http://write.ratemyserver.net/ragnoark-online-tips-and-tricks/event-guide-list/
+
+Welcome to my guide that contains a personal list of events.
+——————————————————————–
+I personally do not want to read your negative comments about my events and this is just a list of events that I’ve either hosted, or played in. Feel free to use them in your server without having the need of thanking me, hating me, or informing me. You may reply in this topic if it is not negative and it is more of a compliment or a question because you don’t get how that event works. You may also inform me if I have missed out on anything. Thank you.
+
+Within this list of events, they are mainly recommended for Low rate servers. I do not suggest hosting events if your server has an incredible drop rate because the drop rate is already considered as an event if monsters can easily drop whatever you want just by killing a few of them. The drop rates will be hindering the prizes for the events in other words.
+
+Also, keep in mind that you do not have to be as harsh as I am when I explain what the punishments are for cheating.
+————————————————————————————————————————————–
+Index:
+
+Use control + F and search for a particular event that piques your interests. Those with ( * ) mean that they are either incomplete or have a flaw(s) within them.
+
+1. Looter Invasion
+2. A Run for Basilica
+3. Dodge the Zombie
+4. Become a Cunning thief
+5. Rats in Ice ( * )
+6. Hide and Seek ( * )
+7. Hide and Seek #2
+8. Criminal Scavenger Hunt
+9. Guess and Win
+10. MvP Event
+11. Protect the GM
+
+—————————————————————————————————————————————————————————
+
+Looter Invasion
+
+Description: First up, your commonly used event. It’s popular and easy. A large amount of looters have invaded a town; say, Izlude. The looters are rather vicious and over 200 of them are scattered among Izlude. Your job as the warriors of _______ is to destroy the little vicious looters and push them out of the beloved town of Izlude.
+
+Map: Anywhere that is small and easy to travel around on.
+
+Pre-Setup: Select a town without having anyone know about this upcoming event. You will need a GM to keep watch of the spawn points to where the players arrive in the town. The GMs must keep any players from knowing, if a player finds out, it lowers the fun for others.
+
+After selecting a town or even a field, summon a vast amount of porings. If it is possible, try to summon a type of looter that does not drop anything but loots. http://ratemyserver.net/index.php?page=mob_db&loot=1&mob_search=Search &sort_r=0 is a website that you may use to find such a looter. Pick looters that are weak.
+
+Having the type of monsters scattered, select and determine what the prizes are. Create those items and drop them within the map in certain places and allow the looters to do their job.
+
+You have simply finished the setup for the event!
+
+Just broadcast the event [ You may use the description if wanted ] and gather everyone to participate in the enjoyment of killing looters for delicious prizes.
+
+—————————————————————————————————————————————————————————
+
+A Run for Basilica
+
+Description This event is basically a version of “Octopus” in real life. If you haven’t played “Octopus” in real life, I shall explain it to you now. You have a group of players that are summoned by request in participating in the event. They are protected by the high priest skill called “Basilica.” This skill will allow them to be unharmed by the lurking monsters of Ragnarok Online. Outside of the Basilica are hundreds of creatures, ready to tear and rip open any player that dares to travel across the map in order of reaching the second level: Basilica #2. Their job is to run from one end, to the other. Once their goal has been achieved, make sure they understand they have to be inside or else they will die. They will continue this process of going back and forth until the top three remains.
+
+Map: A long narrow map with very little obstacles and no warp. It’s basically a map that takes the shape of a rectangle.
+
+Pre-Setup: Summon a vast amount of monsters that are considered tough. Try to refrain from using any MVPs since they will manage to ruin the fun and might be too hard. Okay, so on this narrow map, we have scattered monsters that are capable of killing players. Do not go overboard and make it impossible to run through from one end, to the other. Give it a test or two to see if it’s possible.
+
+Now that we have the monsters placed, use the skill “Basilica”. Make sure you cast it as level 90 or anything close to that so the skill will last extremely long. If you can’t cast it as level 90 or anything of the sort, then have the GMs spamming the skill often.
+
+You can choose to either turn off skills so that the players may not use skills to aid them in passing through and killing off the monsters, or, try to make it fair and sort of a teamwork game by making them get to the other side with teamwork. I do not suggest having skills on however.
+
+Broadcast to the server and create a list of names of the players that would like to participate the event. Explain to the players that they must stay within the AoE of Basilica before recalling them. Repeat that you will not summon anyone back if they did not listen or died. Also, have the players to storage all healing and speed items within their storage. Get them to dismount their peco peco’s as well.
+
+Once you’re all set, explain the event and get ready to set them free by saying go. They will run wild like a rat in a maze and rush through without being able to use any skills. Make sure you stress out to them that items are not prohibited. Have GMs with @hide to check for any healing items that are being used. Anyone caught would be disqualified.
+
+If the players’ destination has been achieved, gather them inside once again, heal them up, give them agi up if you would like to and make them go through the second wave of monsters, reaching to the other side once again.
+
+Repeat the process until you have three players left. They will compete and rank from 1st to 3rd. If all three dies and couldn’t make it, judge it by whoever is the closest to the basilica.
+
+You have simply finished the setup for the event!
+
+—————————————————————————————————————————————————————————
+
+Dodge the Zombie
+
+Description: A room infested with zombies are blood thirsty. They appear to have taken over the room and are attacking any civilians within their sight! You must escape and live until the rescue team has arrived.
+
+Map: Select a place that is rather small and hardly contains any obstacles. The place must not have any warps if possible.
+
+Pre-Setup: Broadcast to the server and advise all players that wish to participate must create a novice character and PM their names to you. Create a list of names and summon them to the room. Explain the game and allow them to understand that they are not allowed to have any healing items or speed items on them, and that they all must be level 1. Anyone caught cheating will be disqualified. Once all novices have been gathered and are waiting at one side of the map, you will head over to the other side, and begin your summoning of zombies.
+
+Scatter the zombies from the opposite side of the map and slowly summon toward the novices. Do not go over 150 zombies, too many zombies that crowd the map will be impossible to dodge.
+
+Please do keep in mind that you shouldn’t summon right in front of them. The zombies basically have the touch of death and one little touch, a novice will be permanently remembering that incident where they have been violated in a horrific way: A touch to the shoulder.
+
+Anyways, the novices will simply be running around and trying to live and dodge a hit from every zombie in the map. If it appears to be too easy, begin summoning a bit more, but keep in mind not to summon in front of them.
+
+You have simply finished the setup for the event!
+
+—————————————————————————————————————————————————————————
+
+Become a Cunning Thief
+
+Description: All players regardless of level and class will have their chance to shine as a cunning thief. Their job is to open the lock [ Password in this case ] to your safety deposit bank. [ The chat room will enact as the deposit box ]
+
+Map: Anywhere that is popular or well visited, best if it was your main town.
+
+Pre-Setup: Create a chat room with a password that is far away from the popular place but easy to be found. It could even just be a little south of the designated area. The password will consist of a number between 1 – 1000. The chat room should be called ” [ Your name]‘s bank” and the players will have to search for it, then try to unlock it by figuring out the password.
+
+You will broadcast this and anyone who tries to pretend to be a bank would be disqualified, and lose the chance of competing in future events if they think of it as a joke.
+
+You may have about three GM’s scattered around the chosen map and have them act as their bank as well. To make things fun, disguise them as a [color=maroon]treasure box![/color] The three GM’s will wait for someone to hack in to their chat room, and the first one to do so will win a prize: Their loot!
+
+You have simply finished the setup for the event!
+
+—————————————————————————————————————————————————————————
+
+Rats in Ice
+
+Description: You’re all rats used as an experiment, however, most of you have escaped the lab and are now running wildly in a room with no exit. There’s a rumour that the last three rats are given freedom… or at least an award for being the toughest of them all!
+
+Map: Preferably a square map with no obstacles and warps. Something like a custom PvP map.
+
+Pre-Setup: Go to the chosen map and turn off all skills. Gather a list of players and have more than 1 GM running this event. Recall all players to the map and explain the game:
+
+They are to run and dodge the GM [ Who have @hide on ] from sealing them in and not allowing them to move using the Wizard’s skill: Ice wall. The GMs will Ice wall together and hit random people, slowly sealing off every player they can get. The players are to continue running and be the last to survive.
+
+Make sure all players have no buffs on, if they do, use AGI down on them. Of course, be generous and explain that they should not have any pre-buffs before the event. Make sure they are dismounted from their peco peco as well.
+
+Keep in mind that the GMs must keep spamming the skill Ice wall for a while. You will need more than one GM to do this event for it will be easier to eliminate players and less time consuming.
+
+Flaws: The GMs may be bias or have a legit character. Keep in mind that all GMs must not have legit characters or bias. A bias GM will ruin the game by going for certain players and letting other players live, thus, the reason why more than 1 GM will somewhat eliminate the fact of any GMs being bias.
+
+You have simply finished the setup for the event!
+
+—————————————————————————————————————————————————————————
+
+Hide and Seek
+
+Description: Players are to hide, and the GMs are to seek.
+
+Map: Preferably a small town
+
+Pre-Setup: Easily enough, get players to hide in a town and have the GMs will have to search and find the players. Warp them back to town and make sure to keep a list of players before creating the event. Gather the list and eliminate them one by one.
+
+Flaw: GM might cheat and warp to you and say they found you.
+
+You have simply finished the setup for the event!
+
+—————————————————————————————————————————————————————————
+
+Hide and Seek #2
+
+Description: Similar as the event above, instead, the players are to seek, and the GM is to hide.
+
+Map: Preferably a small town
+
+Pre-Setup: Have yourself well hidden in a town and get the players to find you. First three to find you will win a prize. You may toughen things up by changing your name, disguising as an NPC or as a monster! If things get too long or hard, give out a hint or two.
+
+Note: This one is much easier to do than Hide and Seek.
+
+You have simply finished the setup for the event!
+
+—————————————————————————————————————————————————————————
+
+Criminal Scavenger Hunt
+
+Description: Thefts have stolen jewellery from GM ______! You must find these thefts who have ran off and escaped _____’s defence! The current information was provided by _____:
+
+The thefts are scattered all over the world. You must find them but do not give out your identity! Take a screen shot and post them in the forums. The first person to find all criminals will be rewarded! We will only accept your information if your post contains a screenshot of all criminals!
+
+Map: Randomly select a few maps. They may range from town to dungeon and to fields.
+
+Pre-Setup: Implement certain NPCs [ Make sure they all have different sprites ] and place them randomly in the world of Ragnarok. Keep note of where you have placed them and make sure you have the coordinates. This event may last forever until someone is willing to do this devilish task in finding the criminals and posting them on the forum using only one post.
+
+First person to post screenshots of all the criminals will win a prize. They will post it on the forum of course.
+
+You have simply finished the setup for the event!
+
+—————————————————————————————————————————————————————————
+
+Guess and Win
+
+Description: Choose a treasure box out of 10 other treasure boxes and test your luck!
+
+Map: A map that players can not get to.
+
+Pre-Setup: You will simply gather a list of players that wish to test their luck and warp them one by one while crossing out their names off the list. They will only be allowed to hit one Treasure box. Only one treasure box out of the 10 other Treasure box will contain a lovely prize within. If they choose to hit them all, they will be penalized.
+
+You as the GM could summon 9 Treasure boxes and disguise as one. If they hit you, they get a prize, if they don’t and hit one of your summonings, they do not get a prize.
+
+You have simply finished the setup for the event!
+
+—————————————————————————————————————————————————————————
+
+Cold Dazzle
+
+Description: This is an event where all novices shall test their luck and strength in withstanding a terrible joke that may freeze any weakling and a lovely lady in distress who shall scream.
+
+Map: A map where you can see them all.
+
+Pre-setup: You will need two GMs for this event. Have the players to sign up by creating a freshly made [ No equips transfered or levelling done at all ] novice and getting them to PM you their name. You will recall them and get them to form a line or two… as long as you can see them all. They will not be wearing any equips and hopefully they won’t! You as the GM, will be using “Frost Joke” once, those who are unlucky will freeze and be out of the event. Those who didn’t freeze, will stay. Next, the other GM shall be a Dancer using the skill “Scream.” Those who are stunned shall be out of the game, those who aren’t shall stay.
+
+Easily enough, you shall continue the process until you have the final 3 decided from 1st place to 3rd place. Once you know your winners, be sure to check their equips for any signs of cheating such as cards that prevent them from such statuses. Check out their level as well since stats may also prevent those statuses.
+
+You have simply finished the setup for the event!
+
+—————————————————————————————————————————————————————————
+
+MvP Event
+
+Description: Your commonly used event. A gruelling monster has attacked a town. It is your job to get rid of this monster who appears to be a boss and has dominated the town for a while now.
+
+Map: Any town.
+
+Pre-Setup: Select an MvP that will be hard to take down. Make sure no one knows of this or will check out the location. Once you summon the monster, feel free to broadcast, players will enter the town one by one and try their best to get the kill first.
+
+You have definitely finished the setup for this simple event!
+
+———————————————————————————————————————————–
+
+Protect the GM
+
+Description: You are to defend your GM from waves of mobs. The mobs will get harder and harder over time and your GM can only take so much damage!
+
+Map: A place where players can not visit or warp to. Have it act like a GvG map as well, you can only die once and get resurrected once before being kicked out of the map and respawning in your saved location.
+
+Pre-Setup: Warp yourself to the map, make sure you have 1 GM to act as the person who is in need of protection, and another GM who summons the wave of monsters.
+
+GM in need of protection: Your job is to run around and try not to die. Simple enough. You can’t hit or attack or kill, you can only run and be defended.
+
+GM who summons: Summon aggressive mobs, do not summon a lot at one go, summon about 20 from certain spots. If the map were to be a square, turn your speed to @speed 10 and spawn about 20 aggressive monsters from each corner. You will need to summon stronger and harder monsters every round if they live.
+
+There should be only three rounds. After each round, the players may pre-buff, the delay before the next round should be about 30 seconds.
+
+The winners are either decided by the following:
+
+1. Whoever is alive at the end
+2. Everyone wins a prize
+3. Killing the monsters and getting the EXP and drops is the prize
+4. Warn them and drop one prize, whoever picks it up, gets it
+
+You have simply finished the setup for the event!
+
+—————————————————————————————————————————————————————————
+
+I hope this helps. I’ll update the list with a few more events that come across my mind. Good luck with your server.

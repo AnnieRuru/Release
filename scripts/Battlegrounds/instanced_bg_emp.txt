@@ -1,0 +1,143 @@
+// http://herc.ws/board/topic/15913-annieruru-emp-bg/
+
+prontera,150,185,5	script	bg_emp	1_F_MARIA,{
+	.@it = queueiterator( .qid );
+	for ( .@aid = qiget(.@it); qicheck(.@it); .@aid = qiget(.@it) ) {
+		if ( .@aid == getcharid(3) ) {
+			mes "You already join the queue.";
+			qiclear .@it;
+			close;
+		}
+	}
+	qiclear .@it;
+	select "join";
+	mes "you have to stick to this map";
+	close2;
+	queueadd .qid, getcharid(3);
+	if ( queuesize(.qid) < .minplayer2start *2 ) {
+		announce queuesize(.qid) +" players join", bc_npc | bc_area;
+		end;
+	}
+	if ( ( .@ins = instance_create( "bg_emp", 0, IOT_NONE ) ) < 0 ) {
+		announce "Fail to create instanced battleground.", bc_all;
+		end;
+	}
+	if ( !getstrlen( instance_attachmap( "bat_a02", .@ins, true, .@ins +"BG_EMP" ) ) ) {
+		announce "Fail to create instanced battleground.", bc_all;
+		end;
+	}
+	instance_set_timeout .eventlasting * 60 +30, 0, .@ins;
+	instance_init .@ins;
+	queuedel .qid;
+L_QueueRegister:
+	.qid = queue();
+	queueopt .qid, QUEUEOPT_LOGOUT, strnpcinfo(0)+"::OnQuitRegister";
+	queueopt .qid, QUEUEOPT_MAPCHANGE, strnpcinfo(0)+"::OnQuitRegister";
+	end;
+OnQuitRegister:
+	queueremove .qid, getcharid(3);
+	end;
+OnInit:
+	.minplayer2start = 2;      // minimum players to start (ex. if 3vs3, set to 3)
+	.eventlasting    = 20*60;  // event duration before auto-reset (20 minutes * seconds)
+	setarray .rewarditem[0],   // rewards for the winning team: <item>,<amount>,...
+		501, 10;
+	goto L_QueueRegister;
+}
+
+bat_a02,0,0,0	script	bg_emp#ins	FAKE_NPC,{
+	end;
+OnInstanceInit:
+	'map$ = strnpcinfo(NPC_MAP);
+	'main$ = "bg_emp";
+	'red = bg_create_team( 'map$, 157,347 );
+	'blue = bg_create_team( 'map$, 142,51 );
+	'qred = queue();
+	'qblue = queue();
+	queueopt 'qred, QUEUEOPT_DEATH, instance_npcname( strnpcinfo(NPC_NAME) )+"::OnRedDead";
+	queueopt 'qred, QUEUEOPT_LOGOUT, instance_npcname( strnpcinfo(NPC_NAME) )+"::OnRedQuit";
+	queueopt 'qblue, QUEUEOPT_DEATH, instance_npcname( strnpcinfo(NPC_NAME) )+"::OnBlueDead";
+	queueopt 'qblue, QUEUEOPT_LOGOUT, instance_npcname( strnpcinfo(NPC_NAME) )+"::OnBlueQuit";
+	.@it = queueiterator( getvariableofnpc( .qid, 'main$ ) );
+	for ( .@num = qiget(.@it); qicheck(.@it); .@num = qiget(.@it) )
+		.@aid[.@size++] = .@num;
+	qiclear .@it;
+	callfunc "F_ShuffleNumbers", 0, .@size -1, .@r;
+	for ( .@i = 0; .@i < .@size; ++.@i ) {
+		bg_join_team ( .@i % 2 )? 'red : 'blue, .@aid[ .@r[.@i] ];
+		queueadd ( .@i % 2 )? 'qred : 'qblue, .@aid[ .@r[.@i] ];
+	}
+	bg_warp 'red, 'map$, 171,346;
+	bg_warp 'blue, 'map$, 162,50;
+	queueopt 'qred, QUEUEOPT_MAPCHANGE, instance_npcname( strnpcinfo(NPC_NAME) )+"::OnRedMapChange";
+	queueopt 'qblue, QUEUEOPT_MAPCHANGE, instance_npcname( strnpcinfo(NPC_NAME) )+"::OnBlueMapChange";
+	setwall 'map$, 164,347, 6, 4, 0, "bg_emp_red"+ 'red;
+	setwall 'map$, 154,51, 6, 4, 0, "bg_emp_blue"+ 'blue;
+	sleep 6000;
+	instance_announce -1, "The rules are simple. The first team to break the opponent's Emperium wins!", bc_map;
+	sleep 3000;
+	for ( .@i = 5; .@i > 0; --.@i ) {
+		instance_announce -1, "["+ .@i +"]", bc_map;
+		sleep 1000;
+	}
+	instance_announce -1, "Start!", bc_map;
+	.@red_crystal = bg_monster( 'red, 'map$, 171,346, "--ja--", 1915, instance_npcname( strnpcinfo(NPC_NAME) )+"::OnRedDown" );
+	.@blue_crystal = bg_monster( 'blue, 'map$, 162,50, "--ja--", 1914, instance_npcname( strnpcinfo(NPC_NAME) )+"::OnBlueDown" );
+//	setunitdata .@red_crystal, UDT_HP, 5;
+//	setunitdata .@blue_crystal, UDT_HP, 5;
+	delwall "bg_emp_red"+ 'red;
+	delwall "bg_emp_blue"+ 'blue;
+	sleep getvariableofnpc( .eventlasting, 'main$ ) * 1000;
+	killmonster 'map$, instance_npcname( strnpcinfo(NPC_NAME) )+"::OnRedDown";
+	killmonster 'map$, instance_npcname( strnpcinfo(NPC_NAME) )+"::OnBlueDown";
+	if ( 'winside ) {
+		instance_announce -1, "- "+( ('winside == 'qred)? "Red" : "Blue" )+" Team is victorious! -", bc_map;
+		.@it = queueiterator('winside);
+		for ( .@aid = qiget(.@it); qicheck(.@it); .@aid = qiget(.@it) )
+			getitem getvariableofnpc( .rewarditem[0], 'main$ ), getvariableofnpc( .rewarditem[1], 'main$ ), .@aid;
+		qiclear .@it;
+	} else
+		instance_announce -1, "- The match has ended in a draw! -", bc_map;
+	sleep 5000;
+	bg_warp 'red, "prontera", 150,182;
+	bg_warp 'blue, "prontera", 150,182;
+	bg_destroy 'red;
+	bg_destroy 'blue;
+	queuedel 'qred;
+	queuedel 'qblue;
+	instance_destroy;
+	end;
+OnRedDown:  callsub L_EmpDown, "Red", 'qblue;
+OnBlueDown: callsub L_EmpDown, "Blue", 'qred;
+L_EmpDown:
+	instance_announce -1, strcharinfo(0) +" has destroyed "+ getarg(0) +" Team's Emperium.", bc_map;
+	'winside = getarg(1);
+	awake instance_npcname( strnpcinfo(0) );
+	end;
+OnRedDead:
+OnBlueDead:
+	sleep2 1250;
+	percentheal 100,100;
+	end;
+OnRedMapChange: OnRedQuit:   callsub L_Quit, 'qred, "Red", 'qblue;
+OnBlueMapChange: OnBlueQuit: callsub L_Quit, 'qblue, "Blue", 'qred;
+L_Quit:
+	bg_leave;
+	queueremove getarg(0), getcharid(3);
+	percentheal 100, 100;
+	if ( !queuesize( getarg(0) ) ) {
+		instance_announce -1, "All "+ getarg(1) +" team members have quit!", bc_map, C_RED;
+		'winside = getarg(2);
+		awake instance_npcname( strnpcinfo(0) );
+	}
+	end;
+}
+bat_a02	mapflag	battleground
+bat_a02	mapflag	nosave	SavePoint
+bat_a02	mapflag	nowarp
+bat_a02	mapflag	nowarpto
+bat_a02	mapflag	noteleport
+bat_a02	mapflag	nomemo
+bat_a02	mapflag	nopenalty
+bat_a02	mapflag	nobranch
+bat_a02	mapflag	noicewall

@@ -1,0 +1,95 @@
+function	script	getmemberaid_display	{
+	for ( .@i = 0; .@i < $@onlinecount; ++.@i )
+		.@name$[.@i] = rid2name( $@onlineaid[.@i] );
+	if ( $@onlinecount )
+		.@list$ = implode( .@name$ , ", " );
+	announce "Total "+ $@onlinecount +" players. "+ .@list$, bc_all;
+	return;
+}
+
+//	return account_id of ALL online players
+prontera,151,189,5	script	ALL_CLIENT	1_F_MARIA,{
+	detachrid;
+	getmemberaid ALL_CLIENT;
+	callfunc "getmemberaid_display";
+	end;
+}
+
+//	return account_id of all online players on the same map as attached RID
+prontera,151,187,5	script	ALL_SAMEMAP	1_F_MARIA,{
+	getmemberaid ALL_SAMEMAP;
+	callfunc "getmemberaid_display";
+	end;
+}
+
+//	return account_id of all online players on the defined map
+prontera,153,187,5	script	ALL_SAMEMAP_morocc	1_F_MARIA,{
+	detachrid;
+	getmemberaid ALL_SAMEMAP, "morocc";
+	callfunc "getmemberaid_display";
+	end;
+}
+
+//	return account_id of all online players within AREA_SIZE (default is 14, configure at conf\battle\client.conf)
+prontera,151,185,5	script	AREA	1_F_MARIA,{
+	getmemberaid AREA;
+	callfunc "getmemberaid_display";
+	end;
+}
+
+//	return account_id of all online players within the specific coordinates
+prontera,153,185,5	script	AREA_coordinate	1_F_MARIA,{
+	getmapxy .@map$, .@x, .@y, 0;
+	detachrid;
+	getmemberaid AREA, .@map$, .@x-1, .@y-1, .@x+1, .@y+1;
+	callfunc "getmemberaid_display";
+	end;
+}
+
+//	return account_id of all online party members of attached RID
+prontera,151,183,5	script	PARTY	1_F_MARIA,{
+	getmemberaid PARTY;
+	callfunc "getmemberaid_display";
+	end;
+}
+
+//	return account_id of all online party members from defined party ID
+prontera,153,183,5	script	PARTY_id	1_F_MARIA,{
+	.@pid = getcharid(1);
+	detachrid;
+	getmemberaid PARTY, .@pid;
+	callfunc "getmemberaid_display";
+	end;
+}
+
+//	return account_id of all online guild members of attached RID
+prontera,151,181,5	script	GUILD	1_F_MARIA,{
+	getmemberaid GUILD;
+	callfunc "getmemberaid_display";
+	end;
+}
+
+//	return account_id of all online guild members from defined guild ID
+prontera,153,181,5	script	GUILD_id	1_F_MARIA,{
+	.@gid = getcharid(2);
+	detachrid;
+	getmemberaid GUILD, .@gid;
+	callfunc "getmemberaid_display";
+	end;
+}
+
+//	return account_id of all battleground team members of attached RID
+prontera,151,179,5	script	BG	1_F_MARIA,{
+	getmemberaid BG;
+	callfunc "getmemberaid_display";
+	end;
+}
+
+//	return account_id of all battleground team members from defined battleground ID
+prontera,153,179,5	script	BG_id	1_F_MARIA,{
+	.@bgid = getcharid(4);
+	detachrid;
+	getmemberaid BG, .@bgid;
+	callfunc "getmemberaid_display";
+	end;
+}

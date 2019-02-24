@@ -1,0 +1,109 @@
+// https://rathena.org/board/topic/118185-woe-random-castle/
+
+//	remember to disable these links
+//== npc\guild\agit_controller.txt
+//== npc\guild2\agit_start_se.txt
+//== npc\re\guild3\agit_start_te.txt
+
+-	script	castle_randomize	FAKE_NPC,{
+OnInit:
+	setarray .castle$[0],
+		"aldeg_cas01","aldeg_cas02","aldeg_cas03","aldeg_cas04","aldeg_cas05",
+		"gefg_cas01","gefg_cas02","gefg_cas03","gefg_cas04","gefg_cas05",
+		"payg_cas01","payg_cas02","payg_cas03","payg_cas04","payg_cas05",
+		"prtg_cas01","prtg_cas02","prtg_cas03","prtg_cas04","prtg_cas05",
+		"arug_cas01","arug_cas02","arug_cas03","arug_cas04","arug_cas05",
+		"schg_cas01","schg_cas02","schg_cas03","schg_cas04","schg_cas05";
+//	bindatcmd "cas", strnpcinfo(0)+"::OnDebug", 99, 100;
+	end;
+OnWed2000:
+OnSat2000:
+OnAgitInit:
+	if ( ( gettime(DT_DAYOFWEEK) == WEDNESDAY && gettime(DT_HOUR) >= 20 && gettime(DT_HOUR) < 22 ) || ( gettime(DT_DAYOFWEEK) == SATURDAY && gettime(DT_HOUR) >= 20 && gettime(DT_HOUR) < 22 ) )
+		agitstart;
+	end;
+OnWed2200:
+OnSat2200:
+	agitend;
+	end;
+OnAgitStart:
+	.@r = rand(0,19);
+	sleep 100;
+	announce "The Castles open today is "+ getcastlename( .castle$[.@r] ) +" !!", bc_woe;
+	for ( .@i = 0; .@i < 20; ++.@i ) {
+		if ( .castle$[.@i] != .castle$[.@r] ) {
+			removemapflag .castle$[.@i], mf_gvg_castle;
+			killmonster .castle$[.@i], "Agit#"+ .castle$[.@i] +"::OnAgitBreak";	
+			gvgoff .castle$[.@i];
+		}
+	}
+	end;
+OnAgitEnd:
+	for ( .@i = 0; .@i < 20; ++.@i )
+		if ( !getmapflag( .castle$[.@i], mf_gvg_castle ) )
+			setmapflag .castle$[.@i], mf_gvg_castle;
+	end;
+
+OnSun2000:
+OnAgitInit2:
+	if ( ( gettime(DT_DAYOFWEEK) == SUNDAY && gettime(DT_HOUR) >= 20 && gettime(DT_HOUR) < 22 ) )
+		agitstart2;
+	end;
+OnSun2200:
+	agitend2;
+	end;
+OnAgitStart2:
+	.@r = rand(20,29);
+	sleep 100;
+	announce "The Castles open today is "+ getcastlename( .castle$[.@r] ) +" !!", bc_woe;
+	for ( .@i = 20; .@i < 30; ++.@i ) {
+		if ( .castle$[.@i] != .castle$[.@r] ) {
+			.@str$ = substr( .castle$[.@i], 0, 1 ) + substr( .castle$[.@i], 8, 9 );
+			removemapflag .castle$[.@i], mf_gvg_castle;
+			killmonster .castle$[.@i], "Steward#"+ .@str$ +"::OnStartArena";
+			gvgoff .castle$[.@i];
+		}
+	}
+	end;
+OnAgitEnd2:
+	for ( .@i = 20; .@i < 30; ++.@i )
+		if ( !getmapflag( .castle$[.@i], mf_gvg_castle ) )
+			setmapflag .castle$[.@i], mf_gvg_castle;
+	end;
+
+//OnDebug:
+	switch ( atoi( .@atcmd_parameters$ ) ) {
+	case 0: warp "aldeg_cas01",216,23; end;
+	case 1: warp "aldeg_cas02",213,23; end;
+	case 2: warp "aldeg_cas03",205,31; end;
+	case 3: warp "aldeg_cas04",36,217; end;
+	case 4: warp "aldeg_cas05",27,101; end;
+	case 5: warp "gefg_cas01",197,181; end;
+	case 6: warp "gefg_cas02",176,178; end;
+	case 7: warp "gefg_cas03",244,166; end;
+	case 8: warp "gefg_cas04",174,177; end;
+	case 9: warp "gefg_cas05",194,184; end;
+	case 10: warp "payg_cas01",139,139; end;
+	case 11: warp "payg_cas02",38,25;   end;
+	case 12: warp "payg_cas03",269,265; end;
+	case 13: warp "payg_cas04",270,28;  end;
+	case 14: warp "payg_cas05",30,30;   end;
+	case 15: warp "prtg_cas01",197,197; end;
+	case 16: warp "prtg_cas02",157,174; end;
+	case 17: warp "prtg_cas03",16,220;  end;
+	case 18: warp "prtg_cas04",291,14;  end;
+	case 19: warp "prtg_cas05",266,266; end;
+	case 20: warp "arug_cas01",87,219; end;
+	case 21: warp "arug_cas02",89,256; end;
+	case 22: warp "arug_cas03",141,293; end;
+	case 23: warp "arug_cas04",141,293; end;
+	case 24: warp "arug_cas05",141,293; end;
+	case 25: warp "schg_cas01",120,272; end;
+	case 26: warp "schg_cas02",162,193; end;
+	case 27: warp "schg_cas03",338,202; end;
+	case 28: warp "schg_cas04",120,272; end;
+	case 29: warp "schg_cas05",120,272; end;
+	default:
+	}
+	end;
+}

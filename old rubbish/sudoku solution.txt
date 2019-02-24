@@ -1,0 +1,67 @@
+
+	// The sudoku, number valable [1~9].
+	set .sudoku[11], 0, 0, 0, 0, 0, 0, 0, 0, 0 ;
+	set .sudoku[21], 0, 0, 0, 0, 0, 0, 0, 0, 0 ;
+	set .sudoku[31], 0, 0, 0, 0, 0, 0, 0, 0, 0 ;
+
+	set .sudoku[41], 0, 0, 0, 0, 0, 0, 0, 0, 0 ;
+	set .sudoku[51], 0, 0, 0, 0, 0, 0, 0, 0, 0 ;
+	set .sudoku[61], 0, 0, 0, 0, 0, 0, 0, 0, 0 ;
+
+	set .sudoku[71], 0, 0, 0, 0, 0, 0, 0, 0, 0 ;
+	set .sudoku[81], 0, 0, 0, 0, 0, 0, 0, 0, 0 ;
+	set .sudoku[91], 0, 0, 0, 0, 0, 0, 0, 0, 0 ;
+
+
+
+	// Quick search for empty case:
+	if ( getarraysize(.sudoku) < 100 )
+		end;
+
+	// Check lines
+	for ( set .@i, 1; .@i<10; set .@i, .@i+1 ) {
+
+		// Horizontal
+		if (
+			1 << (.sudoku[ .@i * 10 + .@j+0 ]-1)
+			| 1 << (.sudoku[ .@i * 10 + .@j+1 ]-1)
+			| 1 << (.sudoku[ .@i * 10 + .@j+2 ]-1)
+			| 1 << (.sudoku[ .@i * 10 + .@j+3 ]-1)
+			| 1 << (.sudoku[ .@i * 10 + .@j+4 ]-1)
+			| 1 << (.sudoku[ .@i * 10 + .@j+5 ]-1)
+			| 1 << (.sudoku[ .@i * 10 + .@j+6 ]-1)
+			| 1 << (.sudoku[ .@i * 10 + .@j+7 ]-1)
+			| 1 << (.sudoku[ .@i * 10 + .@j+8 ]-1)
+			!= 511
+		)
+		end;
+
+		// Vertical
+		if (
+			1 << (.sudoku[ (.@i+0) * 10 + .@j ]-1)
+			| 1 << (.sudoku[ (.@i+1) * 10 + .@j ]-1)
+			| 1 << (.sudoku[ (.@i+2) * 10 + .@j ]-1)
+			| 1 << (.sudoku[ (.@i+3) * 10 + .@j ]-1)
+			| 1 << (.sudoku[ (.@i+4) * 10 + .@j ]-1)
+			| 1 << (.sudoku[ (.@i+5) * 10 + .@j ]-1)
+			| 1 << (.sudoku[ (.@i+6) * 10 + .@j ]-1)
+			| 1 << (.sudoku[ (.@i+7) * 10 + .@j ]-1)
+			| 1 << (.sudoku[ (.@i+8) * 10 + .@j ]-1)
+			!= 511
+		)
+		end;
+	}
+
+	// Check groups.
+	for ( set .@i, 2; .@i<10; set .@i, .@i+3 )
+		for ( set .@j, 2; .@j<10; set .@j, .@j+3 )
+			if (
+				1 << (.sudoku[ (.@i-1) * 10 + (.@j-1) ]-1) | 1 << (.sudoku[ (.@i-1) * 10 + (.@j-0) ]-1) | 1 << (.sudoku[ (.@i-1) * 10 + (.@j+1) ]-1)
+				| 1 << (.sudoku[ (.@i-0) * 10 + (.@j-1) ]-1) | 1 << (.sudoku[ (.@i-0) * 10 + (.@j-0) ]-1) | 1 << (.sudoku[ (.@i-0) * 10 + (.@j+1) ]-1)
+				| 1 << (.sudoku[ (.@i+1) * 10 + (.@j-1) ]-1) | 1 << (.sudoku[ (.@i+1) * 10 + (.@j-0) ]-1) | 1 << (.sudoku[ (.@i+1) * 10 + (.@j+1) ]-1)
+				!= 511
+			)
+			end;
+
+	// Win.
+	announce "Winner",0;

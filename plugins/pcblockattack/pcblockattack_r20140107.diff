@@ -1,0 +1,158 @@
+//===== rAthena Patch ========================================
+//= pcblockattack
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: ===================================== 
+//= rAthena 2014-01-07
+//===== Description: =========================================
+//= pcblockattack & pcblockchat
+//===== Topic ================================================
+//= https://rathena.org/board/topic/91115-event-watcher/?do=findComment&comment=238849
+//===== Additional Comments: =================================  
+//= 
+//============================================================
+
+ src/custom/script.inc     | 14 ++++++++++++++
+ src/custom/script_def.inc |  3 +++
+ src/map/clif.c            | 10 +++++-----
+ src/map/pc.h              |  2 ++
+ src/map/skill.c           |  6 ++++++
+ src/map/unit.c            |  2 +-
+ 6 files changed, 31 insertions(+), 6 deletions(-)
+
+diff --git a/src/custom/script.inc b/src/custom/script.inc
+index 1e01c88..e4b5b45 100644
+--- a/src/custom/script.inc
++++ b/src/custom/script.inc
+@@ -17,3 +17,17 @@
+ //	script_pushint(st,1);
+ //	return 0;
+ //}
++
++BUILDIN_FUNC(pcblockchat) {
++	TBL_PC *sd = script_getnum(st,2) ? map_id2sd( script_getnum(st,2) ) : script_rid2sd(st);
++	if ( sd )
++		sd->state.blockedchat = script_getnum(st,3) > 0;
++	return SCRIPT_CMD_SUCCESS;
++}
++
++BUILDIN_FUNC(pcblockattack) {
++	TBL_PC *sd = script_getnum(st,2) ? map_id2sd( script_getnum(st,2) ) : script_rid2sd(st);
++	if ( sd )
++		sd->state.blockedattack = script_getnum(st,3) > 0;
++	return SCRIPT_CMD_SUCCESS;
++}
+\ No newline at end of file
+diff --git a/src/custom/script_def.inc b/src/custom/script_def.inc
+index 3319eea..b6723de 100644
+--- a/src/custom/script_def.inc
++++ b/src/custom/script_def.inc
+@@ -9,3 +9,6 @@
+  **/
+ 
+ //BUILDIN_DEF(example,""),
++
++BUILDIN_DEF(pcblockchat,"ii"),
++BUILDIN_DEF(pcblockattack,"ii"),
+\ No newline at end of file
+diff --git a/src/map/clif.c b/src/map/clif.c
+index 4a9d7ee..f4e3c08 100644
+--- a/src/map/clif.c
++++ b/src/map/clif.c
+@@ -10006,7 +10006,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data* sd)
+ 	if( is_atcommand(fd, sd, message, 1)  )
+ 		return;
+ 
+-	if (sd->sc.cant.chat)
++	if ( sd->sc.cant.chat || sd->state.blockedchat )
+ 		return; //no "chatting" while muted.
+ 
+ 	if( battle_config.min_chat_delay ) { //[Skotlex]
+@@ -10333,7 +10333,7 @@ void clif_parse_WisMessage(int fd, struct map_session_data* sd)
+ 	if ( is_atcommand(fd, sd, message, 1) )
+ 		return;
+ 
+-	if (sd->sc.cant.chat)
++	if ( sd->sc.cant.chat || sd->state.blockedchat )
+ 		return; //no "chatting" while muted.
+ 
+ 	if (battle_config.min_chat_delay) { //[Skotlex]
+@@ -12062,7 +12062,7 @@ void clif_parse_PartyMessage(int fd, struct map_session_data* sd){
+ 	if( is_atcommand(fd, sd, message, 1)  )
+ 		return;
+ 
+-	if (sd->sc.cant.chat)
++	if ( sd->sc.cant.chat || sd->state.blockedchat )
+ 		return; //no "chatting" while muted.
+ 
+ 	if( battle_config.min_chat_delay )
+@@ -12655,7 +12655,7 @@ void clif_parse_GuildMessage(int fd, struct map_session_data* sd){
+ 	if( is_atcommand(fd, sd, message, 1) )
+ 		return;
+ 
+-	if (sd->sc.cant.chat)
++	if ( sd->sc.cant.chat || sd->state.blockedchat )
+ 		return; //no "chatting" while muted.
+ 
+ 	if( battle_config.min_chat_delay )
+@@ -15623,7 +15623,7 @@ void clif_parse_BattleChat(int fd, struct map_session_data* sd){
+ 	if( is_atcommand(fd, sd, message, 1) )
+ 		return;
+ 
+-	if (sd->sc.cant.chat)
++	if ( sd->sc.cant.chat || sd->state.blockedchat )
+ 		return; //no "chatting" while muted.
+ 
+ 	if( battle_config.min_chat_delay ) {
+diff --git a/src/map/pc.h b/src/map/pc.h
+index 5da927f..cc576da 100644
+--- a/src/map/pc.h
++++ b/src/map/pc.h
+@@ -178,6 +178,8 @@ struct map_session_data {
+ 		unsigned int size :2; // for tiny/large types
+ 		unsigned int night :1; //Holds whether or not the player currently has the SI_NIGHT effect on. [Skotlex]
+ 		unsigned int blockedmove :1;
++		unsigned int blockedattack : 1;
++		unsigned int blockedchat : 1;
+ 		unsigned int using_fake_npc :1;
+ 		unsigned int rewarp :1; //Signals that a player should warp as soon as he is done loading a map. [Skotlex]
+ 		unsigned int killer : 1;
+diff --git a/src/map/skill.c b/src/map/skill.c
+index 1acf7ff..62bd6b1 100755
+--- a/src/map/skill.c
++++ b/src/map/skill.c
+@@ -13335,6 +13335,9 @@ int skill_check_condition_castbegin(struct map_session_data* sd, uint16 skill_id
+ 		return 1;
+ 	}
+ 
++	if ( sd->state.blockedattack )
++		return 0;
++
+ 	if( pc_is90overweight(sd) )
+ 	{
+ 		clif_skill_fail(sd,skill_id,USESKILL_FAIL_WEIGHTOVER,0);
+@@ -14144,6 +14147,9 @@ int skill_check_condition_castend(struct map_session_data* sd, uint16 skill_id,
+ 	if( sd->skillitem == skill_id ) // Casting finished (Item skill or Hocus-Pocus)
+ 		return 1;
+ 
++	if ( sd->state.blockedattack )
++		return 0;
++
+ 	if( pc_is90overweight(sd) ) {
+ 		clif_skill_fail(sd,skill_id,USESKILL_FAIL_WEIGHTOVER,0);
+ 		return 0;
+diff --git a/src/map/unit.c b/src/map/unit.c
+index a29605f..3472ab3 100644
+--- a/src/map/unit.c
++++ b/src/map/unit.c
+@@ -1850,7 +1850,7 @@ int unit_attack(struct block_list *src,int target_id,int continuous)
+ 			npc_click(sd,(TBL_NPC*)target); // Submitted by leinsirk10 [Celest]
+ 			return 0;
+ 		}
+-		if( pc_is90overweight(sd) || pc_isridingwug(sd) ) { // Overweight or mounted on warg - stop attacking
++		if( pc_is90overweight(sd) || pc_isridingwug(sd) || sd->state.blockedattack ) { // Overweight or mounted on warg OR pcblockattack - stop attacking
+ 			unit_stop_attack(src);
+ 			return 0;
+ 		}

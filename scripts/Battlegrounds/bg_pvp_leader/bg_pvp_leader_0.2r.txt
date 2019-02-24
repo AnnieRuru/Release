@@ -1,0 +1,139 @@
+//===== rAthena Script ======================================
+//= bg_pvp_leader
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.2
+//===== Compatible With: ===================================== 
+//= Hercules 2012-12-12
+//===== Description: =========================================
+//= Battleground PVP with leader kill -2 points
+//===== Topic ================================================
+//= https://rathena.org/board/topic/75477-custom-bg/
+//===== Additional Comments: =================================  
+//=
+//============================================================
+
+-	script	custom_bg#control	-1,{
+OnInit:
+	set .minplayer2start, 2; // minimum player to start ... please do not set to 1
+	setarray .rewarditem,
+		501, 10, // reward to the winning team
+		501, 3; // reward to the losing team
+	set .startingscore, 15; // score at start
+	set .eventlasting, 20*60; // event last 20 minutes or the system abort itself
+	end;
+OnStart:
+	if ( getwaitingroomstate( 0, .rednpcname$ ) < .minplayer2start || getwaitingroomstate( 0, .bluenpcname$ ) < .minplayer2start ) end;
+	.red = waitingroom2bg( "guild_vs3", 13,50, strnpcinfo(0)+"::OnredQuit", strnpcinfo(0)+"::OnredDead", .rednpcname$ );
+	copyarray .team1aid, $@arenamembers, $@arenamembersnum;
+	.blue = waitingroom2bg( "guild_vs3", 86,50, strnpcinfo(0)+"::OnblueQuit", strnpcinfo(0)+"::OnblueDead", .bluenpcname$ );
+	copyarray .team2aid, $@arenamembers, $@arenamembersnum;
+	delwaitingroom .rednpcname$;
+	delwaitingroom .bluenpcname$;
+	bg_warp .red, "guild_vs3", 13,50;
+	bg_warp .blue, "guild_vs3", 86,50;
+	.score[1] = .score[2] =.startingscore;
+	bg_updatescore "guild_vs3", .score[1], .score[2];
+	callsub L_setleader, 1;
+	callsub L_setleader, 2;
+	sleep .eventlasting * 1000;
+	if ( .score[1] == .score[2] ) {
+		mapannounce "guild_vs3", "Draw !", 0;
+		callsub L_reward, 1, 2;
+		callsub L_reward, 2, 2;
+	}
+	else if ( .score[1] > .score[2] ) {
+		mapannounce "guild_vs3", "red side wins !", 0;
+		callsub L_reward, 1, 0;
+		callsub L_reward, 2, 2;
+	}
+	else if ( .score[1] < .score[2] ) {
+		mapannounce "guild_vs3", "blue side wins !", 0;
+		callsub L_reward, 2, 0;
+		callsub L_reward, 1, 2;
+	}
+	bg_warp .red, "prontera",152,178;
+	bg_warp .blue, "prontera",154,178;
+	bg_destroy .red;
+	bg_destroy .blue;
+	donpcevent .rednpcname$ +"::OnStart";
+	donpcevent .bluenpcname$ +"::OnStart";
+	.leader_aid[1] = .leader_aid[2] = 0;
+	end;
+L_reward:
+	.@size = getarraysize( getd(".team"+ getarg(0) +"aid") );
+	for ( .@i = 0; .@i < .@size; .@i++ )
+		getitem .rewarditem[ getarg(1) ], .rewarditem[ getarg(1) +1 ], getd(".team"+ getarg(0) +"aid["+ .@i +"]" );
+	return;
+OnredDead: callsub L_dead, 1;
+OnblueDead: callsub L_dead, 2;
+L_dead:
+	if ( .leader_aid[ getarg(0) ] != getcharid(3) )
+		.score[ getarg(0) ]--;
+	else {
+		callsub L_setleader, getarg(0);
+		.score[ getarg(0) ] -= 2;
+	}
+	bg_updatescore "guild_vs3", .score[1], .score[2];
+	if ( .score[ getarg(0) ] <= 0 )
+		awake strnpcinfo(0);
+	sleep2 1250;
+	percentheal 100,100;
+	end;
+OnredQuit: callsub L_quit, 1, .red;
+OnblueQuit: callsub L_quit, 2, .blue;
+L_quit:
+	percentheal 100, 100;
+	.@size = getarraysize( getd(".team"+ getarg(0) +"aid") );
+	while ( getd( ".team"+ getarg(0) +"aid["+ .@i +"]" ) != getcharid(3) && .@i < .@size ) .@i++;
+	deletearray getd( ".team"+ getarg(0) +"aid["+ .@i +"]" ), 1;
+	if ( .leader_aid[ getarg(0) ] == getcharid(3) )
+		callsub L_setleader, getarg(0);
+	if ( bg_get_data( getarg(1), 0 ) > 1 ) end;
+	.score[ getarg(0) ] = 0;
+	awake strnpcinfo(0);
+	end;
+L_setleader:
+	while ( ( .@tmp = getd( ".team"+ getarg(0) +"aid["+ rand( getarraysize( getd(".team"+ getarg(0) +"aid") ) ) +"]" ) ) == playerattached() );
+	.leader_aid[ getarg(0) ] = .@tmp;
+	.@origin = playerattached();
+	attachrid .leader_aid[ getarg(0) ];
+	addtimer 1, strnpcinfo(0) +"::Onteam"+ getarg(0) +"leader";
+	attachrid .@origin;
+	return;
+Onteam1leader: callsub L_lead, 1, 548;
+Onteam2leader: callsub L_lead, 2, 549;
+L_lead:
+	while ( .leader_aid[ getarg(0) ] == getcharid(3) ) {
+		specialeffect2 getarg(1);
+		sleep2 1000;
+	}
+	end;
+}
+
+prontera,152,178,5	script	red side	733,{
+	end;
+OnInit:
+	set getvariableofnpc( .rednpcname$, "custom_bg#control" ), strnpcinfo(0);
+OnStart:
+	waitingroom "Red Team", getvariableofnpc( .minplayer2start, "custom_bg#control" ) +1, "custom_bg#control::OnStart", getvariableofnpc( .minplayer2start, "custom_bg#control" );
+	end;
+}
+prontera,154,178,5	script	blue side	734,{
+	end;
+OnInit:
+	set getvariableofnpc( .bluenpcname$, "custom_bg#control" ), strnpcinfo(0);
+OnStart:
+	waitingroom "Blue Team", getvariableofnpc( .minplayer2start, "custom_bg#control" ) +1, "custom_bg#control::OnStart", getvariableofnpc( .minplayer2start, "custom_bg#control" );
+	end;
+}
+guild_vs3	mapflag	battleground	2
+guild_vs3	mapflag	nosave	SavePoint
+guild_vs3	mapflag	nowarp
+guild_vs3	mapflag	nowarpto
+guild_vs3	mapflag	noteleport
+guild_vs3	mapflag	nomemo
+guild_vs3	mapflag	nopenalty
+guild_vs3	mapflag	nobranch
+guild_vs3	mapflag	noicewall

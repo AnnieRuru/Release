@@ -1,0 +1,66 @@
+ src/custom/script.inc     | 40 ++++++++++++++++++++++++++++++++++++++++
+ src/custom/script_def.inc |  3 +++
+ 2 files changed, 43 insertions(+)
+ 
+diff --git a/src/custom/script.inc b/src/custom/script.inc
+index 1e01c88..faef1ce 100644
+--- a/src/custom/script.inc
++++ b/src/custom/script.inc
+@@ -17,3 +17,43 @@
+ //	script_pushint(st,1);
+ //	return 0;
+ //}
++
++BUILDIN_FUNC(setdir) {
++	TBL_PC *sd;
++	if ( script_hasdata(st,4) ) {
++		if ( data_isstring( script_getdata(st,4) ) )
++			sd = map_nick2sd( script_getstr(st,4) );
++		else
++			sd = map_id2sd( script_getnum(st,4) );
++	} else
++		sd = script_rid2sd(st);
++	if ( sd ) {
++		int value = 0;
++		if ( script_hasdata(st,3) ) {
++			value = script_getnum(st,3);
++			if ( value < 0 || value > 2 )
++				value = 0;
++		}
++		pc_setdir( sd, script_getnum(st,2), value );
++		clif_changed_dir( &sd->bl, AREA );
++	}
++	return SCRIPT_CMD_SUCCESS;
++}
++
++BUILDIN_FUNC(checkdir) {
++	TBL_PC *sd;
++	if ( script_hasdata(st,3) ) {
++		if ( data_isstring( script_getdata(st,3) ) )
++			sd = map_nick2sd( script_getstr(st,3) );
++		else
++			sd = map_id2sd( script_getnum(st,3) );
++	} else
++		sd = script_rid2sd(st);
++	if ( sd ) {
++		int value = 0;
++		if ( script_hasdata(st,2) )
++			value = script_getnum(st,2);
++		script_pushint( st, value > 0 ? sd->head_dir : sd->ud.dir );
++	}
++	return SCRIPT_CMD_SUCCESS;
++}
+ No newline at end of file
+diff --git a/src/custom/script_def.inc b/src/custom/script_def.inc
+index 3319eea..2e9c9c9 100644
+--- a/src/custom/script_def.inc
++++ b/src/custom/script_def.inc
+@@ -9,3 +9,6 @@
+  **/
+ 
+ //BUILDIN_DEF(example,""),
++
++BUILDIN_DEF(setdir,"i??"),
++BUILDIN_DEF(checkdir,"??"),
+ No newline at end of file
+ 

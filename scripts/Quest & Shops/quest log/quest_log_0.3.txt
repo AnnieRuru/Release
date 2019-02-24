@@ -1,0 +1,347 @@
+//===== Hercules Script ======================================
+//= Sample Quest Log
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.3
+//===== Compatible With: ===================================== 
+//= Hercules 2015-11-26
+//===== Description: =========================================
+//= Demonstrate Quest Log System
+//= 1. just talk to npc A->B->C, demonstrate *checkquest
+//= 2. countitem quest, just *checkitem, but note the client side description
+//= 3. kill monster quest, demonstrate how to use *checkquest( x, HUNTING )
+//= 4. time limit quest, demonstrate how to use *checkquest( x, PLAYTIME  )
+//===== Topic ================================================
+//= http://herc.ws/board/topic/7218-sample-questlog-script/
+//===== Additional Comments: =================================  
+//= 
+//============================================================
+
+/* hercules/db/quest_db.conf
+{
+	Id: 49900
+	Name: "Acolyte Trouble"
+},
+{
+	Id: 49901
+	Name: "Acolyte Trouble"
+},
+{
+	Id: 49902
+	Name: "Acolyte Trouble"
+},
+{
+	Id: 49903
+	Name: "Acolyte Trouble"
+},
+{
+	Id: 49904
+	Name: "Gemstone Shortage"
+},
+{
+	Id: 49905
+	Name: "Gemstone Shortage"
+},
+{
+	Id: 49906
+	Name: "Gemstone Shortage"
+},
+{
+	Id: 49907
+	Name: "Poring Problem"
+},
+{
+	Id: 49908
+	Name: "Poring Problem"
+	Targets: (
+	{
+		MobId: 1002
+		Count: 10
+	},
+	)
+},
+{
+	Id: 49909
+	Name: "Poring Problem"
+},
+{
+	Id: 49910
+	Name: "Hand over the Artifact"
+},
+{
+	Id: 49911
+	Name: "Hand over the Artifact"
+	TimeLimit: 15
+},
+{
+	Id: 49912
+	Name: "Hand over the Artifact"
+},
+{
+	Id: 49913
+	Name: "Hand over the Artifact"
+},
+*/
+
+/* client/data/questid2display.txt
+49900#acolyte trouble#SG_FEEL#QUE_NOIMAGE#
+Talk to the acolyte inside prontera church#
+Talk to the acolyte#
+
+49901#acolyte trouble#SG_FEEL#QUE_NOIMAGE#
+Journey to Izlude town and talk to acolyte's mother#
+Find old lady in izlude#
+
+49902#acolyte trouble#SG_FEEL#QUE_NOIMAGE#
+Go back to Prontera Church and hand over the letter to the acolyte#
+Talk to the acolyte#
+
+49903#acolyte trouble#SG_FEEL#QUE_NOIMAGE#
+Mission COMPLETE !#
+Submit to Tavern Master#
+
+49904#gemstone shortage#SG_FEEL#QUE_NOIMAGE#
+Talk to gemstone seller#
+Talk to gemstone seller#
+
+49905#gemstone shortage#SG_FEEL#QUE_NOIMAGE#
+collect 10 yellow gemstones, 10 blue gemstones, 10 red gemstones and bring them to gem seller#
+Collect gemstones#
+
+49906#gemstone shortage#SG_FEEL#QUE_NOIMAGE#
+Mission COMPLETE !#
+Submit to Tavern Master#
+
+49907#poring problem#SG_FEEL#QUE_NOIMAGE#
+Talk to Prontera guard#
+Talk to Prontera guard#
+
+49908#poring problem#SG_FEEL#QUE_NOIMAGE#
+Poring has invaded Prontera town last night, help out the town by killing porings outside the town#
+kill 10 porings#
+
+49909#poring problem#SG_FEEL#QUE_NOIMAGE#
+Mission COMPLETE !#
+Submit to Tavern Master#
+
+49910#hand over the artifact#SG_FEEL#QUE_NOIMAGE#
+There is a rare artifact in the town kept by artifact collecter. Hand over the artifact to Tavern Master#
+Talk to artifact collecter#
+
+49911#hand over the artifact#SG_FEEL#QUE_NOIMAGE#
+Talk to assistant FAST! Time is running out!#
+Talk to assistant FAST!#
+
+49912#hand over the artifact#SG_FEEL#QUE_NOIMAGE#
+Return to artifact collecter#
+Talk to artifact collecter#
+
+49913#hand over the artifact#SG_FEEL#QUE_NOIMAGE#
+Mission COMPLETE !#
+Submit to Tavern Master#
+*/
+
+/*
+prontera,153,180,5	script	reset quest(debug)	1_M_04,{
+	for ( .@i = 49900; .@i <= 49913; .@i++ )
+		if ( questprogress(.@i) )
+			erasequest .@i;
+	end;
+}
+*/
+
+prontera,156,180,5	script	Prontera Tavern	1_M_04,{
+	mes "take a mission";
+	next;
+	switch ( select ( "acolyte trouble","gemstone shortage","poring problem","hand over the artifact" ) ) {
+		case 1:
+			if ( questprogress(49903) == 2 ) {
+				mes "you already completed this mission";
+				close;
+			}
+			else if ( questprogress(49903) == 1 ) {
+				mes "you complete this mission!";
+				dispbottom "mission 1 pass";
+				completequest 49903;
+				close;
+			}
+			else if ( questprogress(49900) == 1 || questprogress(49901) == 1 || questprogress(49902) == 1 ) {
+				mes "you still on the mission";
+				mes "Talk to the <NAVI>Acolyte<INFO>prt_church,102,77,</INFO></NAVI> from the church.";
+				close;
+			}
+			mes "All right, talk to the <NAVI>Acolyte<INFO>prt_church,102,77,</INFO></NAVI> from the church.";
+			setquest 49900;
+			close;
+		case 2:
+			if ( questprogress(49906) == 2 ) {
+				mes "you already completed this mission";
+				close;
+			}
+			else if ( questprogress(49906) == 1 ) {
+				mes "you complete this mission!";
+				dispbottom "mission 2 pass";
+				completequest 49906;
+				close;
+			}
+			else if ( questprogress(49904) == 1 || questprogress(49905) == 1 ) {
+				mes "you still on the mission";
+				mes "Talk to the <NAVI>gemstone seller<INFO>prontera,248,151,</INFO></NAVI>.";
+				close;
+			}
+			mes "All right, talk to the <NAVI>gemstone seller<INFO>prontera,248,151,</INFO></NAVI>.";
+			setquest 49904;
+			close;
+		case 3:
+			if ( questprogress(49909) == 2 ) {
+				mes "you already completed this mission";
+				close;
+			}
+			else if ( questprogress(49909) == 1 ) {
+				mes "you complete this mission!";
+				dispbottom "mission 3 pass";
+				completequest 49909;
+				close;
+			}
+			else if ( questprogress(49907) == 1 || questprogress(49908) == 1 ) {
+				mes "you still on the mission";
+				mes "Talk to <NAVI>the guard<INFO>prontera,147,28,</INFO></NAVI>.";
+				close;
+			}
+			mes "All right, talk to <NAVI>the guard<INFO>prontera,147,28,</INFO></NAVI>.";
+			setquest 49907;
+			close;
+		case 4:
+			if ( questprogress(49913) == 2 ) {
+				mes "you already completed this mission";
+				close;
+			}
+			else if ( questprogress(49913) == 1 ) {
+				mes "you complete this mission!";
+				dispbottom "mission 4 pass";
+				completequest 49913;
+				close;
+			}
+			else if ( questprogress(49910) == 1 || questprogress(49911) == 1 || questprogress(49912) == 1 ) {
+				mes "you still on the mission";
+				mes "Talk to the <NAVI>artifact collecter<INFO>prontera,57,293,</INFO></NAVI>.";
+				close;
+			}
+			mes "All right, talk to the <NAVI>artifact collecter<INFO>prontera,57,293,</INFO></NAVI>.";
+			setquest 49910;
+			close;
+		}
+	end;
+OnInit:
+	questinfo 0, QTYPE_QUEST2, 1;
+	end;
+}
+
+prt_church,102,77,3	script	acolyte	4_F_SISTER,{
+	if ( questprogress(49902) == 1 ) {
+		mes "thx! a letter from my mum!";
+		mes "from now on I'll do my best in training!";
+		changequest 49902,49903;
+		close;
+	}
+	else if ( questprogress(49901) == 1 ) {
+		mes "can you please tell <NAVI>my mum<INFO>izlude,88,139,</INFO></NAVI> how much I miss her?";
+		close;
+	}
+	else if ( questprogress(49900) == 1 ) {
+		mes "I miss <NAVI>my mum<INFO>izlude,88,139,</INFO></NAVI> day and night ... can you please go to my hometown in izlude and tell her how much I miss her?";
+		changequest 49900,49901;
+		close;
+	}
+	mes "I must focus on my training!";
+	close;
+}
+
+izlude,88,139,5	script	old woman	4_F_TWMIDWOMAN,{
+	if ( questprogress(49901) == 1 ) {
+		mes "<NAVI>my child<INFO>prt_church,102,77,</INFO></NAVI> ask you to come? that's great! can you deliver this letter to him now?";
+		changequest 49901,49902;
+		close;
+	}
+	mes "I miss my child...";
+	close;
+}
+
+prontera,248,151,3	script	gemstone seller	1_M_MERCHANT,{
+	if ( questprogress(49905) == 1 ) {
+		if ( countitem(Yellow_Gemstone) >= 10 && countitem(Red_Gemstone) >= 10 && countitem(Blue_Gemstone) >= 10 ) {
+			mes "you got it! now we can replenish our stock!";
+			delitem Yellow_Gemstone,10;
+			delitem Red_Gemstone,10;
+			delitem Blue_Gemstone,10;
+			changequest 49905,49906;
+			close;
+		}
+		mes "you still haven't gathered enough gemstones?";
+		close;
+	}
+	else if ( questprogress(49904) == 1 ) {
+		mes "yes, our town need more gemstones. Can you help resupply our shortage of gemstones?";
+		changequest 49904,49905;
+		close;
+	}
+	mes "we need more gem stones!";
+	close;
+}
+
+prontera,147,28,5	script	Guard	8W_SOLDIER,{
+	if ( questprogress(49908) == 1 ) {
+		if ( questprogress(49908,HUNTING) == 2 ) {
+			mes "you've kill enough porings! you're our hero";
+			changequest 49908,49909;
+			close;
+		}
+		mes "you haven't done killing yet";
+		close;
+	}
+	else if ( questprogress(49907) == 1 ) {
+		mes "yesterday night this town was invaded by porings, can you eliminate them?";
+		changequest 49907,49908;
+		close;
+	}
+	mes "hi, welcome to prontera town";
+	close;
+}
+
+prontera,57,293,5	script	artifact collecter	1_M_01,{
+	if ( questprogress(49912) == 1 ) {
+		mes "yes! that's the one! now you can hand it over to <NAVI>tavern master<INFO>prontera,156,180,</INFO></NAVI>";
+		changequest 49912,49913;
+		close;
+	}
+	else if ( questprogress(49911) == 1 ) {
+		mes "FAST! she is about to throw it away!";
+		close;
+	}
+	else if ( questprogress(49910) == 1 ) {
+		mes "ahh ... that artifact tavern master requested ... wait! I just asked <NAVI>my assistant<INFO>prontera,31,158,</INFO></NAVI> to throw it! Faster stop her before its too late";
+		dispbottom "you have 15 seconds to retrieve it";
+		close2;
+		changequest 49910,49911;
+		end;
+	}
+	mes "today a sunny day....";
+	close;
+}
+
+prontera,31,158,5	script	assistant	1_F_01,{
+	if ( questprogress(49911) == 1 ) {
+		if ( questprogress(49911,PLAYTIME) == 2 ) {
+			mes "oh no, the rubbish truck just send them away ...";
+			dispbottom "you failed the quest";
+			erasequest 49911;
+			close;
+		}
+		mes "you're just in time! here the artifact you requested. But to be sure, double check with <NAVI>my master<INFO>prontera,57,293,</INFO></NAVI>.";
+		changequest 49911,49912;
+		close;
+	}
+	mes "work~ work~ work~";
+	close;
+}

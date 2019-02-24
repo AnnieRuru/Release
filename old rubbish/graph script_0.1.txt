@@ -1,0 +1,49 @@
+//===== eAthena Script =====================================
+//= Graph Script
+//===== By: ================================================
+//= Annieruru
+//===== Current Version: ===================================
+//= 0.1
+//===== Compatible With: ===================================
+//= eAthena 2011-06-27
+//===== Description: =======================================
+//= display a set of data in graph format
+//===== Topic ==============================================
+//= https://www.eathena.ws/board/index.php?s=&showtopic=274824&view=findpost&p=1508260
+//===== Additional Comments: ===============================
+//= I have too much free time at the time !
+//==========================================================
+
+prontera,157,187,5	script	kjsdfhksdjf	1_F_MARIA,{
+//	for ( set .@i, 0; .@i < 20; set .@i, .@i +1 )
+//		set .@string$, .@string$ + .points[.@i] +",";
+//	mes .@string$;
+	for ( set .@j, 30; .@j >= -30; set .@j, .@j -10 ) {
+		set .@string$, "^000000 "+( ( .@j <= 0 )?( .@j == 0 )?" ":"" :" " )+ .@j +"|";
+		for ( set .@i, 0; .@i < 20; set .@i, .@i +1 )
+			set .@string$, .@string$ +( ( .points[.@i] > .@j-5 && .points[.@i] <= .@j+5 )?"^000000":"^FFFFFF" )+"\x07";
+		mes .@string$;
+	}
+	mes "^000000the last point was "+ .points[19];
+	close;
+OnInit:
+	while(1) {
+		deletearray .points[0], 1;
+		if ( .points[18] > 27 ) // 28~30
+			set .points[19], .points[18] + rand(-10,0);
+		else if ( .points[18] >= 20 ) // 20~27
+			set .points[19], .points[18] + rand(-7,3);
+		else if ( .points[18] > 10 ) // 11~19
+			set .points[19], .points[18] + rand(-6,4);
+		else if ( .points[18] >= -10 ) // -10~10
+			set .points[19], .points[18] + rand(-5,5);
+		else if ( .points[18] > -20 ) // -11~-19
+			set .points[19], .points[18] + rand(-4,6);
+		else if ( .points[18] >= -27 ) // -20~-27
+			set .points[19], .points[18] + rand(-3,7);
+		else // -28~-30
+			set .points[19], .points[18] + rand(0,10);
+		sleep 50;
+	}
+	end; // no use
+}

@@ -1,0 +1,45 @@
+//===== Hercules Script ======================================
+//= Stylist npc
+//===== By: ==================================================
+//= AnnieRuru
+//= original by Euphy
+//===== Current Version: =====================================
+//= 1.0
+//===== Compatible With: ===================================== 
+//= Hercules 2015-12-02
+//===== Description: =========================================
+//= stylist npc
+//===== Topic ================================================
+//= <none>
+//===== Additional Comments: =================================  
+//= there is a bug on Euphy's stylist npc, the style number should start with 0, but his script always start with 1
+//= and the naming sense very bad, .@style and .@styles, should be avioded
+//============================================================
+
+prontera,165,176,1	script	Stylist	HIDDEN_NPC,{
+	.@choose = select( "Hair style", "Hair color", "Cloth color" );
+	.@part = .look[.@choose];
+	.@i = .@revert = getlook( .@part );
+	while ( true ) {
+		setlook .@part, .@i;
+		dispbottom "This is style #"+ .@i +".";
+		.@next = ( .@i == .maxstyles[.@part] )? 0 : .@i+1;
+		.@previous = ( .@i == 0 )? .maxstyles[.@part] : .@i-1;
+		switch ( select( " ~ Next (^0055FF"+ .@next +"^000000)", " ~ Previous (^0055FF"+ .@previous +"^000000)", " ~ Jump to...", " ~ Revert to original (^0055FF"+ .@revert +"^000000)" ) ) {
+			case 1: .@i = .@next; break;
+			case 2: .@i = .@previous; break;
+			case 3:
+				dispbottom "Choose a style between 0 - "+ .maxstyles[.@part] +".";
+				input .@i, 0, .maxstyles[.@part];
+				break;
+			case 4: .@i = .@revert;
+		}
+	}
+	end;
+OnInit:
+	.maxstyles[LOOK_HAIR] = getbattleflag("max_hair_style");
+	.maxstyles[LOOK_HAIR_COLOR] = getbattleflag("max_hair_color");
+	.maxstyles[LOOK_CLOTHES_COLOR] = getbattleflag("max_cloth_color");
+	setarray .look[1], LOOK_HAIR, LOOK_HAIR_COLOR, LOOK_CLOTHES_COLOR;
+	end;
+}

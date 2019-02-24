@@ -1,0 +1,87 @@
+//===== rAthena Script ======================================
+//= Stylist npc
+//===== By: ==================================================
+//= AnnieRuru
+//= original by Euphy
+//===== Current Version: =====================================
+//= 1.2
+//===== Compatible With: ===================================== 
+//= rAthena 2019-01-24
+//===== Description: =========================================
+//= stylist npc
+//===== Topic ================================================
+//= https://rathena.org/board/topic/118030-help-restriction-stylist-npc/
+//===== Additional Comments: =================================  
+//= 1 more time, this time use CSV method, this method is understood by many
+//============================================================
+
+prontera,165,176,1	script	Stylist	HIDDEN_NPC,{
+	.@choose = select( "Hair style", "Hair color", "Cloth color" ) -1;
+	.@part = .look[.@choose];
+	.@current_look = getlook( .@part );
+	.@i = inarray( getd(".list"+ .@part), .@current_look );
+	.@revert = .@i;
+	while ( true ) {
+		setlook .@part, getd(".list"+ .@part +"["+ .@i +"]");
+		dispbottom "This is style #"+ getd(".list"+ .@part +"["+ .@i +"]") +".";
+		.@next = ( .@i == .maxindex[.@part] )? 0 : .@i+1;
+		.@previous = ( .@i == 0 )? .maxindex[.@part] : .@i-1;	
+//		announce ".maxindex[.@part] "+ .maxindex[.@part], 0;
+//		announce ".@i "+ .@i +" "+ getd(".list"+ .@part +"["+ .@i +"]"), 0;
+//		announce ".@previous "+ .@previous +" "+ getd(".list"+ .@part +"["+ .@previous +"]"), 0;
+//		announce ".@next "+ .@next +" "+ getd(".list"+ .@part +"["+ .@next +"]"), 0;
+		switch ( select( " ~ Next (^0055FF"+ getd(".list"+ .@part +"["+ .@next +"]") +"^000000)", " ~ Previous (^0055FF"+ getd(".list"+ .@part +"["+ .@previous +"]") +"^000000)", " ~ Jump to...", " ~ Revert to original (^0055FF"+ getd(".list"+ .@part +"["+ .@revert +"]") +"^000000)" ) ) {
+			case 1: .@i = .@next; break;
+			case 2: .@i = .@previous; break;
+			case 3:
+				dispbottom "Choose a style between 0 - "+ .maxstyles[.@part] +".";
+				input .@num;
+				.@j = inarray( getd(".list"+ .@part), .@num );
+				if ( .@j == -1 )
+					dispbottom "That style is unavailable";
+				else
+					.@i = .@j;
+				break;
+			case 4: .@i = .@revert;
+		}
+	}
+	end;
+OnInit:
+//	.list$[LOOK_HAIR] = "0-5,11-18,20-23";
+	.list$[LOOK_HAIR] = "0-"+ getbattleflag("max_hair_style");
+	.list$[LOOK_HAIR_COLOR] = "0-"+ getbattleflag("max_hair_color");
+	.list$[LOOK_CLOTHES_COLOR] = "0-"+ getbattleflag("max_cloth_color");
+
+	freeloop true;
+	setarray .look[0], LOOK_HAIR, LOOK_HAIR_COLOR, LOOK_CLOTHES_COLOR;
+	for ( .@i = 0; .@i < 3; ++.@i ) {
+		deletearray .@array$;
+		.@index = 0;
+		explode( .@array$, .list$[.look[.@i]], "," );
+		.@size = getarraysize(.@array$);
+		for ( .@j = 0; .@j < .@size; ++.@j ) {
+			if ( compare( .@array$[.@j], "-" ) ) {
+				explode( .@range$, .@array$[.@j], "-" );
+				.@min = atoi(.@range$[0]);
+				.@max = atoi(.@range$[1]);
+				.@range = .@max - .@min +1;
+				for ( .@k = 0; .@k < .@range; ++.@k )
+					setd ".list"+ .look[.@i] +"["+( .@index++ )+"]", .@min + .@k;
+			}
+			else
+				setd ".list"+ .look[.@i] +"["+( .@index++ )+"]", atoi( .@array$[.@j] );
+		}
+		.maxindex[.look[.@i]] = .@index -1;
+		.maxstyles[.look[.@i]] = getd(".list"+ .look[.@i] +"["+( .@index -1 )+"]");
+	}
+//	announce "LOOK_HAIR "+ .maxindex[LOOK_HAIR] +" "+ .maxstyles[LOOK_HAIR], 0;
+//	for ( .@i = 0; .@i < .maxindex[LOOK_HAIR]; ++.@i )
+//		announce getd(".list"+ LOOK_HAIR +"["+ .@i +"]") +"", 0;
+//	announce "LOOK_HAIR_COLOR "+ .maxindex[LOOK_HAIR_COLOR] +" "+ .maxstyles[LOOK_HAIR_COLOR], 0;
+//	for ( .@i = 0; .@i < .maxindex[LOOK_HAIR_COLOR]; ++.@i )
+//		announce getd(".list"+ LOOK_HAIR_COLOR +"["+ .@i +"]") +"", 0;
+//	announce "LOOK_CLOTHES_COLOR "+ .maxindex[LOOK_CLOTHES_COLOR] +" "+ .maxstyles[LOOK_CLOTHES_COLOR], 0;
+//	for ( .@i = 0; .@i < .maxindex[LOOK_CLOTHES_COLOR]; ++.@i )
+//		announce getd(".list"+ LOOK_CLOTHES_COLOR +"["+ .@i +"]") +"", 0;
+	end;
+}

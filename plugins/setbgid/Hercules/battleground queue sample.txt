@@ -1,0 +1,96 @@
+prontera,152,178,5	script	bg_pvp#random	4_M_JOB_KNIGHT1,{
+OnInit:
+	.minplayer2start = 2;      // minimum players to start (ex. if 3vs3, set to 3)
+	.eventlasting = 20*60;  // event duration before auto-reset (20 minutes * seconds)
+	setarray .rewarditem[0],   // rewards for the winning team:
+		501, 10; // <item>,<amount>
+
+	waitingroom "bg_pvp", .minplayer2start *2 +1, strnpcinfo(0) +"::OnStart", .minplayer2start *2;
+	getmapxy .@map$, .@x, .@y, UNITTYPE_NPC;
+	mapwarp "guild_vs3", .@map$, .@x, .@y;
+	end;
+OnStart:
+	if ( getwaitingroomstate(0) < .minplayer2start *2 ) end;
+	getmapxy .@map$, .@x, .@y, UNITTYPE_NPC;
+	warpwaitingpc .@map$, .@x, .@y, .minplayer2start *2;
+	.red = bg_create_team( "guild_vs3", 13,50 );
+	.blue = bg_create_team( "guild_vs3", 86,50 );
+	.queue_red = queue();
+	.queue_blue = queue();
+	queueopt .queue_red, QUEUEOPT_DEATH, strnpcinfo(0)+"::OnRedDead";
+	queueopt .queue_red, QUEUEOPT_LOGOUT, strnpcinfo(0)+"::OnRedQuit";
+	queueopt .queue_red, QUEUEOPT_MAPCHANGE, strnpcinfo(0)+"::OnRedMapChange";
+	queueopt .queue_blue, QUEUEOPT_DEATH, strnpcinfo(0)+"::OnBlueDead";
+	queueopt .queue_blue, QUEUEOPT_LOGOUT, strnpcinfo(0)+"::OnBlueQuit";
+	queueopt .queue_blue, QUEUEOPT_MAPCHANGE, strnpcinfo(0)+"::OnBlueMapChange";
+	for ( .@i = 0; .@i < $@warpwaitingpcnum; ++.@i ) {
+		bg_join_team ( .@i % 2 )? .red : .blue, $@warpwaitingpc[.@i];
+		queueadd ( .@i % 2 )? .queue_red : .queue_blue, $@warpwaitingpc[.@i];
+	}
+	delwaitingroom strnpcinfo(0);
+	bg_warp .red, "guild_vs3", 13,50;
+	bg_warp .blue, "guild_vs3", 86,50;
+	.score[1] = .score[2] = .minplayer2start;
+	bg_updatescore "guild_vs3", .score[1], .score[2];
+	sleep .eventlasting * 1000;
+	if ( .score[1] > .score[2] ) {
+		mapannounce "guild_vs3", "- Red Team is victorious! -", bc_map;
+		callsub L_Reward, .queue_red;
+	}
+	else if ( .score[1] < .score[2] ) {
+		mapannounce "guild_vs3", "- Blue Team is victorious! -", bc_map;
+		callsub L_Reward, .queue_blue;
+	}
+	else
+		mapannounce "guild_vs3", "- The match has ended in a draw! -", bc_map;
+	mapwarp "guild_vs3","prontera",152,178;
+	bg_destroy .red;
+	bg_destroy .blue;
+	queuedel .queue_red;
+	queuedel .queue_blue;
+	waitingroom "bg_pvp", .minplayer2start *2 +1, strnpcinfo(0) +"::OnStart", .minplayer2start *2;
+	end;
+L_Reward:
+	.@it = queueiterator( getarg(0) );
+	for ( .@aid = qiget(.@it); qicheck(.@it); .@aid = qiget(.@it) )
+		getitem .rewarditem[0], .rewarditem[1], .@aid;
+	qiclear .@it;
+	return;
+OnRedDead:  callsub L_Dead, 1, .queue_red;
+OnBlueDead: callsub L_Dead, 2, .queue_blue;
+L_Dead:
+	--.score[ getarg(0) ];
+	bg_updatescore "guild_vs3", .score[1], .score[2];
+	bg_leave;
+	queueremove getarg(1), getcharid(3);
+	warp "Save", 0,0;
+	if ( !.score[ getarg(0) ] )
+		awake strnpcinfo(0);
+	sleep2 1250;
+	percentheal 100,100;
+	end;
+OnRedMapChange:
+	if ( @Queue_Destination_Map$ == "guild_vs3" ) end;
+OnRedQuit:  callsub L_Quit, 1, .queue_red;
+OnBlueMapChange:
+	if ( @Queue_Destination_Map$ == "guild_vs3" ) end;
+OnBlueQuit: callsub L_Quit, 2, .queue_blue;
+L_Quit:
+	--.score[ getarg(0) ];
+	bg_updatescore "guild_vs3", .score[1], .score[2];
+	bg_leave;
+	queueremove getarg(1), getcharid(3);
+	if ( !.score[ getarg(0) ] )
+		awake strnpcinfo(0);
+	percentheal 100, 100;
+	end;
+}
+guild_vs3	mapflag	battleground	2
+guild_vs3	mapflag	nosave	SavePoint
+guild_vs3	mapflag	nowarp
+guild_vs3	mapflag	nowarpto
+guild_vs3	mapflag	noteleport
+guild_vs3	mapflag	nomemo
+guild_vs3	mapflag	nopenalty
+guild_vs3	mapflag	nobranch
+guild_vs3	mapflag	noicewall

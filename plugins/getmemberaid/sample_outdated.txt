@@ -1,0 +1,97 @@
+//	return account_id of ALL online players
+prontera,151,189,5	script	ALL_CLIENT	100,{
+	detachrid;
+	getmemberaid ALL_CLIENT;
+	for ( .@i = 0; .@i < $@onlinecount; .@i++ )
+		announce rid2name( $@onlineaid[.@i] ), bc_all;
+	end;
+}
+
+//	return account_id of all online players on the same map as attached RID
+prontera,151,187,5	script	ALL_SAMEMAP	100,{
+	getmemberaid ALL_SAMEMAP;
+	for ( .@i = 0; .@i < $@onlinecount; .@i++ )
+		announce rid2name( $@onlineaid[.@i] ), bc_all;
+	end;
+}
+
+//	return account_id of all online players on the defined map
+prontera,153,187,5	script	ALL_SAMEMAP_morocc	100,{
+	detachrid;
+	getmemberaid ALL_SAMEMAP, "morocc";
+	for ( .@i = 0; .@i < $@onlinecount; .@i++ )
+		announce rid2name( $@onlineaid[.@i] ), bc_all;
+	end;
+}
+
+//	return account_id of all online players within AREA_SIZE (default is 14, configure at conf\battle\client.conf)
+prontera,151,185,5	script	AREA	100,{
+	getmemberaid AREA;
+	for ( .@i = 0; .@i < $@onlinecount; .@i++ )
+		announce rid2name( $@onlineaid[.@i] ), bc_all;
+	end;
+}
+
+//	return account_id of all online players within the specific coordinates
+prontera,153,185,5	script	AREA_coordinate	100,{
+	getmapxy .@map$, .@x, .@y, 0;
+	detachrid;
+	getmemberaid AREA, .@map$, .@x-1, .@y-1, .@x+1, .@y+1;
+	for ( .@i = 0; .@i < $@onlinecount; .@i++ )
+		announce rid2name( $@onlineaid[.@i] ), bc_all;
+	end;
+}
+
+//	return account_id of all online party members of attached RID
+prontera,151,183,5	script	PARTY	100,{
+	getmemberaid PARTY;
+	for ( .@i = 0; .@i < $@onlinecount; .@i++ )
+		announce rid2name( $@onlineaid[.@i] ), bc_all;
+	end;
+}
+
+//	return account_id of all online party members from defined party ID
+prontera,153,183,5	script	PARTY_id	100,{
+	.@pid = getcharid(1);
+	detachrid;
+	getmemberaid PARTY, .@pid;
+	for ( .@i = 0; .@i < $@onlinecount; .@i++ )
+		announce rid2name( $@onlineaid[.@i] ), bc_all;
+	end;
+}
+
+//	return account_id of all online guild members of attached RID
+prontera,151,181,5	script	GUILD	100,{
+	getmemberaid GUILD;
+	for ( .@i = 0; .@i < $@onlinecount; .@i++ )
+		announce rid2name( $@onlineaid[.@i] ), bc_all;
+	end;
+}
+
+//	return account_id of all online guild members from defined guild ID
+prontera,153,181,5	script	GUILD_id	100,{
+	.@gid = getcharid(2);
+	detachrid;
+	getmemberaid GUILD, .@gid;
+	for ( .@i = 0; .@i < $@onlinecount; .@i++ )
+		announce rid2name( $@onlineaid[.@i] ), bc_all;
+	end;
+}
+
+//	return account_id of all battleground team members of attached RID
+prontera,151,179,5	script	BG	100,{
+	getmemberaid BG;
+	for ( .@i = 0; .@i < $@onlinecount; .@i++ )
+		announce rid2name( $@onlineaid[.@i] ), bc_all;
+	end;
+}
+
+//	return account_id of all battleground team members from defined battleground ID
+prontera,153,179,5	script	BG_id	100,{
+	.@bgid = getcharid(4);
+	detachrid;
+	getmemberaid BG, .@bgid;
+	for ( .@i = 0; .@i < $@onlinecount; .@i++ )
+		announce rid2name( $@onlineaid[.@i] ), bc_all;
+	end;
+}

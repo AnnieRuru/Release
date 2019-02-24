@@ -1,0 +1,56 @@
+//===== rAthena Script =======================================
+//= Mithril Coin Shop
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.0
+//===== Compatible With: ===================================== 
+//= Hercules 2018-4-19
+//===== Description: =========================================
+//= basic mithril coin shop
+//===== Topic ================================================
+//= https://rathena.org/board/topic/75631-10-refined-item-sold-from-the-npc/
+//===== Additional Comments: =================================
+//= basic dynamic shop
+//============================================================
+
+prontera,156,172,5	script	market	100,{
+	dispbottom "You currently have "+ countitem(.itemuse) +" "+ getitemname(.itemuse);
+	callshop "market2#hidden", 1;
+	end;
+OnBuyItem:
+	if ( !@bought_quantity ) end;
+	if ( checkweight2( @bought_nameid, @bought_quantity ) == false ) {
+		mes "it appears you can't carry them all";
+		close;
+	}
+	.@size = getarraysize( @bought_nameid );
+	for ( .@i = 0; .@i < .@size; ++.@i ) {
+		.@j = 0;
+		while ( @bought_nameid[.@i] != .itemid[.@j] && .@j < .shop_size ) ++.@j;
+		.@itemcost = .@itemcost + .itemcost[.@j] * @bought_quantity[.@i];
+	}
+	if ( .@itemcost > countitem(.itemuse) ) {
+		mes "you don't have enough "+ getitemname(.itemuse);
+		close;
+	}
+	delitem .itemuse, .@itemcost;
+	for ( .@i = 0; .@i < .@size; ++.@i )
+		getitem @bought_nameid[.@i], @bought_quantity[.@i];
+	deletearray @bought_nameid;
+	deletearray @bought_quantity;
+	end;
+OnInit:
+	setarray .itemid,1101,1201,1301,1501,1601;
+	setarray .itemcost,10,20,30,40,50;
+	set .itemuse, 674;
+
+	.shop_size = getarraysize(.itemid);
+	npcshopdelitem "market2#hidden", 512;
+	for ( .@i = 0; .@i < .shop_size; ++.@i )
+		npcshopadditem "market2#hidden", .itemid[.@i], .itemcost[.@i];
+	npcshopattach "market2#hidden";
+	end;
+}
+
+-	shop	market2#hidden	-1,512:10000

@@ -1,0 +1,38 @@
+//===== eAthena Script =====================================
+//= Statistic Script
+//===== By: ================================================
+//= Annieruru
+//===== Current Version: ===================================
+//= 0.2
+//===== Compatible With: ===================================
+//= eAthena 2010-02-14
+//===== Description: =======================================
+//= Show how many users online every 30 minutes
+//===== Topic ==============================================
+//= https://www.eathena.ws/board/index.php?s=&showtopic=239535&view=findpost&p=1314540
+//===== Additional Comments: ===============================
+//= This script is usable on live server, maybe ?
+//==========================================================
+
+/*
+create table statistics_log (
+`date` datetime,
+`onlines` mediumint unsigned
+) engine = archive;
+*/
+
+prontera,155,191,5	script	jisfbsdkj	100,{
+	mes "current online "+ getusers(1);
+	mes " ";
+	query_sql "select count(1) from statistics_log", .@count;
+	for ( set .@j, 0; .@j < .@count; set .@j, .@j +20 ) {
+		set .@nb, query_sql("select * from statistics_log limit 20 offset "+ .@j, .@time$, .@online);
+		for ( set .@i, 0; .@i < .@nb; set .@i, .@i +1 )
+			mes .@time$[.@i] +" : "+ .@online[.@i] +" onlines";
+		if ( .@count - .@j > 3 ) next;
+	}
+	close;
+OnMinute00:
+OnMinute30:
+	query_sql "insert into statistics_log values ( now(), "+ getusers(1)+")";
+}

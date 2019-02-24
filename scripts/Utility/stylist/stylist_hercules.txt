@@ -1,0 +1,89 @@
+// https://github.com/HerculesWS/Hercules/pull/2357
+
+//===== Hercules Script ======================================
+//= Stylist
+//===== By: ==================================================
+//= Euphy
+//= AnnieRuru (rewrite)
+//===== Current Version: =====================================
+//= 1.2
+//===== Description: =========================================
+//= Changes your hair style, hair color, and cloth color.
+//===== Additional Comments: =================================
+//= 1.1 Switched to 'getbattleflag', credits to Saithis. [Euphy]
+//= 1.2 completely rewrite, add Job_Summoner, CSV style allow list [AnnieRuru]
+//============================================================
+
+prontera,170,180,1	script	Stylist#custom_stylist	2_M_DYEINGER,{
+	.@choose = select( "Hair style", "Hair color", "Cloth color" ) -1;
+	.@lookpart = .@part = .look[.@choose];
+	if (BaseClass == Job_Summoner)
+		.@part += Job_Summoner;
+	.@getlook = getlook(.@lookpart);
+	for (.@i = 0; .@i < .maxindex[.@part]; ++.@i)
+		if (getd(sprintf(".list%d[%d]", .@part, .@i)) == .@getlook)
+			break;
+	.@revert = .@i;
+	while (true) {
+		setlook .@lookpart, getd(sprintf(".list%d[%d]", .@part, .@i));
+		dispbottom sprintf("This is style #%d.", getd(sprintf(".list%d[%d]", .@part, .@i)));
+		.@next = (.@i == .maxindex[.@part])? 0 : .@i + 1;
+		.@previous = (.@i == 0)? .maxindex[.@part] : .@i - 1;
+		switch(select(sprintf(" ~ Next (%s%d%s)", F_MesColor(C_BLUE), getd(sprintf(".list%d[%d]", .@part, .@next)), F_MesColor(C_BLACK)), sprintf(" ~ Previous (%s%d%s)", F_MesColor(C_BLUE), getd(sprintf(".list%d[%d]", .@part, .@previous)), F_MesColor(C_BLACK)), " ~ Jump to...", sprintf(" ~ Revert to original (%s%d%s)", F_MesColor(C_BLUE), getd(sprintf(".list%d[%d]", .@part, .@revert)), F_MesColor(C_BLACK)))) {
+		case 1:
+			.@i = .@next;
+			break;
+		case 2:
+			.@i = .@previous;
+			break;
+		case 3:
+			dispbottom sprintf("Choose a style between 0 - %d.", .maxstyles[.@part]);
+			input .@num;
+			for (.@j = 0; .@j < .maxindex[.@part]; ++.@j)
+				if (getd(sprintf(".list%d[%d]", .@part, .@j)) == .@num)
+					break;
+			if (.@j == .maxindex[.@part])
+				dispbottom "That style is unavailable";
+			else
+				.@i = .@j;
+			break;
+		case 4:
+			.@i = .@revert;
+		}
+	}
+	end;
+OnInit:
+//	.list$[LOOK_HAIR] = "0-5,9,12-18,20-23";
+	.list$[LOOK_HAIR] = "0-"+ getbattleflag("max_hair_style");
+	.list$[LOOK_HAIR_COLOR] = "0-"+ getbattleflag("max_hair_color");
+	.list$[LOOK_CLOTHES_COLOR] = "0-"+ getbattleflag("max_cloth_color");
+
+	.list$[Job_Summoner + LOOK_HAIR] = "0-"+ getbattleflag("max_hair_style");
+	.list$[Job_Summoner + LOOK_HAIR_COLOR] = "0-"+ getbattleflag("max_hair_color");
+	.list$[Job_Summoner + LOOK_CLOTHES_COLOR] = "0-"+ getbattleflag("max_cloth_color");
+//	.list$[Job_Summoner + LOOK_CLOTHES_COLOR] = "0-1";
+
+	freeloop true;
+	setarray .look[0], LOOK_HAIR, LOOK_HAIR_COLOR, LOOK_CLOTHES_COLOR,
+		Job_Summoner + LOOK_HAIR, Job_Summoner + LOOK_HAIR_COLOR, Job_Summoner + LOOK_CLOTHES_COLOR;
+	for (.@i = 0; .@i < 6; ++.@i) {
+		deletearray .@array$;
+		.@index = 0;
+		.@size = explode(.@array$, .list$[.look[.@i]], ",");
+		for (.@j = 0; .@j < .@size; ++.@j) {
+			if (compare(.@array$[.@j], "-")) {
+				explode(.@range$, .@array$[.@j], "-");
+				.@min = atoi(.@range$[0]);
+				.@max = atoi(.@range$[1]);
+				.@range = .@max - .@min +1;
+				for (.@k = 0; .@k < .@range; ++.@k)
+					setd sprintf(".list%d[%d]", .look[.@i], .@index++), .@min + .@k;
+			}
+			else
+				setd sprintf(".list%d[%d]", .look[.@i], .@index++), atoi(.@array$[.@j]);
+		}
+		.maxindex[.look[.@i]] = .@index -1;
+		.maxstyles[.look[.@i]] = getd(sprintf(".list%d[%d]", .look[.@i], .@index -1));
+	}
+	end;
+}

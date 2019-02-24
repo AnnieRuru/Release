@@ -1,0 +1,183 @@
+ src/map/map.c |  2 ++
+ src/map/map.h |  3 +++
+ src/map/npc.c | 52 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ src/map/pc.c  | 48 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 105 insertions(+)
+
+diff --git a/src/map/map.c b/src/map/map.c
+index 0c8c2d9..037c165 100644
+--- a/src/map/map.c
++++ b/src/map/map.c
+@@ -3176,6 +3176,8 @@ void map_flags_init(void) {
+ 		map->list[i].nocommand = 0;   // nocommand mapflag level
+ 		map->list[i].bexp      = 100; // per map base exp multiplicator
+ 		map->list[i].jexp      = 100; // per map job exp multiplicator
++		for ( v = 0; v < MAX_RESTRICTED_LIST; v++ )
++			 map->list[i].noitemlist[v] = -1;
+ 		if( map->list[i].drop_list != NULL )
+ 			aFree(map->list[i].drop_list);
+ 		map->list[i].drop_list = NULL;
+diff --git a/src/map/map.h b/src/map/map.h
+index dba565c..4d8365b 100644
+--- a/src/map/map.h
++++ b/src/map/map.h
+@@ -39,6 +39,7 @@ enum E_MAPSERVER_ST {
+ #define MAX_IGNORE_LIST 20 // official is 14
+ #define MAX_VENDING 12
+ #define MAX_MAP_SIZE (512*512) // Wasn't there something like this already? Can't find it.. [Shinryo]
++#define MAX_RESTRICTED_LIST 50 // use in noitem mapflag
+ 
+ #define BLOCK_SIZE 8
+ #define block_free_max 1048576
+@@ -647,6 +648,7 @@ struct map_data {
+ 		unsigned noknockback : 1;
+ 		unsigned notomb : 1;
+ 		unsigned nocashshop : 1;
++		unsigned noitem	: 1;
+ 	} flag;
+ 	struct point save;
+ 	struct npc_data *npc[MAX_NPC_PER_MAP];
+@@ -658,6 +660,7 @@ struct map_data {
+ 	int jexp;	// map experience multiplicator
+ 	int bexp;	// map experience multiplicator
+ 	int nocommand; //Blocks @/# commands for non-gms. [Skotlex]
++	int noitemlist[MAX_RESTRICTED_LIST];
+ 	/**
+ 	* Ice wall reference counter for bugreport:3574
+ 	* - since there are a thousand mobs out there in a lot of maps checking on,
+diff --git a/src/map/npc.c b/src/map/npc.c
+index f1c6f4f..9f85d1b 100644
+--- a/src/map/npc.c
++++ b/src/map/npc.c
+@@ -4003,6 +4003,58 @@ const char* npc_parse_mapflag(char* w1, char* w2, char* w3, char* w4, const char
+ 		map->list[m].flag.src4instance = (state) ? 1 : 0;
+ 	} else if ( !strcmpi(w3,"nocashshop") ) {
+ 		map->list[m].flag.nocashshop = (state) ? 1 : 0;
++	} else if (!strcmpi(w3,"noitem")) {
++		int id = 0, i = 0, j = 0, k = 0, l = strlen(w4);
++		char *temp = (char*)aMalloc( strlen(w4) +1 );
++		struct item_data *i_data;
++		if ( l ) {
++			while ( i <= l && k < MAX_RESTRICTED_LIST ) {
++				if ( w4[i] != ' ' && w4[i] != '	' && w4[i] != ',' && w4[i] != '\0' ) {
++					temp[j++] = w4[i];
++				}
++				else if ( w4[i-1] != ' ' && w4[i-1] != '	' && w4[i-1] != ',' ) {
++					temp[j] = '\0';
++					if ( !strcmp( temp, "IT_HEALING" ) || !strcmp( temp, "0" ) )
++						map->list[m].noitemlist[k] = 0;
++					else if ( !strcmp( temp, "IT_USABLE" ) || !strcmp( temp, "2" ) )
++						map->list[m].noitemlist[k] = 2;
++					else if ( !strcmp( temp, "IT_WEAPON" ) || !strcmp( temp, "4" ) )
++						map->list[m].noitemlist[k] = 4;
++					else if ( !strcmp( temp, "IT_ARMOR" ) || !strcmp( temp, "5" ) )
++						map->list[m].noitemlist[k] = 5;
++					else if ( !strcmp( temp, "IT_CARD" ) || !strcmp( temp, "6" ) )
++						map->list[m].noitemlist[k] = 6;
++					else if ( !strcmp( temp, "IT_DELAYCONSUME" ) || !strcmp( temp, "11" ) )
++						map->list[m].noitemlist[k] = 11;
++					else if ( !strcmp( temp, "IT_CASH" ) || !strcmp( temp, "18" ) )
++						map->list[m].noitemlist[k] = 18;
++					else if ( atoi(temp) == 0 ) {
++						i_data = itemdb->search_name( temp );
++						if ( i_data )
++							map->list[m].noitemlist[k] = i_data->nameid;
++						else {
++							ShowWarning("npc_parse_mapflag: Item name \"%s\" does not exist.\n    Mapflag noitem: At %s (file '%s', line '%d').\n", temp, map->list[m].name, filepath, strline(buffer,start-buffer) );
++							map->list[m].noitemlist[k] = -1;
++						}
++					}
++					else {
++						id = atoi(temp);
++						if ( itemdb->exists(id) )
++							map->list[m].noitemlist[k] = id;
++						else {
++							ShowWarning("npc_parse_mapflag: Item ID \"%s\" does not exist.\n    Mapflag noitem: At %s (file '%s', line '%d').\n", temp, map->list[m].name, filepath, strline(buffer,start-buffer) );
++							map->list[m].noitemlist[k] = -1;
++						}
++					}
++					k++;
++					j = 0;
++				}
++				i++;
++			}
++			map->list[m].flag.noitem = state;
++		}
++		else
++			ShowWarning("npc_parse_mapflag: no Item ID/type input.\n           Mapflag noitem: At %s (file '%s', line '%d').\n", map->list[m].name, filepath, strline(buffer,start-buffer));
+ 	} else {
+ 		ShowError("npc_parse_mapflag: unrecognized mapflag '%s' in file '%s', line '%d'.\n", w3, filepath, strline(buffer,start-buffer));
+ 		if (retval) *retval = EXIT_FAILURE;
+diff --git a/src/map/pc.c b/src/map/pc.c
+index 2372d31..649adfd 100644
+--- a/src/map/pc.c
++++ b/src/map/pc.c
+@@ -961,6 +961,23 @@ int pc_isequip(struct map_session_data *sd,int n)
+ 		}
+ 	}
+ 
++	if ( map->list[sd->bl.m].flag.noitem ) {
++		int i, slot;
++		ARR_FIND( 0, MAX_RESTRICTED_LIST, i, item->nameid == map->list[sd->bl.m].noitemlist[i] || item->type == map->list[sd->bl.m].noitemlist[i] );
++		if ( i < MAX_RESTRICTED_LIST )
++			return 0;
++		if ( !itemdb_isspecial( sd->status.inventory[n].card[0] ) ) {
++			for ( slot = 0; slot < MAX_SLOTS; slot++ ) {
++				if ( sd->status.inventory[n].card[slot] ) {
++					struct item_data *i_data = itemdb->exists( sd->status.inventory[n].card[slot] );
++					ARR_FIND( 0, MAX_RESTRICTED_LIST, i, i_data->nameid == map->list[sd->bl.m].noitemlist[i] || i_data->type == map->list[sd->bl.m].noitemlist[i] );
++					if ( i < MAX_RESTRICTED_LIST )
++						return 0;
++				}
++			}
++		}
++	}
++
+ 	return 1;
+ }
+ 
+@@ -4386,6 +4403,13 @@ int pc_isUseitem(struct map_session_data *sd,int n)
+ 		return 0;
+ 	}
+ 
++	if ( map->list[sd->bl.m].flag.noitem ) {
++		int i;
++		ARR_FIND( 0, MAX_RESTRICTED_LIST, i, map->list[sd->bl.m].noitemlist[i] == nameid || item->type == map->list[sd->bl.m].noitemlist[i] );
++		if( i < MAX_RESTRICTED_LIST )
++			return 0;
++	}
++
+ 	return 1;
+ }
+ 
+@@ -9261,6 +9285,30 @@ int pc_checkitem(struct map_session_data *sd)
+ 			}
+ 		}
+ 
++		if ( map->list[sd->bl.m].flag.noitem ) {
++			int j, slot;
++			struct item_data *i_data = itemdb->exists( sd->status.inventory[i].nameid );
++			ARR_FIND( 0, MAX_RESTRICTED_LIST, j, map->list[sd->bl.m].noitemlist[j] == i_data->type || map->list[sd->bl.m].noitemlist[j] == sd->status.inventory[i].nameid );
++			if ( j < MAX_RESTRICTED_LIST ) {
++				pc_unequipitem(sd, i, 2);
++				calc_flag = 1;
++				continue;
++			}
++			if ( !itemdb_isspecial( sd->status.inventory[i].card[0] ) ) {
++				for ( slot = 0; slot < MAX_SLOTS; slot++ ) {
++					if ( sd->status.inventory[i].card[slot] ) {
++						struct item_data *i_datac = itemdb->exists( sd->status.inventory[i].card[slot] );
++						ARR_FIND( 0, MAX_RESTRICTED_LIST, j, map->list[sd->bl.m].noitemlist[j] == i_datac->type || map->list[sd->bl.m].noitemlist[j] == sd->status.inventory[i].card[slot] );
++						if ( j < MAX_RESTRICTED_LIST ) {
++							pc_unequipitem(sd, i, 2);
++							calc_flag = 1;
++							break;
++						}
++					}
++				}
++			}
++		}
++
+ 	}
+ 
+ 	if( calc_flag && sd->state.active ) {

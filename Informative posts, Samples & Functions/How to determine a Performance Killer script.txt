@@ -1,0 +1,139 @@
+// ===== Topic =====
+// https://rathena.org/board/topic/91741-checking-script/
+// =================
+
+you have to do this manually though
+
+CODE
+prontera,155,185,3	script	kdfhksjfhs	100,{
+	.@time = gettimetick(0);
+	for ( .@i = 0; .@i < 1000; .@i++ )
+		dispbottom "test"+ .@i;
+	debugmes "this script use "+ ( gettimetick(0) - .@time ) +" mili-seconds to run";
+	end;
+}
+END CODE
+
+[Debug]: script debug : 2000000 110000159 : this script use 15 mili-seconds to run
+
+1st thing that you need to have in mind is that
+
+QUOTE <ultramage>
+    The npc will execute on the first player until it arrives in a "waiting for input" or "end" state, like hitting a next; label. Then it'll switch.
+    Until then, all CPU power is dedicated to executing the script (this is why you shouldn't make long-running scripts, it'll lag players).
+    This also means no milisecond-like race conditions can happen (but you can still get bad results if you don't plan your next;s properly).
+END QUOTE
+
+QUOTE <Ai4rei>
+	When there is no *sleep, *sleep2, *next, *close2, *input, *select, *prompt, *menu or any other script command, that pauses the script,
+	between *getpartymember and *copyarray, the operation is atomic and no cross-script exploits can occur,
+	as there is always only one script running at the same time.
+END QUOTE
+
+when a server runs a script, all CPU power is dedicated to execute the script
+
+I can think of several ways to slow down script execution time
+no. 1, when you see the script commands in script.c,
+anything that has clif*, sending packets to client, that definitely slow down the time
+no. 2 ... query_sql ... this one I no need explain because if you ask this question, you sure know what it can do
+
+actually, in fact I made an unfinished guide pinned at eathena forum
+https://www.eathena.ws/board/index.php?s=&showtopic=181741&view=findpost&p=1478950
+
+over there,
+no.1 method is trying to simulate a permanent server array to store player data ... >> NOTE: Ind has upgraded our script engine, this info is outdated
+no.2 is using *freeloop wrongly
+no.3 is runs a *query_sql that takes > 5 seconds to execute
+<-- yeah I think I never say that in that topic, so I tell here
+in my test server, whenever a query_sql runs more than 5 seconds, map_server.exe hang
+
+I have 3 experiences that query_sql can kill a server
+
+no.1 is joshuali eamyadmin, trying to delete old account from a live server
+	>> NOTE: link -> https://www.eathena.ws/board/index.php?showtopic=120654&st=120&p=834547&#entry834547
+	Quote <Pinky>
+		Ok i tested the account deletion thing, and it still froze my whole sql server XD so many progress bars... @_@ 
+	END QUOTE
+	>> you can find this script at 'AnnieRuru Release > old rubbish' folder
+
+no.2 is my old character logging system ... dunno why he said it caused lag
+	>> NOTE: link -> https://www.eathena.ws/board/index.php?showtopic=239535&st=0&p=1308936&#entry1308936
+	>> you can find this script at 'AnniRuru Release > old rubbish > statistic script' folder
+
+no.3 is run a query_sql "insert into ... select" to gives every player an item .. in a large table his server used 13 seconds
+	>> NOTE: link -> https://www.eathena.ws/board/index.php?showtopic=239222
+	CODE
+		Inserted rows: 7738
+		Inserted row id: 8244859 (Query took 13.6253 sec)
+		SQL query:
+			INSERT INTO `storage` ( account_id, nameid, amount, identify )
+			SELECT account_id, '22574', '1', '1'
+			FROM login
+			WHERE date( lastlogin ) >= '2010-01-01' && account_id !=1;
+	END CODE
+
+that's why we always suggest to shut down your server and in order to execute a long Sql query
+partly because of this reason
+
+
+I think there's also a topic in the past
+https://www.eathena.ws/board/index.php?showtopic=237976
+
+===============================================================================================
+
+@-SkittleNugget-
+
+I have tested that, setting too many variables will not hurt the server at all
+because every variables are being store in RAM
+it updates is interval
+
+
+this one store character data
+
+CODE <hercules\conf\map_athena.conf>
+	// Database autosave time
+	// All characters are saved on this time in seconds (example:
+	// autosave of 60 secs with 60 characters online -> one char is saved every
+	// second)
+	autosave_time: 300
+
+	// Min database save intervals (in ms)
+	// Prevent saving characters faster than at this rate (prevents char-server
+	// save-load getting too high as character-count increases)
+	minsave_time: 100
+
+	// Apart from the autosave_time, players will also get saved when involved
+	// in the following (add as needed):
+	// 1: After every successful trade
+	// 2: After every vending transaction
+	// 4: After closing storage/guild storage.
+	// 8: After hatching/returning to egg a pet.
+	// 16: After successfully sending a mail with attachment
+	// 32: After successfully submitting an item for auction
+	// 64: After successfully get/delete/complete a quest
+	// 128: After every buying store transaction
+	// 256: After every bank transaction (deposit/withdraw)
+	// NOTE: These settings decrease the chance of dupes/lost items when there's a
+	// server crash at the expense of increasing the map/char server lag. If your
+	// server rarely crashes, but experiences interserver lag, you may want to set
+	// these off.
+	save_settings: 511
+END CODE
+
+and this one store permanent server variable -> $var
+
+CODE <hercules\conf\char_athena.conf>
+    // How often should the server save guild infos? (In seconds)
+    // (character save interval is defined on the map config (autosave_time))
+    autosave_time: 60
+END CODE
+
+
+you can manually adjust them
+
+btw remember that we already have 'check_goto_count' to prevent infinite loop
+so unless the script has *freeloop or *query_sql, I don't think that's enough to kill a server 
+
+CODE <hercules\conf\script.conf>
+	check_gotocount: 2048
+END CODE

@@ -1,0 +1,385 @@
+//===== eAthena Script =======================================
+//= Sample Quest Log
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: ===================================== 
+//= eAthena
+//===== Description: =========================================
+//= Demonstrate Quest Log System
+//= 1. just talk to npc A->B->C, demonstrate *checkquest
+//= 2. countitem quest, just *checkitem, but note the client side description
+//= 3. kill monster quest, demonstrate how to use *checkquest( x, HUNTING )
+//= 4. time limit quest, demonstrate how to use *checkquest( x, PLAYTIME  )
+//===== Topic ================================================
+//= http://herc.ws/board/topic/7218-sample-questlog-script/
+//===== Additional Comments: =================================  
+//= 
+//============================================================
+
+/* client\data\questid2display.txt
+100100#acolyte trouble#SG_FEEL#QUE_NOIMAGE#
+Help out the acolyte in the church#
+Talk to the acolyte in the church#
+
+100101#acolyte trouble#SG_FEEL#QUE_NOIMAGE#
+Help out the acolyte in the church#
+Journey to Izlude town and talk to acolyte's mother#
+
+100102#acolyte trouble#SG_FEEL#QUE_NOIMAGE#
+Help out the acolyte in the church#
+Go back to Prontera Church and hand over the letter to the acolyte#
+
+100103#acolyte trouble#SG_FEEL#QUE_NOIMAGE#
+Help out the acolyte in the church#
+Submit the quest to Tavern Master#
+
+100104#gemstone shortage#SG_FEEL#QUE_NOIMAGE#
+Help refill the gem stones in town#
+Talk to gemstone seller#
+
+100105#gemstone shortage#SG_FEEL#QUE_NOIMAGE#
+Help refill the gem stones in town#
+collect 10 yellow gemstones, 10 blue gemstones, 10 red gemstones and bring them to gem seller#
+
+100106#gemstone shortage#SG_FEEL#QUE_NOIMAGE#
+Help refill the gem stones in town#
+Submit the quest to Tavern Master#
+
+100107#poring problem#SG_FEEL#QUE_NOIMAGE#
+Poring has invaded Prontera town last night, help out the town by killing porings outside the town#
+Talk to the guard#
+
+100108#poring problem#SG_FEEL#QUE_NOIMAGE#
+Poring has invaded Prontera town last night, help out the town by killing porings outside the town#
+kill 10 porings, and talk to the guard#
+
+100109#poring problem#SG_FEEL#QUE_NOIMAGE#
+Poring has invaded Prontera town last night, help out the town by killing porings outside the town#
+Submit the quest to Tavern Master#
+
+100110#hand over the artifact#SG_FEEL#QUE_NOIMAGE#
+There is a rare artifact in the town kept by artifact collecter. Hand over the artifact to Tavern Master#
+Talk to artifact collecter#
+
+100111#hand over the artifact#SG_FEEL#QUE_NOIMAGE#
+There is a rare artifact in the town kept by artifact collecter. Hand over the artifact to Tavern Master#
+Talk to assistant FAST! Time is running out!#
+
+100112#hand over the artifact#SG_FEEL#QUE_NOIMAGE#
+There is a rare artifact in the town kept by artifact collecter. Hand over the artifact to Tavern Master#
+Talk to artifact collecter#
+
+100113#hand over the artifact#SG_FEEL#QUE_NOIMAGE#
+There is a rare artifact in the town kept by artifact collecter. Hand over the artifact to Tavern Master#
+Submit the quest to Tavern Master#
+*/
+
+/* eathena\db\quest_db.txt
+100100,0,0,0,0,0,0,0,"acolyte trouble"
+100101,0,0,0,0,0,0,0,"acolyte trouble"
+100102,0,0,0,0,0,0,0,"acolyte trouble"
+100103,0,0,0,0,0,0,0,"acolyte trouble"
+
+100104,0,0,0,0,0,0,0,"gemstone shortage"
+100105,0,0,0,0,0,0,0,"gemstone shortage"
+100106,0,0,0,0,0,0,0,"gemstone shortage"
+
+100107,0,0,0,0,0,0,0,"poring problem"
+100108,0,1002,10,0,0,0,0,"poring problem 1"
+100109,0,0,0,0,0,0,0,"poring problem"
+
+100110,0,0,0,0,0,0,0,"hand over the artifact"
+100111,15,0,0,0,0,0,0,"hand over the artifact"
+100112,0,0,0,0,0,0,0,"hand over the artifact"
+100113,0,0,0,0,0,0,0,"hand over the artifact"
+*/
+
+/*
+mission 1 - acolyte trouble
+100100 - from tavern, talk to acolyte
+100101 - from acolyte, talk to npc in izlude
+100102 - from izlude, talk to acolyte
+100103 - from acolyte, submit to tavern
+
+mission 2 - gemstone stortage
+100104 - from tavern, talk to gem seller
+100105 - from gem seller, collect 10 yellow/blue/red gemstone
+100106 - from gem seller, submit to tavern
+
+mission 3 - poring problem
+100107 - from tavern, talk to guard
+100108 - from guard, kill 10 poring
+100109 - after kill poring and talked to guard, submit to tavern
+
+mission 4 - hand over the artifact
+100110 - from tavern, talk to artifact collecter
+100111 - from artifact collecter, talk to assistant within 20 seconds
+100112 - from assistant, talk to artifact collecter
+100113 - from artifact collecter, submit to tavern
+*/
+
+prontera,153,180,5	script	reset quest(debug)	100,{
+	for ( set .@i, 100100; .@i <= 100113; set .@i, .@i +1 )
+		erasequest .@i;
+}
+prontera,156,180,5	script	Prontera Tavern	100,{
+	mes "take a mission";
+	next;
+	switch ( select ( "acolyte trouble","gemstone shortage","poring problem","hand over the artifact" ) ) {
+		case 1:
+			if ( checkquest(100103) == 2 ) {
+				mes "you already completed this mission";
+				close;
+			}
+			else if ( checkquest(100103) == 1 ) {
+				mes "you complete this mission!";
+				dispbottom "mission 1 pass";
+				completequest 100103;
+				showevent 0,0;
+				close;
+			}
+			else if ( checkquest(100100) == 1 || checkquest(100101) == 1 || checkquest(100102) == 1 ) {
+				mes "you still on the mission";
+				close;
+			}
+			mes "all right, talk to the acolyte from the church.";
+			setquest 100100;
+			close;
+		case 2:
+			if ( checkquest(100106) == 2 ) {
+				mes "you already completed this mission";
+				close;
+			}
+			else if ( checkquest(100106) == 1 ) {
+				mes "you complete this mission!";
+				dispbottom "mission 2 pass";
+				completequest 100106;
+				showevent 0,0;
+				close;
+			}
+			else if ( checkquest(100104) == 1 || checkquest(100105) == 1 ) {
+				mes "you still on the mission";
+				close;
+			}
+			mes "all right, talk to the gem seller.";
+			setquest 100104;
+			close2;
+			doevent "gemstone seller::Onshowevent";
+			end;
+		case 3:
+			if ( checkquest(100109) == 2 ) {
+				mes "you already completed this mission";
+				close;
+			}
+			else if ( checkquest(100109) == 1 ) {
+				mes "you complete this mission!";
+				dispbottom "mission 3 pass";
+				completequest 100109;
+				showevent 0,0;
+				close;
+			}
+			else if ( checkquest(100107) == 1 || checkquest(100108) == 1 ) {
+				mes "you still on the mission";
+				close;
+			}
+			mes "all right, talk to the guard.";
+			setquest 100107;
+			close2;
+			doevent "Guard::Onshowevent";
+			end;
+		case 4:
+			if ( checkquest(100113) == 2 ) {
+				mes "you already completed this mission";
+				close;
+			}
+			else if ( checkquest(100113) == 1 ) {
+				mes "you complete this mission!";
+				dispbottom "mission 4 pass";
+				completequest 100113;
+				showevent 0,0;
+				close;
+			}
+			else if ( checkquest(100110) == 1 || checkquest(100111) == 1 || checkquest(100112) == 1 ) {
+				mes "you still on the mission";
+				close;
+			}
+			mes "all right, talk to the artifact collecter.";
+			setquest 100110;
+			close2;
+			doevent "artifact collecter::Onshowevent";
+			end;
+		}
+	end;
+Onshowevent:
+	showevent 2,0;
+	end;
+}
+
+prt_church,102,77,3	script	acolyte	95,{
+	if ( checkquest(100102) == 1 ) {
+		mes "thx! a letter from my mum!";
+		mes "from now on I'll do my best in training!";
+		changequest 100102,100103;
+		showevent 0,0;
+		close;
+	}
+	else if ( checkquest(100101) == 1 ) {
+		mes "can you please tell my mum how much I miss her?";
+		close;
+	}
+	else if ( checkquest(100100) == 1 ) {
+		mes "I miss my mum day and night ... can you please go to my hometown in izlude and tell her how much I miss her?";
+		changequest 100100,100101;
+		showevent 0,0;
+		close;
+	}
+	mes "I must focus on my training!";
+	close;
+Onshowevent:
+	showevent 2,0;
+	end;
+}
+
+izlude,88,139,5	script	old woman	773,{
+	if ( checkquest(100101) == 1 ) {
+		mes "my child ask you to come? that's great! can you deliver this letter to him now?";
+		changequest 100101,100102;
+		showevent 0,0;
+		close;
+	}
+	mes "I miss my child...";
+	close;
+Onshowevent:
+	showevent 2,0;
+	end;
+}
+
+prontera,248,151,3	script	gemstone seller	58,{
+	if ( checkquest(100105) == 1 ) {
+		if ( countitem(715) >= 10 && countitem(716) >= 10 && countitem(717) >= 10 ) {
+			mes "you got it! now we can replenish our stock!";
+			delitem 715,10;
+			delitem 716,10;
+			delitem 717,10;
+			changequest 100105,100106;
+			showevent 0,0;
+			close2;
+			doevent "Prontera Tavern::Onshowevent";
+			end;
+		}
+		mes "you still haven't gathered enough gemstones?";
+		close;
+	}
+	else if ( checkquest(100104) == 1 ) {
+		mes "yes, our town need more gemstones. Can you help resupply our shortage of gemstones?";
+		changequest 100104,100105;
+		close;
+	}
+	mes "we need more gem stones!";
+	close;
+Onshowevent:
+	showevent 2,0;
+	end;
+}
+prontera,147,28,5	script	Guard	105,{
+	if ( checkquest(100108) == 1 ) {
+		if ( checkquest(100108,HUNTING) == 2 ) {
+			mes "you've kill enough porings! you're our hero";
+			changequest 100108,100109;
+			showevent 0,0;
+			close2;
+			doevent "Prontera Tavern::Onshowevent";
+			end;
+		}
+		mes "you haven't done killing yet";
+		close;
+	}
+	else if ( checkquest(100107) == 1 ) {
+		mes "yesterday night this town was invaded by porings, can you eliminate them?";
+		changequest 100107,100108;
+		close;
+	}
+	mes "hi, welcome to prontera town";
+	close;
+Onshowevent:
+	showevent 2,0;
+	end;
+}
+
+prontera,57,293,5	script	artifact collecter	47,{
+	if ( checkquest(100112) == 1 ) {
+		mes "yes! that's the one! now you can hand it over to tavern master";
+		changequest 100112,100113;
+		showevent 0,0;
+		close2;
+		doevent "Prontera Tavern::Onshowevent";
+		end;
+	}
+	else if ( checkquest(100111) == 1 ) {
+		mes "FAST! she is about to throw it away!";
+		close;
+	}
+	else if ( checkquest(100110) == 1 ) {
+		mes "ahh ... that artifact tavern master requested ... wait! I just asked my assistant to throw it! Faster stop her before its too late";
+		showevent 0,0;
+		dispbottom "you have 15 seconds to retrieve it";
+		close2;
+		changequest 100110,100111;
+		doevent "assistant::Onshowevent";
+		end;
+	}
+	mes "today a sunny day....";
+	close;
+Onshowevent:
+	showevent 2,0;
+	end;
+}
+prontera,31,158,5	script	assistant	66,{
+	if ( checkquest(100111) == 1 ) {
+		if ( checkquest(100111,PLAYTIME) == 2 ) {
+			mes "oh no, the rubbish truck just send them away ...";
+			dispbottom "you failed the quest";
+			erasequest 100111;
+			showevent 0,0;
+			close;
+		}
+		mes "you're just in time! here the artifact you requested. But to be sure, double check with my master.";
+		changequest 100111,100112;
+		showevent 0,0;
+		close2;
+		doevent "artifact collecter::Onshowevent";
+		end;
+	}
+	mes "work~ work~ work~";
+	close;
+Onshowevent:
+	showevent 2,0;
+	end;
+}
+
+-	script	show_event	-1,{
+OnPCLoadMapEvent:
+	if ( strcharinfo(3) == "prontera" ) {
+		if ( checkquest(100103) == 1 || checkquest(100106) == 1 || checkquest(100109) == 1 || checkquest(100113) == 1 )
+			addtimer 1,"Prontera Tavern::Onshowevent";
+		if ( checkquest(100104) == 1 || checkquest(100105) == 1 )
+			addtimer 1,"gemstone seller::Onshowevent";
+		if ( checkquest(100107) == 1 || checkquest(100108) == 1 )
+			addtimer 1,"Guard::Onshowevent";
+		if ( checkquest(100110) == 1 || checkquest(100112) == 1 )
+			addtimer 1,"artifact collecter::Onshowevent";
+		if ( checkquest(100111) == 1 )
+			addtimer 1,"assistant::Onshowevent";
+	}
+	else if ( strcharinfo(3) == "prt_church" && ( checkquest(100100) == 1 || checkquest(100102) == 1 ) )
+		addtimer 1,"acolyte::Onshowevent";
+	else if ( strcharinfo(3) == "izlude" && checkquest(100101) == 1 )
+		addtimer 1,"old woman::Onshowevent";
+	end;
+}
+
+prontera	mapflag	loadevent
+prt_church	mapflag	loadevent
+izlude	mapflag	loadevent

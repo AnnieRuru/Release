@@ -1,0 +1,100 @@
+//===== rAthena Script =======================================
+//= searchitem
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.2
+//===== Compatible With: ===================================== 
+//= rAthena 2019-01-20
+//===== Description: ========================================= 
+//= search for an item in the server
+//===== Topic ================================================
+//= solved in discord
+//===== Additional Comments: =================================
+//= optimized, but still missing mail attachment search
+//============================================================
+
+-	script	sfksdf	-1,{
+OnInit:
+	bindatcmd "searchitem", strnpcinfo(0)+"::Onaaa", 99,100; // only Admin(99) can use
+	end;
+Onaaa:
+	mes "[Search Item]\r";
+	mes "input item ID";
+	next;
+	input .@itemid;
+	mes "[Search Item]\r";
+	if ( getiteminfo( .@itemid, 2 ) == -1 ) {
+		mes "There is no such item";
+		close;
+	}
+	.@refine = .@card1 = .@card2 = .@card3 = .@card4 = -1;
+	while ( true ) {
+		mes getitemname(.@itemid);
+		mes "refinement = "+( ( .@refine == -1 )?"^FF0000unknown^000000":.@refine );
+		mes "card no.1 = "+( ( .@card1 == -1 )?"^FF0000unknown^000000":( "^70AC11"+ getitemname(.@card1) +" ^EE8800("+ .@card1 +")^000000" ) );
+		mes "card no.2 = "+( ( .@card2 == -1 )?"^FF0000unknown^000000":( "^70AC11"+ getitemname(.@card2) +" ^EE8800("+ .@card2 +")^000000" ) );
+		mes "card no.3 = "+( ( .@card3 == -1 )?"^FF0000unknown^000000":( "^70AC11"+ getitemname(.@card3) +" ^EE8800("+ .@card3 +")^000000" ) );
+		mes "card no.4 = "+( ( .@card4 == -1 )?"^FF0000unknown^000000":( "^70AC11"+ getitemname(.@card4) +" ^EE8800("+ .@card4 +")^000000" ) );
+		next;
+		switch ( select ( "Start Search", "Input refine", "Input card no.1", "Input card no.2", "Input card no.3", "Input card no.4" ) ) {
+		mes "[Search Item]";
+		case 1:
+			break;
+		case 2:
+			mes "-1 for unsure/unknown";
+			mes "\rInput refinement";
+			next;
+			input .@refine, -1, 100;
+			break;
+		default:
+			.@menu = @menu - 2;
+			mes "\rInput card no."+ .@menu;
+			mes "-1 for unsure/unknown";
+			next;
+			input getd(".@card"+ .@menu +"_"), -1, 2147000000;
+			if ( getiteminfo( getd(".@card"+ .@menu +"_"), 2 ) != IT_CARD && getd(".@card"+ .@menu +"_") != -1 ) {
+				mes "^FF0000Find Lost items^000000";
+				mes "That item is not a card";
+				next;
+			}
+			else
+				setd ".@card"+ .@menu, getd(".@card"+ .@menu +"_");
+		}
+		if ( @menu == 1 )
+			break;
+	}
+	mes "\rselect a category";
+	while ( true ) {
+		next;
+		switch ( select ( "inventory", "cart", "storage", "guild storage" ) ) {
+		mes "^FF0000Find Lost items^000000";
+		case 1:
+			callsub L_SearchItem, "Inventory", "char_id", "inventory", "Char ID", .@itemid, .@refine, .@card1, .@card2, .@card3, .@card4;
+			break;
+		case 2:
+			callsub L_SearchItem, "Cart", "char_id", "cart_inventory", "Char ID", .@itemid, .@refine, .@card1, .@card2, .@card3, .@card4;
+			break;
+		case 3:
+			callsub L_SearchItem, "Storage", "account_id", "storage", "Account ID", .@itemid, .@refine, .@card1, .@card2, .@card3, .@card4;
+			break;
+		case 4:
+			callsub L_SearchItem, "Guild Storage", "guild_id", "guild_storage", "Guild ID", .@itemid, .@refine, .@card1, .@card2, .@card3, .@card4;
+			break;
+		}
+	}
+L_SearchItem:
+	.@nb = query_sql("select "+ getarg(1) +", amount, refine, card0, card1, card2, card3 from "+ getarg(2) +" where nameid = "+ getarg(4) +( ( getarg(5) == -1)?"":" && refine = "+ getarg(5) )+( ( getarg(6) == -1)?"":" && ( card0 = "+ getarg(6) +" || card1 = "+ getarg(6) +" || card2 = "+ getarg(6) +" || card3 = "+ getarg(6) +" )" )+( ( getarg(7) == -1)?"":" && ( card0 = "+ getarg(7) +" || card1 = "+ getarg(7) +" || card2 = "+ getarg(7) +" || card3 = "+ getarg(7) +" )" )+( ( getarg(8) == -1)?"":" && ( card0 = "+ getarg(8) +" || card1 = "+ getarg(8) +" || card2 = "+ getarg(8) +" || card3 = "+ getarg(8) +" )" )+( ( getarg(9) == -1)?"":" && ( card0 = "+ getarg(9) +" || card1 = "+ getarg(9) +" || card2 = "+ getarg(9) +" || card3 = "+ getarg(9) +" )" )+" limit 500", .@id, .@amount, .@refine_, .@card_1, .@card_2, .@card_3, .@card_4);
+	mes "*** "+ getarg(0) +" ***";
+	if ( !.@nb )
+		mes "\r^FF0000No result^000000";
+	else {
+		for ( .@i = 0; .@i < .@nb; ++.@i ) {
+			mes "\r^996600"+ ( .@i +1 ) +" ^000000"+ getarg(3) +" = ^EE8800("+ .@id[.@i] +")";
+			mes "^996600"+ .@amount[.@i] +" ^00AA00"+ getitemname( getarg(4) ) +" "+( (.@refine_[.@i])?"+"+ .@refine_[.@i]:"" )+" ^EE8800("+ getarg(4) +")";
+			for ( .@j = 1; .@j <= 4 && getd(".@card_"+ .@j +"["+ .@i +"]") > 500; ++.@j )
+				mes "^70AC11> "+ getitemname( getd(".@card_"+ .@j +"["+ .@i +"]") ) +" ("+ getd(".@card_"+ .@j +"["+ .@i +"]") +")";
+		}
+	}
+	return;
+}

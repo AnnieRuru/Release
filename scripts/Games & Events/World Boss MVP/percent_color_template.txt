@@ -1,0 +1,205 @@
+//===== Hercules Script =====================================
+//= Percent Color Template
+//===== By: ================================================
+//= AnnieRuru
+//===== Current Version: ===================================
+//= 0.1
+//===== Compatible With: ===================================
+//= Hercules 2018-06-11
+//===== Description: =======================================
+//= Debugging script for making MVP percent color cutin
+//===== Topic ==============================================
+//= <none>
+//===== Additional Comments: ===============================
+//= 
+//==========================================================
+
+prontera,155,185,5	script	percent_color#1	1_F_MARIA,{
+	dispbottom "0", 0xFF0000;
+	dispbottom "3", 0xFF1100;
+	dispbottom "6", 0xFF2200;
+	dispbottom "10", 0xFF3300;
+	dispbottom "13", 0xFF4400;
+	dispbottom "16", 0xFF5500;
+	dispbottom "20", 0xFF6600;
+	dispbottom "23", 0xFF7700;
+	dispbottom "26", 0xFF8800;
+	dispbottom "30", 0xFF9900;
+	dispbottom "33", 0xFFAA00;
+	dispbottom "36", 0xFFBB00;
+	dispbottom "40", 0xFFCC00;
+	dispbottom "43", 0xFFDD00;
+	dispbottom "46", 0xFFEE00;
+	dispbottom "50", 0xFFFF00;
+	dispbottom "53", 0xEEFF00;
+	dispbottom "56", 0xDDFF00;
+	dispbottom "60", 0xCCFF00;
+	dispbottom "63", 0xBBFF00;
+	dispbottom "66", 0xAAFF00;
+	dispbottom "70", 0x99FF00;
+	dispbottom "73", 0x88FF00;
+	dispbottom "76", 0x77FF00;
+	dispbottom "80", 0x66FF00;
+	dispbottom "83", 0x55FF00;
+	dispbottom "86", 0x44FF00;
+	dispbottom "90", 0x33FF00;
+	dispbottom "93", 0x22FF00;
+	dispbottom "96", 0x11FF00;
+	dispbottom "100", 0x00FF00;
+	end;
+}
+
+prontera,158,185,5	script	percent_color#2	1_F_MARIA,{
+	for ( .@i = 0; .@i < 0xFF; ++.@i )
+		dispbottom .@c++ +"", (0xFF << 16) + (.@i << 8);
+	for ( .@i = 0xFF; .@i >= 0; --.@i )
+		dispbottom .@c++ +"", (.@i << 16) + (0xFF << 8);
+	end;
+}
+
+prontera,161,185,5	script	percent_color#3	1_F_MARIA,{
+	for ( .@i = 0; .@i < 0xFF; ++.@i ) {
+		if ( !(.@c % 5) ) {
+			.@colorcode = (0xFF << 16) + (.@i << 8);
+			dispbottom "["+ .@c +"/510] -> "+ sprintf( "0x%06X", .@colorcode ) +"[255,"+ .@i +",0]", .@colorcode;
+		}
+		++.@c;;
+	}
+	for ( .@i = 0xFF; .@i >= 0; --.@i ) {
+		if ( !(.@c % 5) ) {
+			.@colorcode = (.@i << 16) + (0xFF << 8);
+			dispbottom "["+ .@c +"/510] -> "+ sprintf( "0x%06X", .@colorcode ) +"["+ .@i +",255,0]", .@colorcode;
+		}
+		++.@c;
+	}
+	end;
+}
+
+-	script	percent_color	FAKE_NPC,{
+OnInit:
+	for ( .@i = 0; .@i < 0xFF; ++.@i )
+		$@percent_color[.@c++] = (0xFF << 16) + (.@i << 8);
+	for ( .@i = 0xFF; .@i >= 0; --.@i )
+		$@percent_color[.@c++] = (.@i << 16) + (0xFF << 8);
+	end;
+}
+
+prontera,164,185,5	script	percent_color#4	1_F_MARIA,{
+	if ( mobcount( strcharinfo(PC_MAP), strnpcinfo(NPC_NAME)+"::OnDown" ) )
+		end;
+	.mobid = monster( "this", -1,-1, "--ja--", BARRICADE_, 1, strnpcinfo(NPC_NAME)+"::OnDown" );
+	getmapxy .@mob_map$, .@mob_x, .@mob_y, UNITTYPE_MOB, .mobid;
+	while(.mobid) {
+		.@percent = getunitdata(.mobid, UDT_HP) * 100 / getunitdata(.mobid, UDT_MAXHP);
+		.@color = getunitdata(.mobid, UDT_HP) * 510 / getunitdata(.mobid, UDT_MAXHP);
+		areaannounce .@mob_map$, .@mob_x - .area, .@mob_y - .area, .@mob_x + .area, .@mob_y + .area, "Barricade "+ .@percent +"%", bc_self, $@percent_color[.@color];
+		cutin "MVP_Hpbar_"+ .@percent, 1;
+		viewpoint 0, .@mob_x, .@mob_y, 1, $@percent_color[.@color];
+		sleep2 3000;
+	}
+	viewpoint 2, .@mob_x, .@mob_y, 1, $@percent_color[.@color];
+	cutin "", 255;
+	end;
+OnDown:
+	.mobid = 0;
+	end;
+OnInit:
+	.area = getbattleflag( "area_size" );
+	end;
+}
+guild_vs2,49,49,5	duplicate(percent_color#4)	percent_color#5	1_F_MARIA
+
+prontera,155,182,5	script	debug_color	1_F_MARIA,{
+	.@s = 0;
+	.@e = 100;
+	for ( .@i = .@e; .@i >= .@s; --.@i )
+		if ( .@i > 50 )
+			dispbottom .@i +". Red ->"+( (.@e - .@i +1) *5 )+" Pixel ->"+( .@i *9 +5 )+" start to paint Magenta.";
+		else
+			dispbottom .@i +". Green ->"+( (.@i +1) *5 )+" Pixel ->"+( .@i *9 +5 )+" start to paint Magenta.";
+	while (true) {
+		for ( .@i = .@s; .@i <= .@e; ++.@i ) {
+			cutin "MVP_Hpbar_"+ .@i, 1;
+			sleep2 250;
+		}
+	}
+	end;
+OnInit:
+	if ( !attachrid(2000000) )
+		end;
+	cutin "", 255;
+	end;
+}
+
+prontera,158,182,5	script	debug_color#1	1_F_MARIA,{
+	--@mvp_hpbar;
+	if ( @mvp_hpbar < 0 )
+		@mvp_hpbar = 100;
+	cutin "MVP_Hpbar_"+ @mvp_hpbar, 1;
+	end;
+}
+
+
+prontera,161,182,5	script	debug_color#2	1_F_MARIA,{
+	++@mvp_hpbar;
+	if ( @mvp_hpbar > 100 )
+		@mvp_hpbar = 0;
+	cutin "MVP_Hpbar_"+ @mvp_hpbar, 1;
+	end;
+}
+
+
+prontera,155,179,5	script	kjhksjdfs	1_F_MARIA,{
+	if ( mobcount( strcharinfo(PC_MAP), strnpcinfo(NPC_NAME)+"::OnDown" ) )
+		end;
+	goto L_SpawnMob;
+OnInit:
+	getmapxy .map$, .x, .y, UNITTYPE_NPC;
+	.area = getbattleflag( "area_size" );
+L_SpawnMob:
+	.qid = queue();
+	queueopt .qid, QUEUEOPT_LOGOUT, strnpcinfo(NPC_NAME)+"::OnQuit";
+	queueopt .qid, QUEUEOPT_MAPCHANGE, strnpcinfo(NPC_NAME)+"::OnMapChange";
+	.mobid = monster( .map$, .x +3, .y, "--ja--", BARRICADE_, 1, strnpcinfo(NPC_NAME)+"::OnDown" );
+//	setunitdata .mobid, UDT_HP, 10;
+	while(.mobid) {
+		.@disp = getunitdata(.mobid, UDT_HP) * 100 / getunitdata(.mobid, UDT_MAXHP);
+		getmapxy .@mob_map$, .@mob_x, .@mob_y, UNITTYPE_MOB, .mobid;
+		.@c = getunits( BL_PC, .@aid, false, .@mob_map$, .@mob_x - .area, .@mob_y - .area, .@mob_x + .area, .@mob_y + .area );
+		for ( .@i = 0; .@i < .@c; ++.@i )
+			queueadd .qid, .@aid[.@i];
+		.@iter = queueiterator(.qid);
+		while( .@aid = qiget(.@iter) ) {
+			attachrid .@aid;
+			getmapxy .@map$, .@x, .@y, UNITTYPE_PC;
+			if ( distance( .@x, .@y, .@mob_x, .@mob_y ) > .area ) {
+				queueremove .qid, getcharid(CHAR_ID_ACCOUNT);
+				cutin "", 255;
+				@mvp_hpbar_percent = 0;
+			}
+			else if ( @mvp_hpbar_percent != .@disp ) {
+				cutin "MVP_Hpbar_"+ .@disp, 1;
+				@mvp_hpbar_percent = .@disp;
+			}
+		}
+		qiclear .@it;
+		sleep 250;
+	}
+	end;
+OnDown:
+	.mobid = 0;
+	.@iter = queueiterator(.qid);
+	while( .@aid = qiget(.@iter) ) {
+		attachrid .@aid;
+		cutin "", 255;
+		@mvp_hpbar_percent = 0;
+	}
+	qiclear .@it;
+	queuedel .qid;
+	end;
+OnQuit:
+OnMapChange:
+	cutin "", 255;
+	queueremove .qid, getcharid(CHAR_ID_ACCOUNT);
+	end;
+}

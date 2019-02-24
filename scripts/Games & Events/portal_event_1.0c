@@ -1,0 +1,549 @@
+//	....... if your server has { Overwriting user function [rand__] } please be happy .......... :D
+function	script	rand__	{
+	.@range = getarg(0);
+	.@count = getarg(2, 0);
+	.@count = ( .@count == 0 || .@count > .@range )? .@range : ( .@count > 128 )? 128 : .@count;
+	while ( .@i < .@count ) {
+		.@r = .@save = rand( .@i, .@range -1 ) ;
+		if ( getd(".@tmp1_"+ .@i ) == 0 ) {
+			.@r = ( getd(".@tmp1_"+ .@r ) )? getd( ".@tmp2_"+ .@r ) : .@r;
+			setd ".@tmp2_"+ .@i, .@r;
+			setd ".@tmp2_"+ .@save , .@i;
+			setd ".@tmp1_"+ .@save , 1;
+			set getelementofarray( getarg(1), .@i ), .@r;
+			if ( .@save < .@count )
+				set getelementofarray( getarg(1), .@save ), .@i;
+		}
+		.@i++;
+	}
+	return .@count;
+}
+	
+
+//===== eAthena Script ============================================
+//= Portal Event
+//===== By: =======================================================
+//= ~AnnieRuru~
+//===== Current Version: ==========================================
+//= 1.0c
+//===== Compatible With: ==========================================
+//= rAthena 17092 SQL
+//===== Description: ==============================================
+//= keep guessing the correct portals to win
+//===== Topic =====================================================
+//= http://www.eathena.ws/board/index.php?showtopic=77115
+//===== Additional Comments: ======================================
+//= Izlude -> Alberta -> Morocc -> Payon -> Prontera
+//= pvp_y_8-2 -> pvp_y_8-4 -> pvp_y_8-5 -> pvp_y_8-3 -> pvp_y_8-1
+//=================================================================
+
+
+//	========= Edit the Location of Starting Portal ======= Don't change the name !!! ===============
+prontera,161,184,5	script	starting_portal_event	45,2,2,{
+	for ( set .@i, 0; .@i < getarraysize( getvariableofnpc( .winnerid, "portal_event" ) ); set .@i, .@i +1 ) {
+		if ( getvariableofnpc( .winnerid[.@i], "portal_event" ) == getcharid(3) ) {
+			dispbottom "Portal Event : You have completed this round, please try again next time.";
+			end;
+		}
+	}
+	warp "pvp_y_8-2", 128,110;
+	end;
+}
+
+-	script	portal_event_timer	-1,{
+
+//	how long the event will last
+OnTimer2400000: // 40 minutes
+	donpcevent "::OnPortalEvent_Reset";
+	end;
+
+//	set the time to start automatically
+OnMinute00: // every hour
+	donpcevent "portal_event::Onstart";
+	end;
+
+}
+
+-	script	portal_event	-1,{
+	end;
+
+OnInit:
+	set .@n, strnpcinfo(1);
+	if ( .@n == 0 ) {
+
+//	==============================================
+//	==== Global settings =========================
+
+	// set the total rounds for this event
+	// if your server has too few players and wanna end this event fast, make it fewer rounds
+	// if your server has too many coorperative players and they end the event too soon, make it more rounds
+	// min - 3, max - 5
+	set .maxround, 5;
+
+	// set the minimum GM level to allow start/end the event manually
+	// to start, say "start" or "on"
+	// to end, say "end" or "off"
+	set .mingmlevel, 60;
+
+	// set the minimum GM level to get the answer/debug for this event
+	// to prevent some noobie event GM login normal account to cheat the answer
+	// to get the answer, say "debug" or "answer"
+	set .mingm_ans, 90;
+
+	// how many winner for this event
+	set .winner_amount, 3;
+
+	// when event ends, all the players still inside the map need to warp to starting town. Note: "SavePoint" do not work
+	setarray .event_end_warp$, "prontera",155,184;
+
+//	==== Global setting end =======================
+//	===============================================
+
+		disablenpc "starting_portal_event";
+		if ( .maxround < 3 ) set .maxround, 3;
+		if ( .maxround > 5 ) set .maxround, 5;
+		end;
+	}
+	disablenpc strnpcinfo(0);
+	end;
+
+L_prize:
+
+//	===============================================
+//	==== Configure how the prize give out =========
+
+	// 1. normal method
+	//	announce strcharinfo(0) +" has finish the Portal Event !", bc_all | bc_blue;
+	//	getitem 501, 10;
+
+	// 2. Race Method
+	// 1st position
+	if ( .win == 1 ) { 
+		announce strcharinfo(0) +" won 1st prize in Portal Event !", bc_all | bc_blue;
+		getitem 501, 10;
+	}
+	// 2nd position
+	else if ( .win == 2 ) {
+		announce strcharinfo(0) +" won 2nd prize in Portal Event !", bc_all | bc_blue;
+		getitem 501, 5;
+	}
+	// 3rd position
+	else if ( .win == 3 ) {
+		announce strcharinfo(0) +" won 3rd prize in Portal Event !", bc_all | bc_blue;
+		getitem 501, 3;
+	}
+	else { // the rest, 4th and so on
+		announce strcharinfo(0) +" has finish the Portal Event !", bc_all | bc_blue;
+		getitem 501, 1;
+	}
+
+//	==== Configure ends ============================
+//	================================================
+
+	return;
+L_announce_start:
+	announce "Portal Event has started", bc_all | bc_blue;
+	return;
+L_announce_end:
+	announce "Portal Event has ended", bc_all | bc_blue;
+	return;
+L_final_portal_4gm: // gm should not steal the prizes from players
+	dispbottom "Portal Event : This is the final portal";
+	return;
+Onstart:
+	set .win, 0;
+	deletearray .winnerid;
+	callsub L_announce_start;
+	enablenpc "starting_portal_event";
+	initnpctimer "portal_event_timer";
+	mapwarp "pvp_y_8-2", .event_end_warp$[0], atoi(.event_end_warp$[1]), atoi(.event_end_warp$[2]);
+	mapwarp "pvp_y_8-4", .event_end_warp$[0], atoi(.event_end_warp$[1]), atoi(.event_end_warp$[2]);
+	mapwarp "pvp_y_8-5", .event_end_warp$[0], atoi(.event_end_warp$[1]), atoi(.event_end_warp$[2]);
+	mapwarp "pvp_y_8-3", .event_end_warp$[0], atoi(.event_end_warp$[1]), atoi(.event_end_warp$[2]);
+	mapwarp "pvp_y_8-1", .event_end_warp$[0], atoi(.event_end_warp$[1]), atoi(.event_end_warp$[2]);
+	sleep 1; // round 1
+	setarray .@c1, 111,150; setarray .@c2, 147,147; setarray .@c3, 128,225; setarray .@c4, 104,231; setarray .@c5, 85,216;
+	setarray .@c6, 136,227; setarray .@c7, 64,182; setarray .@c8, 116,224; setarray .@c9, 115,209; setarray .@c10, 135,208;
+	setarray .@c11, 58,175; setarray .@c12, 66,172; setarray .@c13, 84,177; setarray .@c14, 86,152; setarray .@c15, 88,141;
+	setarray .@c16, 51,139; setarray .@c17, 48,130; setarray .@c18, 63,122; setarray .@c19, 62,138; setarray .@c20, 87,120;
+	setarray .@c21, 94,84; setarray .@c22, 85,91; setarray .@c23, 90,106; setarray .@c24, 111,87; setarray .@c25, 96,167;
+	setarray .@c26, 109,175; setarray .@c27, 188,195; setarray .@c28, 172,186; setarray .@c29, 198,181; setarray .@c30, 128,116;
+	setarray .@c31, 158,175; setarray .@c32, 161,162; setarray .@c33, 137,175; setarray .@c34, 134,160; setarray .@c35, 148,39;
+	setarray .@c36, 125,37; setarray .@c37, 53,81; setarray .@c38, 29,77; setarray .@c39, 50,68; setarray .@c40, 77,67;
+	setarray .@c41, 96,72; setarray .@c42, 137,77; setarray .@c43, 119,84; setarray .@c44, 160,84; setarray .@c45, 168,95;
+	setarray .@c46, 147,99; setarray .@c47, 214,129; setarray .@c48, 212,138; setarray .@c49, 220,115; setarray .@c50, 204,122;
+	setarray .@c51, 165,144; setarray .@c52, 145,107; setarray .@c53, 114,97; setarray .@c54, 136,84; setarray .@c55, 116,129;
+	setarray .@c56, 119,174; setarray .@c57, 121,155; setarray .@c58, 107,140; setarray .@c59, 104,119; setarray .@c60, 116,110;
+	setarray .@c61, 134,106; setarray .@c62, 136,93; setarray .@c63, 138,134; setarray .@c64, 155,121; setarray .@c65, 121,97;
+	setarray .@c66, 128,139; setarray .@c67, 155,138; setarray .@c68, 139,123; setarray .@c69, 97,123; setarray .@c70, 166,124;
+	set .@totalnpc, 8;
+	set .@total_location, 70;
+	callfunc "rand__", .@totalnpc, $@r1;
+	callfunc "rand__", .@total_location, $@r2;
+	deletearray .round1answer;
+	set .@i, 0;
+	while ( .@i < .@totalnpc ) {
+		set .@r1, $@r1[.@i] +1 ;
+		set .@r2, $@r2[.@i] +1 ;
+		enablenpc "1_portal_event#"+ .@r1;
+		movenpc "1_portal_event#"+ .@r1, getd(".@c"+ .@r2 +"[0]"), getd(".@c"+ .@r2 +"[1]");
+		if ( .@i < 0 +2 ) { // 2 portals to next round
+			setarray getd(".m_1_"+ .@r1 +"_$"), "pvp_y_8-4", 0,0;
+			setarray .round1answer[ getarraysize(.round1answer) ], getd(".@c"+ .@r2 +"[0]"), getd(".@c"+ .@r2 +"[1]");
+		}
+		else if ( .@i < 2 +6 ) // 6 portals randomly warp to round 1
+			setarray getd(".m_1_"+ .@r1 +"_$"), "pvp_y_8-2", 0,0;
+		set .@i, .@i +1 ;
+	}
+	sleep 1; // round 2
+	setarray .@c1, 15,234; setarray .@c2, 23,243; setarray .@c3, 28,221; setarray .@c4, 41,254; setarray .@c5, 41,224;
+	setarray .@c6, 65,233; setarray .@c7, 41,190; setarray .@c8, 63,187; setarray .@c9, 64,147; setarray .@c10, 59,133;
+	setarray .@c11, 32,141; setarray .@c12, 33,102; setarray .@c13, 45,93; setarray .@c14, 63,95; setarray .@c15, 70,126;
+	setarray .@c16, 64,114; setarray .@c17, 46,115; setarray .@c18, 66,82; setarray .@c19, 41,67; setarray .@c20, 34,41;
+	setarray .@c21, 26,25; setarray .@c22, 60,21; setarray .@c23, 48,30; setarray .@c24, 60,33; setarray .@c25, 67,57;
+	setarray .@c26, 71,35; setarray .@c27, 79,55; setarray .@c28, 90,80; setarray .@c29, 96,116; setarray .@c30, 87,131;
+	setarray .@c31, 99,154; setarray .@c32, 100,222; setarray .@c33, 119,222; setarray .@c34, 119,206; setarray .@c35, 93,205;
+	setarray .@c36, 119,190; setarray .@c37, 87,188; setarray .@c38, 119,180; setarray .@c39, 79,160; setarray .@c40, 123,148;
+	setarray .@c41, 138,142; setarray .@c42, 169,142; setarray .@c43, 170,169; setarray .@c44, 208,174; setarray .@c45, 178,165;
+	setarray .@c46, 199,151; setarray .@c47, 223,116; setarray .@c48, 247,115; setarray .@c49, 247,91; setarray .@c50, 223,68;
+	setarray .@c51, 247,67; setarray .@c52, 247,43; setarray .@c53, 206,31; setarray .@c54, 190,31; setarray .@c55, 134,37;
+	setarray .@c56, 116,38; setarray .@c57, 90,35; setarray .@c58, 117,73; setarray .@c59, 150,84; setarray .@c60, 141,73;
+	setarray .@c61, 150,57; setarray .@c62, 116,57; setarray .@c63, 170,26; setarray .@c64, 205,75; setarray .@c65, 185,83;
+	setarray .@c66, 193,108; setarray .@c67, 205,55; setarray .@c68, 211,83; setarray .@c69, 206,90; setarray .@c70, 206,98;
+	setarray .@c71, 206,106; setarray .@c72, 33,82; setarray .@c73, 26,59; setarray .@c74, 63,120; setarray .@c75, 73,85;
+	setarray .@c76, 127,85; setarray .@c77, 163,57; setarray .@c78, 236,27; setarray .@c79, 235,101; setarray .@c80, 196,131;
+	setarray .@c81, 79,125; setarray .@c82, 88,239; setarray .@c83, 113,174; setarray .@c84, 79,27; setarray .@c85, 118,27;
+	setarray .@c86, 71,204; setarray .@c87, 69,239; setarray .@c88, 70,178; setarray .@c89, 71,154; setarray .@c90, 83,98;
+	setarray .@c91, 119,160; setarray .@c92, 118,126; setarray .@c93, 177,102; setarray .@c94, 230,52; setarray .@c95, 233,74;
+	setarray .@c96, 85,176; setarray .@c97, 48,169; setarray .@c98, 45,145; setarray .@c99, 195,54; setarray .@c100, 197,64;
+	set .@totalnpc, 12;
+	set .@total_location, 100;
+	callfunc "rand__", .@totalnpc, $@r1;
+	callfunc "rand__", .@total_location, $@r2;
+	deletearray .round2answer;
+	set .@i, 0;
+	while ( .@i < .@totalnpc ) {
+		set .@r1, $@r1[.@i] +1 ;
+		set .@r2, $@r2[.@i] +1 ;
+		enablenpc "2_portal_event#"+ .@r1;
+		movenpc "2_portal_event#"+ .@r1, getd(".@c"+ .@r2 +"[0]"), getd(".@c"+ .@r2 +"[1]");
+		if ( .@i < 0 +2 ) { // 2 portals to next round
+			setarray getd(".m_2_"+ .@r1 +"_$"), "pvp_y_8-5", 0,0;
+			setarray .round2answer[ getarraysize(.round2answer) ], getd(".@c"+ .@r2 +"[0]"), getd(".@c"+ .@r2 +"[1]");
+		}
+		else if ( .@i < 2 +7 ) // 7 portals randomly warp to round 2
+			setarray getd(".m_2_"+ .@r1 +"_$"), "pvp_y_8-4", 0,0;
+		else if ( .@i < 9 +3 ) // 3 portals randomly warp to round 1
+			setarray getd(".m_2_"+ .@r1 +"_$"), "pvp_y_8-2", 0,0;
+		set .@i, .@i +1 ;
+	}
+	sleep 1; // round 3
+	setarray .@c1, 23,296; setarray .@c2, 49,289; setarray .@c3, 71,288; setarray .@c4, 68,270; setarray .@c5, 50,259;
+	setarray .@c6, 79,256; setarray .@c7, 103,260; setarray .@c8, 120,288; setarray .@c8, 133,288; setarray .@c10, 151,278;
+	setarray .@c11, 125,272; setarray .@c12, 160,296; setarray .@c13, 185,296; setarray .@c14, 198,290; setarray .@c15, 206,288;
+	setarray .@c16, 222,284; setarray .@c17, 259,288; setarray .@c18, 288,258; setarray .@c19, 272,269; setarray .@c20, 275,238;
+	setarray .@c21, 281,220; setarray .@c22, 299,207; setarray .@c23, 288,186; setarray .@c24, 247,251; setarray .@c25, 223,268;
+	setarray .@c26, 173,267; setarray .@c27, 179,232; setarray .@c28, 189,270; setarray .@c29, 235,230; setarray .@c30, 249,218;
+	setarray .@c31, 160,225; setarray .@c32, 143,249; setarray .@c33, 121,248; setarray .@c34, 116,220; setarray .@c35, 87,230;
+	setarray .@c36, 80,206; setarray .@c37, 57,217; setarray .@c38, 41,241; setarray .@c39, 30,246; setarray .@c40, 30,232;
+	setarray .@c41, 30,217; setarray .@c42, 26,199; setarray .@c43, 54,199; setarray .@c44, 55,183; setarray .@c45, 23,164;
+	setarray .@c46, 41,162; setarray .@c47, 55,149; setarray .@c48, 102,148; setarray .@c49, 78,139; setarray .@c50, 82,109;
+	setarray .@c51, 52,120; setarray .@c52, 34,130; setarray .@c53, 46,146; setarray .@c54, 74,95; setarray .@c55, 45,108;
+	setarray .@c56, 23,108; setarray .@c57, 49,89; setarray .@c58, 37,87; setarray .@c59, 46,46; setarray .@c60, 100,85;
+	setarray .@c61, 96,66; setarray .@c62, 133,127; setarray .@c63, 141,103; setarray .@c64, 140,85; setarray .@c65, 116,54;
+	setarray .@c66, 106,33; setarray .@c67, 92,31; setarray .@c68, 75,33; setarray .@c69, 22,22; setarray .@c70, 84,54;
+	setarray .@c71, 117,39; setarray .@c72, 121,31; setarray .@c73, 145,38; setarray .@c74, 128,59; setarray .@c75, 155,60;
+	setarray .@c76, 153,71; setarray .@c77, 171,76; setarray .@c78, 167,52; setarray .@c79, 160,117; setarray .@c80, 119,95;
+	setarray .@c81, 159,18; setarray .@c82, 188,33; setarray .@c83, 207,34; setarray .@c84, 197,66; setarray .@c85, 231,30;
+	setarray .@c86, 270,23; setarray .@c87, 254,55; setarray .@c88, 289,63; setarray .@c89, 288,84; setarray .@c90, 288,97;
+	setarray .@c91, 288,110; setarray .@c92, 288,129; setarray .@c93, 267,80; setarray .@c94, 243,73; setarray .@c95, 248,97;
+	setarray .@c96, 240,113; setarray .@c97, 225,113; setarray .@c98, 204,88; setarray .@c99, 186,99; setarray .@c100, 266,111;
+	setarray .@c101, 268,123; setarray .@c102, 278,134; setarray .@c103, 244,152; setarray .@c104, 284,171; setarray .@c105, 268,188;
+	setarray .@c106, 232,170; setarray .@c107, 233,190; setarray .@c108, 230,128; setarray .@c109, 35,68; setarray .@c110, 74,132;
+	setarray .@c111, 70,153; setarray .@c112, 78,185; setarray .@c113, 79,239; setarray .@c114, 210,249; setarray .@c115, 234,212;
+	setarray .@c116, 285,285; setarray .@c117, 254,198; setarray .@c118, 202,219; setarray .@c119, 214,161; setarray .@c120, 198,133;
+	set .@totalnpc, 14;
+	set .@total_location, 120;
+	callfunc "rand__", .@totalnpc, $@r1;
+	callfunc "rand__", .@total_location, $@r2;
+	deletearray .round3answer;
+	set .@i, 0;
+	while ( .@i < .@totalnpc ) {
+		set .@r1, $@r1[.@i] +1 ;
+		set .@r2, $@r2[.@i] +1 ;
+		enablenpc "3_portal_event#"+ .@r1;
+		movenpc "3_portal_event#"+ .@r1, getd(".@c"+ .@r2 +"[0]"), getd(".@c"+ .@r2 +"[1]");
+		if ( .@i < 0 +2 ) { // 2 portals to next round
+			if ( .maxround == 3 )
+				setarray getd(".m_3_"+ .@r1 +"_$"), "give prize", 0,0;
+			else
+				setarray getd(".m_3_"+ .@r1 +"_$"), "pvp_y_8-3", 0,0;
+			setarray .round3answer[ getarraysize(.round3answer) ], getd(".@c"+ .@r2 +"[0]"), getd(".@c"+ .@r2 +"[1]");
+		}
+		else if ( .@i < 2 +7 ) // 7 portals randomly warp to round 3
+			setarray getd(".m_3_"+ .@r1 +"_$"), "pvp_y_8-5", 0,0;
+		else if ( .@i < 9 +3 ) // 3 portals randomly warp to round 2
+			setarray getd(".m_3_"+ .@r1 +"_$"), "pvp_y_8-4", 0,0;
+		else if ( .@i < 12 +2 ) // 2 portals randomly warp to round 1
+			setarray getd(".m_3_"+ .@r1 +"_$"), "pvp_y_8-2", 0,0;
+		set .@i, .@i +1 ;
+	}
+	if ( .maxround == 3 ) end;
+	sleep 1; // round 4
+	setarray .@c1, 227,330; setarray .@c2, 218,306; setarray .@c3, 253,308; setarray .@c4, 257,285; setarray .@c5, 276,282;
+	setarray .@c6, 215,283; setarray .@c7, 276,248; setarray .@c8, 237,252; setarray .@c9, 217,229; setarray .@c10, 273,228;
+	setarray .@c11, 239,201; setarray .@c12, 253,204; setarray .@c13, 237,176; setarray .@c14, 203,183; setarray .@c15, 195,180;
+	setarray .@c16, 270,152; setarray .@c17, 270,135; setarray .@c18, 257,127; setarray .@c19, 243,159; setarray .@c20, 223,116;
+	setarray .@c21, 211,120; setarray .@c22, 219,100; setarray .@c23, 202,108; setarray .@c24, 261,110; setarray .@c25, 268,89;
+	setarray .@c26, 248,63; setarray .@c27, 263,65; setarray .@c28, 238,53; setarray .@c29, 207,41; setarray .@c30, 206,68;
+	setarray .@c31, 144,65; setarray .@c32, 182,84; setarray .@c33, 139,41; setarray .@c34, 121,27; setarray .@c35, 106,47;
+	setarray .@c36, 128,80; setarray .@c37, 91,78; setarray .@c38, 65,67; setarray .@c39, 78,48; setarray .@c40, 88,105;
+	setarray .@c41, 56,113; setarray .@c42, 14,143; setarray .@c43, 24,133; setarray .@c44, 64,157; setarray .@c45, 96,89;
+	setarray .@c46, 89,122; setarray .@c47, 125,115; setarray .@c48, 94,143; setarray .@c49, 72,182; setarray .@c50, 70,189;
+	setarray .@c51, 101,190; setarray .@c52, 72,224; setarray .@c53, 72,326; setarray .@c54, 83,335; setarray .@c55, 92,305;
+	setarray .@c56, 107,327; setarray .@c57, 155,328; setarray .@c58, 124,272; setarray .@c59, 168,287; setarray .@c60, 133,323;
+	setarray .@c61, 156,247; setarray .@c62, 126,204; setarray .@c63, 190,233; setarray .@c64, 166,188; setarray .@c65, 135,158;
+	setarray .@c66, 127,168; setarray .@c67, 131,146; setarray .@c68, 151,125; setarray .@c69, 175,139; setarray .@c70, 205,143;
+	setarray .@c71, 194,136; setarray .@c72, 203,90; setarray .@c73, 195,84; setarray .@c74, 140,86; setarray .@c75, 155,107;
+	setarray .@c76, 220,132; setarray .@c77, 229,157; setarray .@c78, 175,156; setarray .@c79, 155,266; setarray .@c80, 139,260;
+	setarray .@c81, 134,238; setarray .@c82, 115,183; setarray .@c83, 179,251; setarray .@c84, 248,226; setarray .@c85, 219,262;
+	setarray .@c86, 242,133; setarray .@c87, 265,170; setarray .@c88, 212,108; setarray .@c89, 183,298; setarray .@c90, 199,305;
+	setarray .@c91, 177,177; setarray .@c92, 110,201; setarray .@c93, 248,278; setarray .@c94, 173,242; setarray .@c95, 92,215;
+	setarray .@c96, 104,157; setarray .@c97, 133,124; setarray .@c98, 132,194; setarray .@c99, 90,286; setarray .@c100, 156,230;
+	setarray .@c101, 156,209; setarray .@c102, 275,144; setarray .@c103, 186,113; setarray .@c104, 119,60; setarray .@c105, 141,335;
+	set .@totalnpc, 14;
+	set .@total_location, 105;
+	callfunc "rand__", .@totalnpc, $@r1;
+	callfunc "rand__", .@total_location, $@r2;
+	deletearray .round4answer;
+	set .@i, 0;
+	while ( .@i < .@totalnpc ) {
+		set .@r1, $@r1[.@i] +1 ;
+		set .@r2, $@r2[.@i] +1 ;
+		enablenpc "4_portal_event#"+ .@r1;
+		movenpc "4_portal_event#"+ .@r1, getd(".@c"+ .@r2 +"[0]"), getd(".@c"+ .@r2 +"[1]");
+		if ( .@i < 0 +2 ) { // 2 portals to next round
+			if ( .maxround == 4 )
+				setarray getd(".m_4_"+ .@r1 +"_$"), "give prize", 0,0;
+			else
+				setarray getd(".m_4_"+ .@r1 +"_$"), "pvp_y_8-1", 0,0;
+			setarray .round4answer[ getarraysize(.round4answer) ], getd(".@c"+ .@r2 +"[0]"), getd(".@c"+ .@r2 +"[1]");
+		}
+		else if ( .@i < 2 +7 ) // 7 portals randomly warp to round 4
+			setarray getd(".m_4_"+ .@r1 +"_$"), "pvp_y_8-3", 0,0;
+		else if ( .@i < 9 +3 ) // 3 portals randomly warp to round 3
+			setarray getd(".m_4_"+ .@r1 +"_$"), "pvp_y_8-5", 0,0;
+		else if ( .@i < 12 +2 ) // 2 portals randomly warp to round 2
+			setarray getd(".m_4_"+ .@r1 +"_$"), "pvp_y_8-4", 0,0;
+		set .@i, .@i +1 ;
+	}
+	if ( .maxround == 4 ) end;
+	sleep 1; // round 5
+	setarray .@c1, 185,108; setarray .@c2, 155,25; setarray .@c3, 135,40; setarray .@c4, 143,63; setarray .@c5, 140,82;
+	setarray .@c6, 133,107; setarray .@c7, 119,40; setarray .@c8, 91,45; setarray .@c9, 71,37; setarray .@c10, 60,42;
+	setarray .@c11, 41,67; setarray .@c12, 41,44; setarray .@c13, 79,67; setarray .@c14, 134,92; setarray .@c15, 52,90;
+	setarray .@c16, 98,74; setarray .@c17, 84,89; setarray .@c18, 74,90; setarray .@c19, 72,99; setarray .@c20, 29,110;
+	setarray .@c21, 223,230; setarray .@c22, 115,178; setarray .@c23, 40,117; setarray .@c24, 38,134; setarray .@c25, 32,156;
+	setarray .@c26, 37,170; setarray .@c27, 40,181; setarray .@c28, 23,204; setarray .@c29, 40,104; setarray .@c30, 69,123;
+	setarray .@c31, 225,160; setarray .@c32, 85,126; setarray .@c33, 68,142; setarray .@c34, 58,157; setarray .@c35, 139,151;
+	setarray .@c36, 183,144; setarray .@c37, 36,226; setarray .@c38, 65,228; setarray .@c39, 34,241; setarray .@c40, 42,268;
+	setarray .@c41, 40,280; setarray .@c42, 50,293; setarray .@c43, 58,294; setarray .@c44, 74,270; setarray .@c45, 58,249;
+	setarray .@c46, 50,227; setarray .@c47, 71,284; setarray .@c48, 80,294; setarray .@c49, 34,303; setarray .@c50, 45,346;
+	setarray .@c51, 124,152; setarray .@c52, 89,333; setarray .@c53, 105,335; setarray .@c54, 156,360; setarray .@c55, 108,144;
+	setarray .@c56, 121,144; setarray .@c57, 259,339; setarray .@c58, 94,167; setarray .@c59, 99,150; setarray .@c60, 94,158;
+	setarray .@c61, 238,318; setarray .@c62, 227,283; setarray .@c63, 92,184; setarray .@c64, 263,279; setarray .@c65, 273,257;
+	setarray .@c66, 280,236; setarray .@c67, 270,219; setarray .@c68, 239,267; setarray .@c69, 289,203; setarray .@c70, 280,195;
+	setarray .@c71, 248,229; setarray .@c72, 263,228; setarray .@c73, 256,192; setarray .@c74, 272,187; setarray .@c75, 269,160;
+	setarray .@c76, 281,136; setarray .@c77, 270,127; setarray .@c78, 272,107; setarray .@c79, 273,95; setarray .@c80, 272,78;
+	setarray .@c81, 37,353; setarray .@c82, 271,42; setarray .@c83, 256,40; setarray .@c84, 237,39; setarray .@c85, 220,40;
+	setarray .@c86, 205,28; setarray .@c87, 188,48; setarray .@c88, 165,41; setarray .@c89, 131,56; setarray .@c90, 167,83;
+	setarray .@c91, 165,99; setarray .@c92, 186,94; setarray .@c93, 200,98; setarray .@c94, 216,100; setarray .@c95, 197,57;
+	setarray .@c96, 195,72; setarray .@c97, 208,73; setarray .@c98, 257,102; setarray .@c99, 256,123; setarray .@c100, 241,142;
+	setarray .@c101, 221,116; setarray .@c102, 236,108; setarray .@c103, 180,77; setarray .@c104, 183,130; setarray .@c105, 209,153;
+	setarray .@c106, 220,181; setarray .@c107, 204,191; setarray .@c108, 180,183; setarray .@c109, 184,158; setarray .@c110, 165,167;
+	setarray .@c111, 204,216; setarray .@c112, 178,222; setarray .@c113, 186,248; setarray .@c114, 219,227; setarray .@c115, 215,247;
+	setarray .@c116, 210,265; setarray .@c117, 192,268; setarray .@c118, 125,251; setarray .@c119, 120,268; setarray .@c120, 102,266;
+	setarray .@c121, 96,255; setarray .@c122, 85,248; setarray .@c123, 95,223; setarray .@c124, 133,222; setarray .@c125, 107,213;
+	setarray .@c126, 107,191; setarray .@c127, 105,167; setarray .@c128, 132,182;
+	set .@totalnpc, 14;
+	set .@total_location, 128;
+	callfunc "rand__", .@totalnpc, $@r1;
+	callfunc "rand__", .@total_location, $@r2;
+	deletearray .round5answer;
+	set .@i, 0;
+	while ( .@i < .@totalnpc ) {
+		set .@r1, $@r1[.@i] +1 ;
+		set .@r2, $@r2[.@i] +1 ;
+		enablenpc "5_portal_event#"+ .@r1;
+		movenpc "5_portal_event#"+ .@r1, getd(".@c"+ .@r2 +"[0]"), getd(".@c"+ .@r2 +"[1]");
+		if ( .@i < 0 +2 ) { // 2 portals to victory
+			setarray getd(".m_5_"+ .@r1 +"_$"), "give prize", 0,0;
+			setarray .round5answer[ getarraysize(.round5answer) ], getd(".@c"+ .@r2 +"[0]"), getd(".@c"+ .@r2 +"[1]");
+		}
+		else if ( .@i < 2 +7 ) // 7 portals randomly warp to round 5
+			setarray getd(".m_5_"+ .@r1 +"_$"), "pvp_y_8-1", 0,0;
+		else if ( .@i < 9 +3 ) // 3 portals randomly warp to round 4
+			setarray getd(".m_5_"+ .@r1 +"_$"), "pvp_y_8-3", 0,0;
+		else if ( .@i < 12 +2 ) // 2 portals randomly warp to round 3
+			setarray getd(".m_5_"+ .@r1 +"_$"), "pvp_y_8-5", 0,0;
+		set .@i, .@i +1 ;
+	}
+	deletearray $@r1;
+	deletearray $@r2;
+	end;
+
+OnPortalEvent_Reset:
+	if ( atoi( strnpcinfo(1) ) == 0 ) {
+		stopnpctimer "portal_event_timer";
+		callsub L_announce_end;
+		disablenpc "starting_portal_event";
+		sleep 8000;
+		mapwarp "pvp_y_8-2", .event_end_warp$[0], atoi(.event_end_warp$[1]), atoi(.event_end_warp$[2]);
+		mapwarp "pvp_y_8-4", .event_end_warp$[0], atoi(.event_end_warp$[1]), atoi(.event_end_warp$[2]);
+		mapwarp "pvp_y_8-5", .event_end_warp$[0], atoi(.event_end_warp$[1]), atoi(.event_end_warp$[2]);
+		mapwarp "pvp_y_8-3", .event_end_warp$[0], atoi(.event_end_warp$[1]), atoi(.event_end_warp$[2]);
+		mapwarp "pvp_y_8-1", .event_end_warp$[0], atoi(.event_end_warp$[1]), atoi(.event_end_warp$[2]);
+		end;
+	}
+	deletearray getd(".m_"+ strnpcinfo(1) +"_"+ strnpcinfo(2) +"_$");
+	disablenpc strnpcinfo(0);
+	end;
+
+OnWhisperGlobal:
+	if ( getgmlevel() < .mingmlevel ) end;
+	else if ( compare( @whispervar0$, "on" ) || compare( @whispervar0$, "start" ) )
+		goto Onstart;
+	else if ( compare( @whispervar0$, "off" ) || compare( @whispervar0$, "end" ) )
+		donpcevent "::OnPortalEvent_Reset";
+	else if ( getgmlevel() >= .mingm_ans && ( compare( @whispervar0$, "debug" ) || compare( @whispervar0$, "answer" ) ) ) {
+		for ( set .@j, 1; .@j <= .maxround; set .@j, .@j +1 ) {
+			dispbottom "Round "+ .@j +":";
+			for ( set .@i, 0; .@i < getarraysize( getd(".round"+ .@j +"answer") ); set .@i, .@i +2 )
+				dispbottom "    x = "+ getd(".round"+ .@j +"answer["+ .@i +"]") +", y = "+ getd(".round"+ .@j +"answer["+( .@i +1 )+"]");
+		}
+	}
+	end;
+
+OnTouch:
+	for ( set .@i, 0; .@i < getarraysize(.winnerid); set .@i, .@i +1 ) {
+		if ( .winnerid[.@i] == getcharid(3) ) end;
+	}
+	set .@n, strnpcinfo(1);
+	if ( getd(".m_"+ .@n +"_"+ strnpcinfo(2) +"_$[0]") == "give prize" ) {
+		if ( getgmlevel() >= .mingmlevel ) {
+			callsub L_final_portal_4gm;
+			end;
+		}
+		set .win, .win + 1;
+		callsub L_prize;
+		warp .event_end_warp$[0], atoi(.event_end_warp$[1]), atoi(.event_end_warp$[2]);
+		set .winnerid[ getarraysize(.winnerid) ], getcharid(3);
+		if ( getarraysize(.winnerid) == .winner_amount )
+			donpcevent "::OnPortalEvent_Reset";
+	}
+	else if ( getd(".m_"+ .@n +"_"+ strnpcinfo(2) +"_$[0]") == "" )
+		end;
+	else
+		warp getd(".m_"+ .@n +"_"+ strnpcinfo(2) +"_$[0]"), atoi( getd(".m_"+ .@n +"_"+ strnpcinfo(2) +"_$[1]") ), atoi( getd(".m_"+ .@n +"_"+ strnpcinfo(2) +"_$[2]") );
+	end;
+}
+
+pvp_y_8-2,0,0,5	duplicate(portal_event)	1_portal_event#1	45,2,2
+pvp_y_8-2,0,0,5	duplicate(portal_event)	1_portal_event#2	45,2,2
+pvp_y_8-2,0,0,5	duplicate(portal_event)	1_portal_event#3	45,2,2
+pvp_y_8-2,0,0,5	duplicate(portal_event)	1_portal_event#4	45,2,2
+pvp_y_8-2,0,0,5	duplicate(portal_event)	1_portal_event#5	45,2,2
+pvp_y_8-2,0,0,5	duplicate(portal_event)	1_portal_event#6	45,2,2
+pvp_y_8-2,0,0,5	duplicate(portal_event)	1_portal_event#7	45,2,2
+pvp_y_8-2,0,0,5	duplicate(portal_event)	1_portal_event#8	45,2,2
+
+//	this is needed because there is a short passageway at right down corner of izlude town
+pvp_y_8-2,177,56,5	warp	#portal_event_debug	2,2,pvp_y_8-2,128,110
+
+pvp_y_8-4,0,0,5	duplicate(portal_event)	2_portal_event#1	45,2,2
+pvp_y_8-4,0,0,5	duplicate(portal_event)	2_portal_event#2	45,2,2
+pvp_y_8-4,0,0,5	duplicate(portal_event)	2_portal_event#3	45,2,2
+pvp_y_8-4,0,0,5	duplicate(portal_event)	2_portal_event#4	45,2,2
+pvp_y_8-4,0,0,5	duplicate(portal_event)	2_portal_event#5	45,2,2
+pvp_y_8-4,0,0,5	duplicate(portal_event)	2_portal_event#6	45,2,2
+pvp_y_8-4,0,0,5	duplicate(portal_event)	2_portal_event#7	45,2,2
+pvp_y_8-4,0,0,5	duplicate(portal_event)	2_portal_event#8	45,2,2
+pvp_y_8-4,0,0,5	duplicate(portal_event)	2_portal_event#9	45,2,2
+pvp_y_8-4,0,0,5	duplicate(portal_event)	2_portal_event#10	45,2,2
+pvp_y_8-4,0,0,5	duplicate(portal_event)	2_portal_event#11	45,2,2
+pvp_y_8-4,0,0,5	duplicate(portal_event)	2_portal_event#12	45,2,2
+
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#1	45,2,2
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#2	45,2,2
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#3	45,2,2
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#4	45,2,2
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#5	45,2,2
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#6	45,2,2
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#7	45,2,2
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#8	45,2,2
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#9	45,2,2
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#10	45,2,2
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#11	45,2,2
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#12	45,2,2
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#13	45,2,2
+pvp_y_8-5,0,0,5	duplicate(portal_event)	3_portal_event#14	45,2,2
+
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#1	45,2,2
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#2	45,2,2
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#3	45,2,2
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#4	45,2,2
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#5	45,2,2
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#6	45,2,2
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#7	45,2,2
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#8	45,2,2
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#9	45,2,2
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#10	45,2,2
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#11	45,2,2
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#12	45,2,2
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#13	45,2,2
+pvp_y_8-3,0,0,5	duplicate(portal_event)	4_portal_event#14	45,2,2
+
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#1	45,2,2
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#2	45,2,2
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#3	45,2,2
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#4	45,2,2
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#5	45,2,2
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#6	45,2,2
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#7	45,2,2
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#8	45,2,2
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#9	45,2,2
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#10	45,2,2
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#11	45,2,2
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#12	45,2,2
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#13	45,2,2
+pvp_y_8-1,0,0,5	duplicate(portal_event)	5_portal_event#14	45,2,2
+
+pvp_y_8-2	mapflag	nowarp
+pvp_y_8-4	mapflag	nowarp
+pvp_y_8-5	mapflag	nowarp
+pvp_y_8-3	mapflag	nowarp
+pvp_y_8-1	mapflag	nowarp
+
+pvp_y_8-2	mapflag	nowarpto
+pvp_y_8-4	mapflag	nowarpto
+pvp_y_8-5	mapflag	nowarpto
+pvp_y_8-3	mapflag	nowarpto
+pvp_y_8-1	mapflag	nowarpto
+
+pvp_y_8-2	mapflag	noteleport
+pvp_y_8-4	mapflag	noteleport
+pvp_y_8-5	mapflag	noteleport
+pvp_y_8-3	mapflag	noteleport
+pvp_y_8-1	mapflag	noteleport
+
+pvp_y_8-2	mapflag	nomemo
+pvp_y_8-4	mapflag	nomemo
+pvp_y_8-5	mapflag	nomemo
+pvp_y_8-3	mapflag	nomemo
+pvp_y_8-1	mapflag	nomemo
+
+pvp_y_8-2	mapflag	nosave	SavePoint
+pvp_y_8-4	mapflag	nosave	SavePoint
+pvp_y_8-5	mapflag	nosave	SavePoint
+pvp_y_8-3	mapflag	nosave	SavePoint
+pvp_y_8-1	mapflag	nosave	SavePoint

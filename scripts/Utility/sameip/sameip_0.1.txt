@@ -1,0 +1,49 @@
+//===== Hercules Script ======================================
+//= @sameip
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: ===================================== 
+//= Hercules 2015-12-13
+//===== Description: =========================================
+//= list all players with same ip address
+//===== Topic ================================================
+//= http://herc.ws/board/topic/11445-sameip-command-for-rathena/
+//===== Additional Comments: =================================  
+//= it always list all players online, unable to limit to a single map currently
+//============================================================
+
+-	script	kjdshfksfj	FAKE_NPC,{
+OnInit:
+	bindatcmd "sameip", strnpcinfo(0)+"::Onaaa";
+	end;
+Onaaa:
+	freeloop true;
+	.@nb = query_sql( "select `char`.name, char_id, last_ip from login left join `char` on login.account_id = `char`.account_id where online = 1", .@name$, .@cid, .@ip$ );
+	for ( .@i = 0; .@i < .@nb; ++.@i ) {
+		for ( .@j = 0; .@j < .@ip_list; ++.@j )
+			if ( .@b_ip$[.@j] == .@ip$[.@i] )
+				break;
+		if ( .@j == .@ip_list ) {
+			.@b_ip$[.@j] = .@ip$[.@i];
+			++.@ip_list;
+		}
+		setd ".@b_ip"+ .@j +"_name$["+ .@b_ip_size[.@j] +"]", .@name$[.@i];
+		setd ".@b_ip"+ .@j +"_cid$["+ .@b_ip_size[.@j] +"]", .@cid[.@i] +"";
+		++.@b_ip_size[.@j];
+	}
+	dispbottom "===== SAME IP Searching =====";
+	for ( .@i = 0; .@i < .@ip_list; ++.@i ) {
+		if ( .@b_ip_size[.@i] > 1 ) {
+			dispbottom "  == The IP ["+ .@b_ip$[.@i] +"] has "+ .@b_ip_size[.@i] +" players.";
+			for ( .@j = 0; .@j < .@b_ip_size[.@i]; ++.@j ) {
+				getmapxy .@map$, .@x, .@y, 0, getd( ".@b_ip"+ .@i +"_name$["+ .@j +"]");
+				dispbottom "    = "+( .@j +1 )+". ("+ getd( ".@b_ip"+ .@i +"_cid$["+ .@j +"]" ) +") "+ getd( ".@b_ip"+ .@i +"_name$["+ .@j +"]") +" -> "+ .@map$ +" "+ .@x +" "+ .@y;
+			}
+			++.@result;
+		}
+	}
+	dispbottom ">>> "+ .@result +" results found.";
+	end;
+}

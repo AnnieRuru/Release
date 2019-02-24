@@ -1,0 +1,11 @@
+// ===== Topic  ====
+// https://rathena.org/board/tracker/issue-5738-script-command-showdigit/
+// =================
+
+prontera,155,185,5	script	kjdshfkshfj	1_F_MARIA,{
+	.@a = 60;
+	showdigit ~.@a, 2;
+	sleep2 .@a * 1000;
+	showdigit 0, 3;
+	end;
+}

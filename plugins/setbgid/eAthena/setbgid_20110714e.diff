@@ -1,0 +1,143 @@
+Index: battleground.c
+===================================================================
+--- battleground.c	(revision 14901)
++++ battleground.c	(working copy)
+@@ -23,7 +23,7 @@
+ #include <stdio.h>
+ 
+ static DBMap* bg_team_db; // int bg_id -> struct battleground_data*
+-static unsigned int bg_team_counter = 0; // Next bg_id
++static unsigned int bg_team_counter = 1000; // Next bg_id
+ 
+ struct battleground_data* bg_team_search(int bg_id)
+ { // Search a BG Team using bg_id
+@@ -171,6 +171,22 @@
+ 	return bg->bg_id;
+ }
+ 
++int bg_create2( unsigned short bg_id, unsigned short mapindex, short rx, short ry, const char *ev, const char *dev ) {
++	struct battleground_data *bg = bg_team_search(bg_id);
++	if ( bg ) return 0;
++	CREATE(bg, struct battleground_data, 1);
++	bg->bg_id = bg_id;
++	bg->count = 0;
++	bg->mapindex = mapindex;
++	bg->x = rx;
++	bg->y = ry;
++	safestrncpy(bg->logout_event, ev, sizeof(bg->logout_event));
++	safestrncpy(bg->die_event, dev, sizeof(bg->die_event));
++	memset(&bg->members, 0, sizeof(bg->members));
++	idb_put(bg_team_db, bg_id, bg);
++	return bg_id;
++}
++
+ int bg_team_get_id(struct block_list *bl)
+ {
+ 	nullpo_ret(bl);
+Index: battleground.h
+===================================================================
+--- battleground.h	(revision 14901)
++++ battleground.h	(working copy)
+@@ -35,6 +35,7 @@
+ struct map_session_data* bg_getavailablesd(struct battleground_data *bg);
+ 
+ int bg_create(unsigned short mapindex, short rx, short ry, const char *ev, const char *dev);
++int bg_create2( unsigned short bg_id, unsigned short mapindex, short rx, short ry, const char *ev, const char *dev );
+ int bg_team_join(int bg_id, struct map_session_data *sd);
+ int bg_team_delete(int bg_id);
+ int bg_team_leave(struct map_session_data *sd, int flag);
+Index: script.c
+===================================================================
+--- script.c	(revision 14901)
++++ script.c	(working copy)
+@@ -14925,7 +14925,79 @@
+ 	return 0;
+ }
+ 
++//	createbgid <battleground ID>, <respawn map>, <respawn x>, <respawn y>, <On Quit event>, <On Death event>;
++BUILDIN_FUNC(createbgid) {
++	if ( bg_create2( script_getnum(st,2), mapindex_name2id( script_getstr(st,3) ), script_getnum(st,4), script_getnum(st,5), script_getstr(st,6), script_getstr(st,7) ) > 0 )
++		script_pushint( st, script_getnum(st,2) );
++	else
++		script_pushint( st, 0 );
++	return 0;
++}
+ 
++//	setbgid <battleground ID> {, <player name> };
++BUILDIN_FUNC(setbgid) {
++	unsigned short bg_id = script_getnum(st,2);
++	struct battleground_data *bg = bg_team_search(bg_id);
++	TBL_PC* sd;
++	if ( bg_id < 0 || bg_id > 1000 ) {
++		script_pushint( st, -4 );
++		return 0;
++	}
++	if ( script_hasdata(st,3) ) 
++		sd = map_nick2sd( script_getstr(st,3) );
++	else
++		sd = script_rid2sd(st);
++	if ( sd == NULL ) {
++		script_pushint( st, -3 );
++		return 0;
++	}
++	if ( bg_id > 0 && bg == NULL ) {
++		script_pushint( st, -1 );
++		return 0;
++	}
++	if ( sd->bg_id == bg_id && bg_id != 0 ) {
++		script_pushint( st, -5 );
++		return 0;
++	}
++	if ( sd->bg_id )
++		bg_team_leave(sd,0);
++	if ( bg_id == 0 ) {
++		script_pushint( st, 0 );
++		return 0;
++	}
++	if ( bg_team_join( bg_id, sd ) == 0 )
++		script_pushint( st, -2 );
++	else
++		script_pushint( st, bg_id );
++	return 0;
++}
++
++//	getbgusers <battleground ID>;
++BUILDIN_FUNC(getbgusers) {
++	struct battleground_data *bg = bg_team_search( script_getnum(st,2) );
++	unsigned char i;
++	if ( bg == NULL ) {
++		script_pushint( st, -1 );
++		return 0;
++	}
++	for ( i = 0; bg->members[i].sd != NULL; i++ )
++		mapreg_setreg( reference_uid( add_str("$@arenamembers"), i ), bg->members[i].sd->bl.id );
++	mapreg_setreg( add_str("$@arenamembersnum"), i );
++	script_pushint( st, i );
++	return 0;
++}
++
++//	bg_kickall <battleground ID>;
++BUILDIN_FUNC(bg_kickall) {
++	struct battleground_data *bg = bg_team_search( script_getnum(st,2) );
++	unsigned char i;
++	if ( bg == NULL )
++		return 0;
++	for ( i = 0; bg->members[i].sd != NULL; i++ )
++		bg_team_leave( bg->members[i].sd , 0 );
++	return 0;
++}
++
+ // declarations that were supposed to be exported from npc_chat.c
+ #ifdef PCRE_SUPPORT
+ BUILDIN_FUNC(defpattern);
+@@ -15329,5 +15401,10 @@
+ 	BUILDIN_DEF(checkquest, "i?"),
+ 	BUILDIN_DEF(changequest, "ii"),
+ 	BUILDIN_DEF(showevent, "ii"),
++
++	BUILDIN_DEF(createbgid,"isiiss"),
++	BUILDIN_DEF(setbgid,"i?"),
++	BUILDIN_DEF(getbgusers,"i"),
++	BUILDIN_DEF(bg_kickall,"i"),
+ 	{NULL,NULL,NULL},
+ };

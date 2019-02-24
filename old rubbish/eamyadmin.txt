@@ -1,0 +1,803 @@
+//===== Athena Script =======================================
+//= eAthena Administrator
+//===== By ==================================================
+//= Josh
+//===== Version =============================================
+//= 0.1 - First release. Bound to contain silly mistakes,
+//=	  bugs or typos. Planned functions for players still
+//=	  incomplete though functions for GMs are complete.
+//= 0.2 - First bug fix. Missing table name.
+//= 0.3 - Fixed typo. Changed logical operator. Added auto-
+//=	  kick of banned accounts/characters. Made all
+//=	  queries involving guild tables low priority.
+//= 0.4 - Replaced curdate() with now().
+//= 0.5 - Added separate query for rename module for instant
+//=	  change if character not in a guild.
+//= 0.6 - Updated atcommand format.
+//= 1.0 - Modified 'move char' co-ordinates. Added player
+//=	  functions. 
+//= 1.1 - Fixed guild deletion section. Merged delete queries
+//=	  into fewer complex queries.
+//= 1.2 - Hid GMs from being shown in top player's list.
+//=	  Fixed typos. Added mass database administration
+//=	  operations. Notified user of existing character
+//=	  when swapping slots.
+//===== Compatible With =====================================
+//= eAthena SQL - any version with the new query_sql command 
+//=		  and new atcommand syntax (Trunk 9230+).
+//= MySQL - 5.X recommended.
+//===== Description =========================================
+//= A script that allows GMs to perform database maintenance
+//= and other useful features otherwise requiring an external
+//= script, e.g. PHP scripts.
+//===========================================================
+
+prontera.gat,163,178,3	script	eAMyAdmin	864,{
+
+set $password,1;
+
+if(getgmlevel() >= 80) goto L_GM;
+
+L_START:
+mes "Hello "+strcharinfo(0)+"!";
+mes "I am eAMyAdmin, an NPC that can help both GMs and";
+mes "players manage their account.";
+mes "What would you like to do today?";
+next;
+menu "Change account details",L_CHANGEACCOUNT,"View statistics",L_STATS;
+
+L_CHANGEACCOUNT:
+menu "Change password",L_PASSWORD,"Transfer Zeny",L_ZENY;
+
+L_STATS:
+menu "View online characters",L_ONLINE,"View top players",L_TOPPLAYER,"View top guilds",L_TOPGUILD;
+
+L_PASSWORD:
+if(!$password){
+	mes "Sorry, password changing is currently unavailable.";
+	next;
+	goto L_START;
+	}
+mes "Please enter your current password.";
+input @oldpassword$;
+switch($md5){
+	case 0:
+		query_sql "SELECT (SELECT `user_pass` FROM `login` WHERE `account_id` = "+getcharid(3)+") = '"+escape_sql(@oldpassword$)+"'", @passcheck;
+		break;
+	case 1:
+		query_sql "SELECT (SELECT `user_pass` FROM `login` WHERE `account_id` = "+getcharid(3)+") = MD5('"+escape_sql(@oldpassword$)+"')", @passcheck;
+		break;
+	}
+if(!@passcheck){
+	mes "Password incorrect.";
+	next;
+	goto L_START;
+	}
+mes "Please enter your new password.";
+input @newpassword1$;
+if(@oldpassword$ == @newpassword1$){
+	mes "Your password does not need to be changed!";
+	next;
+	goto L_START;
+	}
+mes "Please re-enter your new password.";
+input @newpassword2$;
+if(@newpassword1$ != @newpassword2$){
+	mes "Password mismatch. Please retry.";
+	next;
+	goto L_START;
+	}
+switch($md5){
+	case 0:
+		query_sql "UPDATE `login` SET `user_pass` = '"+escape_sql(@newpassword1$)+"' WHERE `account_id` = "+getcharid(3);
+		break;
+	case 1:
+		query_sql "UPDATE `login` SET `user_pass` = MD5('"+escape_sql(@newpassword1$)+"') WHERE `account_id` = "+getcharid(3);
+		break;
+	}
+logmes "Password changed.";
+mes "Password successfully changed.";
+next;
+goto L_START;
+
+L_EMAIL:
+mes "Please enter your current email address.";
+input @oldemail$;
+query_sql "SELECT (SELECT `email` FROM `login` WHERE `account_id` = "+getcharid(3)+") = '"+escape_sql(@oldemail$)+"'", @emailcheck;
+if(!@emailcheck){
+	mes "Email address incorrect.";
+	next;
+	goto L_START;
+	}
+mes "Please enter your new email address.";
+input @newemail1$;
+if(@oldemail$ == @newemail1$){
+	mes "Your email address does not need to be changed!";
+	next;
+	goto L_START;
+	}
+mes "Please re-enter your new email address.";
+input @newemail2$;
+if(@newemail1$ != @newemail2$){
+	mes "Email address mismatch. Please retry.";
+	next;
+	goto L_START;
+	}
+query_sql "UPDATE `login` SET `email` = '"+escape_sql(@newemail1$)+"' WHERE `account_id` = "+getcharid(3);
+logmes "Email address changed.";
+mes "Email address successfully changed.";
+next;
+goto L_START;
+
+L_ROSTER:
+mes "Your current roster is as follows:";
+query_sql "SELECT `char_num`,`name` FROM `char` WHERE `account_id` = "+getcharid(3)+" ORDER BY `char_num`", @num, @name$;
+for(set @i, 0; @i < getarraysize(@num); set @i, @i + 1){
+	mes @num[@i]+": "+@name$[@i];
+	}
+next;
+mes "Which character would you like to rearrange?";
+input @char$;
+if(getcharid(3,@char$)!=getcharid(3)){
+	mes @char$+" is not one of your characters!";
+	next;
+	goto L_START;
+	}
+mes "Which slot (0 to 8) would you like to move "+@char$+" to?";
+input @slot;
+if(@slot>8){
+	mes "Invalid slot!";
+	next;
+	goto L_START;
+	}
+query_sql "SELECT `name` FROM `char` WHERE `account_id` = "+getcharid(3)+" && `char_num` = "+@slot, @checkname$;
+if(@checkname$){
+	mes @checkname$+" is already in slot "+@slot+".";
+	mes "Would you like to swap their slots?";
+	menu "No",L_START,"Yes",-;
+	query_sql "SELECT `char_num` FROM `char` WHERE `char_id` = "+getcharid(0,@char$), @oldnum;
+	query_sql "UPDATE `char` SET `char_num` = "+@oldnum+" WHERE `char_id` = "+@checkid;
+	}
+query_sql "UPDATE `char` SET `char_num` = "+@slot+" WHERE `char_id` = "+getcharid(0,@char$);
+logmes "Roster changed.";
+mes @char$+" successfully moved to slot "+@slot;
+next;
+goto L_START;
+
+L_ZENY:
+mes "Your characters' Zeny balances are as follows:";
+query_sql "SELECT `name`,`zeny` FROM `char` WHERE `account_id` = "+getcharid(3)+" ORDER BY `zeny` DESC", @name$, @zeny;
+for(set @i, 0; @i < getarraysize(@zeny); set @i, @i + 1){
+	mes @name$[@i]+": "+@zeny[@i];
+	}
+next;
+mes "Which character would you like to transfer Zeny from?";
+mes "Note: You cannot transfer to or from a character that is online.";
+input @fromchar$;
+if(getcharid(3,@fromchar$)!=getcharid(3)){
+	mes @fromchar$+" is not one of your characters!";
+	next;
+	goto L_START;
+	}
+if(@fromchar$==strcharinfo(0)){
+	mes "You cannot transfer zeny from an online character!";
+	next;
+	goto L_START;
+	}
+mes "Which character would you like to transfer Zeny to?";
+input @tochar$;
+if(getcharid(3,@tochar$)!=getcharid(3)){
+	mes @tochar$+" is not one of your characters!";
+	next;
+	goto L_START;
+	}
+if(@tochar$==strcharinfo(0)){
+	mes "You cannot transfer zeny to an online character!";
+	next;
+	goto L_START;
+	}
+query_sql "SELECT `zeny` FROM `char` WHERE `char_id` = "+getcharid(0,@fromchar$), @oldzeny;
+mes "How much Zeny would you like to transfer?";
+mes "Max: "+@oldzeny+"Z";
+input @zeny;
+if(@zeny>@oldzeny){
+	mes @fromchar$+" does not have sufficient Zeny to perform this transaction.";
+	next;
+	goto L_START;
+	}
+query_sql "UPDATE `char` SET `zeny` = `zeny` - "+@zeny+" WHERE `char_id` = "+getcharid(0,@fromchar$);
+query_sql "UPDATE `char` SET `zeny` = `zeny` + "+@zeny+" WHERE `char_id` = "+getcharid(0,@tochar$);
+logmes @zeny+"Z transferred from "+@fromchar$+" to "+@tochar$+".";
+mes @zeny+"Z successfully transferred from "+@fromchar$+" to "+@tochar$+".";
+next;
+goto L_START;
+
+L_ONLINE:
+mes "The players currently online are:";
+query_sql "SELECT `char`.`account_id` FROM `char` LEFT JOIN `login` ON `char`.`account_id` = `login`.`account_id` WHERE `char`.`online` = 1 && `login`.`level` = 0 ORDER BY `char`.`name`", @online;
+for(set @i, 0; @i < getarraysize(@online); set @i, @i + 1){
+	mes rid2name(@online[@i]);
+	}
+next;
+goto L_START;
+
+L_TOPPLAYER:
+query_sql "SELECT `char`.`name`, `char`.`class`, `char`.`base_level`, `char`.`job_level`, `char`.`zeny` FROM `char` LEFT JOIN `login` ON `char`.`account_id` = `login`.`account_id` WHERE `login`.`level` = 0 ORDER BY `base_level` DESC, `job_level` DESC, `zeny` DESC LIMIT 10", @name$, @class, @base, @job, @zeny;
+mes "The top 10 players are:";
+mes "(Name - Class - Base Level/Job Level - Zeny)";
+for(set @i, 0; @i < getarraysize(@name$); set @i, @i + 1){
+	mes @i+1+". "+@name$[@i]+" - "+jobname(@class[@i])+" - "+@base[@i]+"/"+@job[@i]+" - "+@zeny[@i]+"Z";
+	}
+next;
+goto L_START;
+
+L_TOPGUILD:
+query_sql "SELECT `guild_id`, `guild_lv`, `average_lv` FROM `guild` ORDER BY `guild_lv` DESC, `average_lv` DESC LIMIT 10", @gid, @glv, @alv;
+mes "The top 10 guilds are:";
+mes "(Name - Master - Level - Average Member Level)";
+for(set @i, 0; @i < getarraysize(@gid); set @i, @i + 1){
+	mes @i+1+". "+getguildname(@gid[@i])+" - "+getguildmaster(@gid[@i])+" - "+@glv[@i]+" - "+@alv[@i];
+	}
+next;
+goto L_START;
+
+L_GM:
+mes "Hello GM! What would you like to do today?";
+next;
+menu "Enable/Disable MD5 encryption",L_MD5,"Perform maintenance",L_MAINTENANCE,"Other",L_OTHER,"Test NPC",L_START;
+
+L_MAINTENANCE:
+menu "Account maintenance",L_INACTIVE,"Guild maintenance",L_OLDGUILD,"Database maintenance",L_DATABASE;
+
+L_OTHER:
+menu "Move characters",L_MOVECHAR,"Rename characters",L_RENAME,"Account information",L_ACCOUNT,"Character information",L_CHARACTER,"Guild information",L_GUILD,"Ban/Unban an account/IP address",L_BAN,"GM privileges",L_PRIVILEGE;
+
+L_BAN:
+menu "Ban a player",L_BANPLAYER,"Unban a player",L_UNBANPLAYER,"View ban list",L_BANLIST;
+
+L_BANPLAYER:
+menu "Ban by account name",L_BANACCOUNT,"Ban by character name",L_BANCHARACTER,"Ban an IP address",L_BANADDRESS;
+
+L_UNBANPLAYER:
+menu "Unban by account name",L_UNBANACCOUNT,"Unban by character name",L_UNBANCHARACTER,"Unban an IP address",L_UNBANADDRESS;
+
+L_BANLIST:
+menu "View banned accounts",L_BANNEDACCOUNTS,"View banned IP addresses",L_BANNEDADDRESSES;
+
+L_MD5:
+mes "For players to be able to change their password (correctly),";
+mes "you must specify whether MD5 encryption has been enabled.";
+switch($password){
+	case 0:
+		mes "Would you like to specify this now?";
+		break;
+	case 1:
+		switch($md5){
+			case 0:
+				mes "MD5 encryption is currently disabled.";
+				break;
+			case 1:
+				mes "MD5 encryption is currently enabled.";
+				break;
+			}
+		mes "Would you like to change this now?";
+		break;
+	}
+menu "Yes",-,"No",L_GM;
+mes "Is MD5 encryption enabled?";
+set $md5, select("No","Yes")-1;
+set $password, 1;
+switch($md5){
+	case 0:
+		mes "You have specified that MD5 encryption is disabled.";
+		break;
+	case 1:
+		mes "You have specified that MD5 encryption is enabled.";
+		break;
+	}
+next;
+goto L_GM;
+
+L_MOVECHAR:
+mes "This moves 'stuck' characters back to Prontera.";
+mes "Would you like to move a character?";
+menu "Yes",-,"No",L_GM;
+mes "Which character would you like to move?";
+input @char$;
+set @char_id, getcharid(0,@char$);
+if(@char_id){
+	query_sql "UPDATE `char` SET `last_map`='prontera.gat', `last_x`=156, `last_y`=191 WHERE `char_id`="+@char_id;
+	mes "Character moved successfully!";
+	} else mes "Character "+@char$+" does not exist!";
+next;
+menu "Move another character",L_MOVECHAR,"Back to main menu",L_GM;
+
+L_RENAME:
+mes "This renames characters.";
+mes "Would you like to rename a character?";
+menu "Yes",-,"No",L_GM;
+mes "Which character would you like to rename?";
+input @old$;
+set @char_id, getcharid(0,@old$);
+if(!@char_id){
+	mes "Character "+@old$+" does not exist!";
+	next;
+	goto L_RENAME;
+	}
+mes "What would you like to rename "+@old$+" to?";
+input @new$;
+set @exist, getcharid(0,@new$);
+if(@exist){
+	mes "A character named "+@new$+" already exists!";
+	next;
+	goto L_RENAME;
+	}
+mes "Rename "+@old$+" to "+@new$+"?";
+menu "Yes",-,"No",L_RENAME;
+if(!getcharid(2,@old$)){
+	query_sql "UPDATE `char` SET `name` = '"+escape_sql(@new$)+"' WHERE `char_id` = "+@char_id;
+	mes "Character renamed successfully.";
+	menu "Rename another character",L_RENAME,"Back to main menu",L_GM;
+	}
+query_sql "UPDATE LOW_PRIORITY `char` SET `name` = '"+escape_sql(@new$)+"' WHERE `char_id` = "+@char_id;
+query_sql "UPDATE LOW_PRIORITY `guild_member` SET `name` = '"+escape_sql(@new$)+"' WHERE `char_id` = "+@char_id;
+query_sql "UPDATE LOW_PRIORITY `guild` SET `master` = '"+escape_sql(@new$)+"' WHERE `master` = '"+escape_sql(@old$)+"'";
+mes "Character renamed successfully.";
+mes "This name change will take effect once eAthena restarts.";
+menu "Rename another character",L_RENAME,"Back to main menu",L_GM;
+
+L_ACCOUNT:
+mes "This retrieves account information.";
+mes "Would you like to view an account?";
+menu "Yes",-,"No",L_GM;
+mes "Which account would you like to view?";
+input @userid$;
+query_sql "SELECT `account_id`, `lastlogin`, `sex`, `logincount`, `email`, `level`, `last_ip` FROM `login` WHERE `userid` = '"+escape_sql(@userid$)+"'", @account_id, @lastlogin$, @sex$, @logincount, @email$, @level, @last_ip$;
+if(!@account_id){
+	mes "Account "+@account$+" does not exist!";
+	next;
+	goto L_ACCOUNT;
+	}
+mes "Account ID: "+@account_id;
+mes "Account Name: "+@userid$;
+mes "Last Login: "+@lastlogin$;
+mes "Gender: "+@sex$;
+mes "Login Count: "+@logincount;
+mes "Email Address: "+@email$;
+mes "GM Level: "+@level;
+mes "Last IP Address: "+@last_ip$;
+menu "View another account",L_ACCOUNT,"Back to main menu",L_GM;
+
+L_CHARACTER:
+mes "This retrieves character information.";
+mes "Would you like to view a character?";
+menu "Yes",-,"No",L_GM;
+mes "Which character would you like to view?";
+input @name$;
+query_sql "SELECT `char_id`, `account_id`, `char_num`, `class`, `base_level`, `job_level`, `zeny` FROM `char` WHERE `name` = '"+escape_sql(@name$)+"'", @char_id, @account_id, @char_num, @class, @base_level, @job_level, @zeny;
+if(!@char_id){
+	mes "Character "+@name$+" does not exist!";
+	next;
+	goto L_CHARACTER;
+	}
+query_sql "SELECT `userid` FROM `login` WHERE `account_id` = "+@account_id, @userid$;
+mes "Character ID: "+@char_id;
+mes "Account Name: "+@userid$;
+mes "Slot: "+@char_num;
+mes "Class: "+jobname(@class);
+mes "Base Level: "+@base_level;
+mes "Job Level: "+@job_level;
+mes "Zeny: "+@zeny;
+menu "View another character",L_CHARACTER,"Back to main menu",L_GM;
+
+L_GUILD:
+mes "This retrieves guild information.";
+mes "Would you like to view a guild?";
+menu "Yes",-,"No",L_GM;
+mes "Which guild would you like to view?";
+input @name$;
+query_sql "SELECT `guild_id`, `master`, `guild_lv`, `connect_member`, `max_member`, `average_lv` FROM `guild` WHERE `name` = '"+escape_sql(@name$)+"'", @guild_id, @master$, @guild_lv, @connect_member, @max_member, @average_lv;
+if(!@guild_id){
+	mes "Guild "+@name$+" does not exist!";
+	next;
+	goto L_GUILD;
+	}
+mes "Guild ID: "+@guild_id;
+mes "Guild Name: "+@name$;
+mes "Guild Master: "+@master;
+mes "Guild Level: "+@guild_lv;
+mes "Online Members: "+@connect_member;
+mes "Max Slots: "+@max_member;
+mes "Average Level: "+@average_lv;
+menu "View another guild",L_GUILD,"Back to main menu",L_GM;
+
+L_BANACCOUNT:
+mes "This bans a player by their account name.";
+mes "Would you like to ban an account?";
+menu "Yes",-,"No",L_GM;
+mes "Which account would you like to ban?";
+input @account$;
+query_sql "SELECT `account_id` FROM `login` WHERE `userid` = "+escape_sql(@account$), @aid;
+if(!@aid){
+	mes "Account "+@account$+" does not exist!";
+	next;
+	goto L_BANACCOUNT;
+	}
+query_sql "SELECT `level` FROM `login` WHERE `account_id` = "+@aid, @level;
+if(@level >= getgmlevel()){
+	mes "Your GM level does not authorise you to ban "+@account$+".";
+	next;
+	goto L_BANACCOUNT;
+	}
+set @character$, rid2name(@aid);
+menu "Timed ban",L_TIMEBAN,"Indefinite ban",L_INDEFINITE;
+
+L_BANCHARACTER:
+mes "This bans a player by their character name.";
+mes "Would you like to ban a character?";
+menu "Yes",-,"No",L_GM;
+mes "Which character would you like to ban?";
+input @character$;
+set @aid, getcharid(3,@character$);
+if(!@aid){
+	mes "Character "+@character$+" does not exist!";
+	next;
+	goto L_BANCHARACTER;
+	}
+query_sql "SELECT `userid`, `level` FROM `login` WHERE `account_id` = "+@aid, @account$, @level;
+if(@level >= getgmlevel()){
+	mes "Your GM level does not authorise you to ban "+@character$+".";
+	next;
+	goto L_BANCHARACTER;
+	}
+mes @character$+" is "+@account$;
+menu "Timed ban",L_TIMEBAN,"Indefinite ban",L_INDEFINITE;
+
+L_TIMEBAN:
+mes "How many years would you like to ban "+@account$+" for?";
+input @year;
+mes "How many months would you like to ban "+@account$+" for?";
+input @month;
+mes "How many days would you like to ban "+@account$+" for?";
+input @day;
+mes "How many hours would you like to ban "+@account$+" for?";
+input @hour;
+mes "How many minutes would you like to ban "+@account$+" for?";
+input @minute;
+mes "How many seconds would you like to ban "+@account$+" for?";
+input @second;
+mes "Ban "+@account$+" for "+@year+" years, "+@month+" months, "+@day+" days, "+@hour+" hours, "+@minute+" minutes, "+@second+" seconds?";
+menu "Yes",-,"No",L_BANACCOUNT;
+query_sql "UPDATE `login` SET `state` = 7, `ban_until` = UNIX_TIMESTAMP(NOW() + INTERVAL "+@year+" YEAR + INTERVAL "+@month+" MONTH + INTERVAL "+@day+" DAY + INTERVAL "+@hour+" HOUR + INTERVAL "+@minute+" MINUTE + INTERVAL "+@second+" SECOND) WHERE `account_id` = "+@aid;
+atcommand "@kick "+@character$;
+mes "Account "+@account$+" banned successfully.";
+next;
+menu "Ban another account",L_BANACCOUNT,"Back to main menu",L_GM;
+
+L_INDEFINITE:
+mes "Ban "+@account$+" indefinitely?";
+menu "Yes",-,"No",L_BANACCOUNT;
+query_sql "UPDATE `login` SET `state` = 5 WHERE `account_id` = "+@aid;
+atcommand "@kick "+@character$;
+mes "Account "+@account$+" banned successfully.";
+next;
+menu "Ban another account",L_BANACCOUNT,"Back to main menu",L_GM;
+
+L_BANADDRESS:
+mes "This bans IP addresses.";
+mes "Would you like to ban an IP address?";
+menu "Yes",-,"No",L_GM;
+mes "Which IP address would you like to ban?";
+input @address$;
+mes "How many years would you like to ban "+@address$+" for?";
+input @year;
+mes "How many months would you like to ban "+@address$+" for?";
+input @month;
+mes "How many days would you like to ban "+@address$+" for?";
+input @day;
+mes "How many hours would you like to ban "+@address$+" for?";
+input @hour;
+mes "How many minutes would you like to ban "+@address$+" for?";
+input @minute;
+mes "How many seconds would you like to ban "+@address$+" for?";
+input @second;
+mes "What is the reason for banning "+@address$+"?";
+input @reason$;
+mes "Ban "+@address$+" for "+@year+" years, "+@month+" months, "+@day+" days, "+@hour+" hours, "+@minute+" minutes, "+@second+" seconds?";
+mes "Reason: "+@reason$;
+menu "Yes",-,"No",L_BANADDRESS;
+query_sql "REPLACE INTO `ipbanlist` VALUES ('"+escape_sql(@address$)+"', NOW(), NOW() + INTERVAL "+@year+" YEAR + INTERVAL "+@month+" MONTH + INTERVAL "+@day+" DAY + INTERVAL "+@hour+" HOUR + INTERVAL "+@minute+" MINUTE + INTERVAL "+@second+" SECOND, '"+@reason$+"')";
+mes "Address "+@address$+" banned successfully.";
+next;
+menu "Ban another address",L_BANADDRESS,"Back to main menu",L_GM;
+
+L_UNBANACCOUNT:
+mes "This unbans a player by their account name.";
+mes "Would you like to unban an account?";
+menu "Yes",-,"No",L_GM;
+mes "Which account would you like to unban?";
+input @account$;
+query_sql "SELECT `account_id` FROM `login` WHERE `userid` = "+escape_sql(@account$), @aid;
+if(!@aid){
+	mes "Account "+@account$+" does not exist!";
+	next;
+	goto L_UNBANACCOUNT;
+	}
+query_sql "SELECT `state` FROM `login` WHERE `account_id` = "+@aid, @state;
+if(!state){
+	mes "Account "+@account$+" is not banned!";
+	next;
+	goto L_UNBANACCOUNT;
+	}
+mes "Unban "+@account$+"?";
+menu "Yes",-,"No",L_UNBANACCOUNT;
+query_sql "UPDATE `login` SET `state` = 0, `ban_until` = 0 WHERE `account_id` = "+@aid;
+mes "Account "+@account$+" unbanned successfully.";
+next;
+menu "Unban another account",L_UNBANACCOUNT,"Back to main menu",L_GM;
+
+L_UNBANCHARACTER:
+mes "This unbans a player by their character name.";
+mes "Would you like to unban a character?";
+menu "Yes",-,"No",L_GM;
+mes "Which character would you like to unban?";
+input @character$;
+set @aid, getcharid(3,@character$);
+if(!@aid){
+	mes "Character "+@character$+" does not exist!";
+	next;
+	goto L_UNBANCHARACTER;
+	}
+query_sql "SELECT `state` FROM `login` WHERE `account_id` = "+@aid, @state;
+if(!state){
+	mes "Character "+@character$+" is not banned!";
+	next;
+	goto L_UNBANCHARACTER;
+	}
+mes "Unban "+@character$+"?";
+menu "Yes",-,"No",L_UNBANCHARACTER;
+query_sql "UPDATE `login` SET `state` = 0, `ban_until` = 0 WHERE `account_id` = "+@aid;
+mes "Character "+@character$+" unbanned successfully.";
+next;
+menu "Unban another character",L_UNBANCHARACTER,"Back to main menu",L_GM;
+
+L_UNBANADDRESS:
+mes "This unbans IP addresses.";
+mes "Would you like to unban an IP address?";
+menu "Yes",-,"No",L_GM;
+mes "Which IP address would you like to unban?";
+input @address$;
+mes "Unban "+@address$+"?";
+menu "Yes",-,"No",L_UNBANADDRESS;
+query_sql "DELETE FROM `ipbanlist` WHERE `list` = '"+escape_sql(@address$)+"'";
+mes "Address "+@address$+" unbanned successfully.";
+next;
+menu "Unban another address",L_UNBANADDRESS,"Back to main menu",L_GM;
+
+L_BANNEDACCOUNTS:
+query_sql "SELECT `userid` FROM `login` WHERE `state` = 5", @indefinite$;
+query_sql "SELECT `userid`, FROM_UNIXTIME(`ban_until`) FROM `login` WHERE `state` = 7", @timed$, @banuntil$;
+for(set @i, 0; @i < getarraysize(@indefinite$); set @i, @i + 1){
+	mes @indefinite$[@i]+": Banned indefinitely";
+	}
+for(set @i, 0; @i < getarraysize(@timed$); set @i, @i + 1){
+	mes @timed$[@i]+": "+@banuntil$[@i];
+	}
+menu "Clear list",-,"Back to main menu",L_GM;
+mes "Are you sure you would like to unban all accounts?";
+menu "No",L_GM,"Yes",-;
+query_sql "UPDATE `login` SET `state` = 0";
+mes "All accounts unbanned successfully.";
+next;
+goto L_GM;
+
+L_BANNEDADDRESSES:
+query_sql "SELECT `list`, `rtime` FROM `ipbanlist`", @list$, @rtime$;
+for(set @i, 0; @i < getarraysize(@list$); set @i, @i + 1){
+	mes @list$[@i]+": "+@rtime$[@i];
+	}
+menu "Clear list",-,"Back to main menu",L_GM;
+mes "Are you sure you would like to unban all IP addresses?";
+menu "No",L_GM,"Yes",-;
+query_sql "TRUNCATE TABLE `ipbanlist`";
+mes "All IP addresses unbanned successfully.";
+next;
+goto L_GM;
+
+L_PRIVILEGE:
+query_sql "SELECT `userid`, `level` FROM `login` WHERE `level` > 0", @userid$, @level;
+for(set @i, 0; @i < getarraysize(@userid$); set @i, @i + 1){
+	mes @userid$[@i]+": "+@level[@i];
+	}
+menu "Assign a GM level to an account",L_ADDGM,"Back to main menu",L_GM;
+
+L_ADDGM:
+mes "This assigns a new GM level to any account.";
+mes "Would you like to assign a new GM level to an account?";
+menu "Yes",-,"No",L_PRIVILEGE;
+mes "Which account would you like to assign a new GM level?";
+input @account$;
+query_sql "SELECT `account_id`,`level` FROM `login` WHERE `userid` = '"+escape_sql(@account$)+"'", @aid, @level;
+if(!@aid){
+	mes "Account "+@account$+" does not exist!";
+	goto L_PRIVILEGE;
+	}
+if(@level >= getgmlevel()){
+	mes "Your GM level does not authorise you to modify "+@account$+"'s GM level!";
+	goto L_PRIVILEGE;
+	}
+mes "What GM level would you like to assign to "+@account$+"?";
+input @newlevel;
+if(@newlevel > getgmlevel()){
+	mes "You cannot set another account's GM level above yours!";
+	goto L_PRIVILEGE;
+	}
+mes "Modify "+@account$+"'s GM level from "+@level+" to "+@newlevel+"?";
+menu "Yes",-,"No",L_PRIVILEGE;
+query_sql "UPDATE `login` SET `level` = "+@newlevel+" WHERE `account_id` = "+@aid;
+atcommand "@reloadgmdb";
+mes "GM level modified successfully.";
+menu "Assign another GM level",L_ADDGM,"Back to main menu",L_GM;
+
+L_INACTIVE:
+mes "This deletes all inactive accounts where the last login is before the specified date.";
+mes "Would you like to delete all inactive accounts?";
+menu "Yes",-,"No",L_GM;
+mes "How many years are players able to remain inactive for?";
+input @year;
+mes "How many months are players able to remain inactive for?";
+input @month;
+mes "How many days are players able to remain inactive for?";
+input @day;
+mes "How many hours are players able to remain inactive for?";
+input @hour;
+mes "How many minutes are players able to remain inactive for?";
+input @minute;
+mes "How many seconds are players able to remain inactive for?";
+input @second;
+query_sql "SELECT NOW() - INTERVAL "+@year+" YEAR - INTERVAL "+@month+" MONTH - INTERVAL "+@day+" DAY - INTERVAL "+@hour+" HOUR - INTERVAL "+@minute+" MINUTE - INTERVAL "+@second+" SECOND", @date$;
+mes "Delete all players inactive for "+@year+" years, "+@month+" months, "+@day+" days, "+@hour+" hours, "+@minute+" minutes, "+@second+" seconds?";
+mes "Delete all accounts with last login before "+@date$+"?";
+menu "Yes",-,"No",L_GM;
+set @accnum, query_sql("SELECT `account_id` FROM `login` WHERE `lastlogin` < '"+escape_sql(@date$)+"'", @aid);
+
+while(@x < @accnum){
+	set @charnum, query_sql("SELECT `char_id` from `char` WHERE `account_id` = "+@aid[@x], @cid);
+
+	while(@i < @charnum){
+		query_sql "DELETE `cart_inventory`, `friends`, `homunculus`, `inventory`, `memo`, `skill` FROM `char` LEFT JOIN `cart_inventory` ON `char`.`char_id` = `cart_inventory`.`char_id` LEFT JOIN `friends` ON `char`.`char_id` = `friends`.`char_id` LEFT JOIN `homunculus` ON `char`.`char_id` = `homunculus`.`char_id` LEFT JOIN `inventory` ON `char`.`char_id` = `inventory`.`char_id` LEFT JOIN `memo` ON `char`.`char_id` = `memo`.`char_id` LEFT JOIN `skill` ON `char`.`char_id` = `skill`.`char_id` WHERE `char`.`char_id` = "+@cid[@i];
+		set @i,@i+1;
+		}
+
+	query_sql "DELETE `char`, `global_reg_value`, `login`, `pet`, `sc_data`, `storage` FROM `login` LEFT JOIN `char` ON `login`.`account_id` = `char`.`account_id` LEFT JOIN `global_reg_value` ON `login`.`account_id` = `global_reg_value`.`account_id` LEFT JOIN `pet` ON `login`.`account_id` = `pet`.`account_id` LEFT JOIN `sc_data` ON `login`.`account_id` = `sc_data`.`account_id` LEFT JOIN `storage` ON `login`.`account_id` = `storage`.`account_id` WHERE `login`.`account_id` = "+@aid[@x];
+	set @x,@x+1;
+	}
+
+mes @accnum+" inactive accounts deleted.";
+next;
+goto L_GM;
+
+L_OLDGUILD:
+mes "This deletes all guilds that belong to non-existant characters.";
+mes "Delete all non-existant guilds?";
+menu "Yes",-,"No",L_GM;
+set @gnum, query_sql("SELECT `guild_id`, `char_id` FROM `guild`", @guild_id, @char_id);
+
+while(@i < @gnum){
+	query_sql "SELECT 1 FROM `char` WHERE `char_id` = "+@char_id[@i]+" && `guild_id` = "+@guild_id[@i], @exist;
+	if(!@exist){
+		query_sql "DELETE LOW_PRIORITY `guild`, `guild_alliance`, `guild_expulsion`, `guild_member`, `guild_position`, `guild_skill`, `guild_storage` FROM `guild` LEFT JOIN `guild_alliance` ON `guild`.`guild_id` = `guild_alliance`.`guild_id` LEFT JOIN `guild_expulsion` ON `guild`.`guild_id` = `guild_expulsion`.`guild_id` LEFT JOIN `guild_member` ON `guild`.`guild_id` = `guild_member`.`guild_id` LEFT JOIN `guild_position` ON `guild`.`guild_id` = `guild_position`.`guild_id` LEFT JOIN `guild_skill` ON `guild`.`guild_id` = `guild_skill`.`guild_id` LEFT JOIN `guild_storage` ON `guild`.`guild_id` = `guild_storage`.`guild_id` WHERE `guild`.`guild_id` = "+@guild_id[@i];
+		set @c,@c+1;
+		}
+	set @i,@i+1;
+	}
+
+mes @c+" non-existant guilds will be deleted once eAthena restarts.";
+next;
+goto L_GM;
+
+L_DATABASE:
+menu "Analyze a table",L_ANALYZE,"Check a table",L_CHECK,"Optimize a table",L_OPTIMIZE,"Repair a table",L_REPAIR;
+
+L_ANALYZE:
+mes "This analyzes and stores the key distribution for a table.";
+mes "Would you like to analyze a single table or the entire database?";
+deletearray @table$, getarraysize(@table$);
+switch(select("Single table","Entire database")){
+	case 1:
+		mes "Which table would you like to analyze?";
+		input @table$;
+		break;
+	case 2:
+		query_sql "SHOW TABLES", @table$;
+		mes "There are "+getarraysize(@table$)+" tables in the database.";
+		next;
+		break;
+	}
+for(set @i, 0; @i < getarraysize(@table$); set @i, @i + 1){
+	query_sql "ANALYZE TABLE `"+escape_sql(@table$[@i])+"`", @table$, @op$, @msg_type$, @msg_text$;
+	mes "Table: "+@table$;
+	mes "Op: "+@op$;
+	mes "Msg type: "+@msg_type$;
+	mes "Msg text: "+@msg_text$;
+	next;
+	}
+menu "Analyze another table",L_ANALYZE,"Back to main menu",L_GM;
+
+L_CHECK:
+mes "This checks a table or tables for errors and can also check views for problems,";
+mes "such as tables that are referenced in the view definition that no longer exist.";
+mes "Would you like to check a single table or the entire database?";
+deletearray @table$, getarraysize(@table$);
+switch(select("Single table","Entire database")){
+	case 1:
+		mes "Which table would you like to check?";
+		input @table$;
+		break;
+	case 2:
+		query_sql "SHOW TABLES", @table$;
+		mes "There are "+getarraysize(@table$)+" tables in the database.";
+		next;
+		break;
+	}
+for(set @i, 0; @i < getarraysize(@table$); set @i, @i + 1){
+	query_sql "CHECK TABLE `"+escape_sql(@table$[@i])+"`", @table$, @op$, @msg_type$, @msg_text$;
+	mes "Table: "+@table$;
+	mes "Op: "+@op$;
+	mes "Msg type: "+@msg_type$;
+	mes "Msg text: "+@msg_text$;
+	next;
+	}
+menu "Check another table",L_CHECK,"Back to main menu",L_GM;
+
+L_OPTIMIZE:
+mes "This reclaims unused space and defragments data files.";
+mes "Would you like to optimize a single table or the entire database?";
+deletearray @table$, getarraysize(@table$);
+switch(select("Single table","Entire database")){
+	case 1:
+		mes "Which table would you like to optimize?";
+		input @table$;
+		break;
+	case 2:
+		query_sql "SHOW TABLES", @table$;
+		mes "There are "+getarraysize(@table$)+" tables in the database.";
+		next;
+		break;
+	}
+for(set @i, 0; @i < getarraysize(@table$); set @i, @i + 1){
+	query_sql "OPTIMIZE TABLE `"+escape_sql(@table$[@i])+"`", @table$, @op$, @msg_type$, @msg_text$;
+	mes "Table: "+@table$;
+	mes "Op: "+@op$;
+	mes "Msg type: "+@msg_type$;
+	mes "Msg text: "+@msg_text$;
+	next;
+	}
+menu "Optimize another table",L_OPTIMIZE,"Back to main menu",L_GM;
+
+L_REPAIR:
+mes "This repairs a possibly corrupted table.";
+mes "Would you like to repair a single table or the entire database?";
+deletearray @table$, getarraysize(@table$);
+switch(select("Single table","Entire database")){
+	case 1:
+		mes "Which table would you like to repair?";
+		input @table$;
+		break;
+	case 2:
+		query_sql "SHOW TABLES", @table$;
+		mes "There are "+getarraysize(@table$)+" tables in the database.";
+		next;
+		break;
+	}
+for(set @i, 0; @i < getarraysize(@table$); set @i, @i + 1){
+	query_sql "REPAIR TABLE `"+escape_sql(@table$[@i])+"`", @table$, @op$, @msg_type$, @msg_text$;
+	mes "Table: "+@table$;
+	mes "Op: "+@op$;
+	mes "Msg type: "+@msg_type$;
+	mes "Msg text: "+@msg_text$;
+	next;
+	}
+menu "Repair another table",L_REPAIR,"Back to main menu",L_GM;
+
+}

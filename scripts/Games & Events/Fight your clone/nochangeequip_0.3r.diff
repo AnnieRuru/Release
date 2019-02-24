@@ -1,0 +1,121 @@
+//===== rAthena Patch =======================================
+//= Fight Your Clone
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.3
+//===== Compatible With: =====================================
+//= rAthena 2018-04-28
+//===== Description: =========================================
+//= Fight Your Clone and survive as much as possible
+//===== Additional Comments: =================================
+//= it seems even without the patch, the server can crash when instance_destroy
+//============================================================
+
+ db/re/instance_db.txt |  2 ++
+ src/map/map.hpp       |  1 +
+ src/map/npc.cpp       |  2 ++
+ src/map/pc.cpp        | 10 ++++++++++
+ src/map/script.cpp    |  4 ++++
+ 5 files changed, 19 insertions(+)
+
+diff --git a/db/re/instance_db.txt b/db/re/instance_db.txt
+index d6db555..edb05a9 100644
+--- a/db/re/instance_db.txt
++++ b/db/re/instance_db.txt
+@@ -26,3 +26,5 @@
+ 21,Fenrir and Sarah,3600,300,1@glast,367,304
+ 26,Central Laboratory,3600,300,1@lab,120,30
+ 27,Last room,3600,300,1@uns,142,30
++
++28,Fight Your Clone,86400,10,guild_vs2,49,49
+\ No newline at end of file
+diff --git a/src/map/map.hpp b/src/map/map.hpp
+index c649721..c3b3e4d 100644
+--- a/src/map/map.hpp
++++ b/src/map/map.hpp
+@@ -695,6 +695,7 @@ struct map_data {
+ #ifdef ADJUST_SKILL_DAMAGE
+ 		unsigned skill_damage : 1;
+ #endif
++		unsigned nochangeequip : 1;
+ 	} flag;
+ 	struct point save;
+ 	struct npc_data *npc[MAX_NPC_PER_MAP];
+diff --git a/src/map/npc.cpp b/src/map/npc.cpp
+index ca9c2d7..2dabda8 100644
+--- a/src/map/npc.cpp
++++ b/src/map/npc.cpp
+@@ -4252,6 +4252,8 @@ static const char* npc_parse_mapflag(char* w1, char* w2, char* w3, char* w4, con
+ 		ShowInfo("npc_parse_mapflag: skill_damage: ADJUST_SKILL_DAMAGE is inactive (core.h). Skipping this mapflag..\n");
+ #endif
+ 	}
++	else if (!strcmpi(w3,"nochangeequip"))
++		map[m].flag.nochangeequip = state;
+ 	else
+ 		ShowError("npc_parse_mapflag: unrecognized mapflag '%s' (file '%s', line '%d').\n", w3, filepath, strline(buffer,start-buffer));
+ 
+diff --git a/src/map/pc.cpp b/src/map/pc.cpp
+index 23dbff4..5640796 100755
+--- a/src/map/pc.cpp
++++ b/src/map/pc.cpp
+@@ -9751,6 +9751,11 @@ bool pc_equipitem(struct map_session_data *sd,short n,int req_pos)
+ 		return false;
+ 	pos = pc_equippoint(sd,n); //With a few exceptions, item should go in all specified slots.
+ 
++	if ( map[ sd->bl.m ].flag.nochangeequip ) {
++		clif_displaymessage( sd->fd, "You are not allow to change equipment in this map." );
++		return 0;
++	}
++
+ 	if(battle_config.battle_log)
+ 		ShowInfo("equip %hu (%d) %x:%x\n",sd->inventory.u.items_inventory[n].nameid,n,id?id->equip:0,req_pos);
+ 
+@@ -9948,6 +9953,11 @@ bool pc_unequipitem(struct map_session_data *sd, int n, int flag) {
+ 
+ 	nullpo_retr(false,sd);
+ 
++	if ( map[ sd->bl.m ].flag.nochangeequip ) {
++		clif_displaymessage( sd->fd, "You are not allow to change equipment in this map." );
++		return 0;
++	}
++
+ 	if (n < 0 || n >= MAX_INVENTORY) {
+ 		clif_unequipitemack(sd,0,0,0);
+ 		return false;
+diff --git a/src/map/script.cpp b/src/map/script.cpp
+index dd834b0..1e5b3f4 100644
+--- a/src/map/script.cpp
++++ b/src/map/script.cpp
+@@ -479,6 +479,7 @@ enum {
+ 	MF_GVG_TE_CASTLE,
+ 	MF_GVG_TE,
+ 	MF_HIDEMOBHPBAR,
++	MF_NOCHANGEEQUIP,
+ };
+ 
+ const char* script_op2name(int op)
+@@ -12376,6 +12377,7 @@ BUILDIN_FUNC(getmapflag)
+ 			case MF_GVG_TE_CASTLE:		script_pushint(st,map[m].flag.gvg_te_castle); break;
+ 			case MF_GVG_TE:				script_pushint(st,map[m].flag.gvg_te); break;
+ 			case MF_HIDEMOBHPBAR:		script_pushint(st,map[m].flag.hidemobhpbar); break;
++			case MF_NOCHANGEEQUIP:		script_pushint(st,map[m].flag.nochangeequip); break;
+ #ifdef ADJUST_SKILL_DAMAGE
+ 			case MF_SKILL_DAMAGE:
+ 				{
+@@ -12500,6 +12502,7 @@ BUILDIN_FUNC(setmapflag)
+ 				clif_map_property_mapall(m, MAPPROPERTY_AGITZONE);
+ 				break;
+ 			case MF_HIDEMOBHPBAR:		map[m].flag.hidemobhpbar = 1; break;
++			case MF_NOCHANGEEQUIP:		map[m].flag.nochangeequip = 1; break;
+ #ifdef ADJUST_SKILL_DAMAGE
+ 			case MF_SKILL_DAMAGE:
+ 				{
+@@ -12608,6 +12611,7 @@ BUILDIN_FUNC(removemapflag)
+ 				clif_map_property_mapall(m, MAPPROPERTY_NOTHING);
+ 				break;
+ 			case MF_HIDEMOBHPBAR:		map[m].flag.hidemobhpbar = 0; break;
++			case MF_NOCHANGEEQUIP:		map[m].flag.nochangeequip = 0; break;
+ #ifdef ADJUST_SKILL_DAMAGE
+ 			case MF_SKILL_DAMAGE:
+ 				{

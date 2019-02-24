@@ -1,0 +1,38 @@
+-	script	Mail Test	-1,{
+OnInit:
+	bindatcmd "test", strnpcinfo(0)+"::Ontest";
+	end;
+Ontest:
+	.@cid = getcharid(0);
+	.@sender$ = "AnnieRuru";
+	.@title$ = .@atcmd_command$ +" "+ .@atcmd_parameters$;
+	.@msg$ = "testing 1...2...3...";
+	.@zeny = 999;
+	.@itemid = 1201;
+	.@amount = 1;
+	.@refine = 5;
+	.@attribute = 0;
+	.@card0 = 4001;
+	.@card1 = 4002;
+	.@card2 = 4003;
+	.@card3 = 4004;
+	switch ( atoi( .@atcmd_parameters$ ) ) {
+	case 1:
+		sendmail .@cid, .@sender$, .@title$, .@msg$;
+		break;
+	case 2:
+		sendmail .@cid, .@sender$, .@title$, .@msg$, .@zeny;
+		break;
+	case 3:
+		sendmail .@cid, .@sender$, .@title$, .@msg$, .@zeny, .@itemid;
+		break;
+	case 4:
+		sendmail .@cid, .@sender$, .@title$, .@msg$, .@zeny, .@itemid, .@amount, .@refine, .@attribute, .@card0, .@card1, .@card2, .@card3;
+		break;
+	case 5:
+		sendmail .@cid, .@sender$, .@title$, .@msg$, .@zeny, "Rod", .@amount, .@refine, .@attribute, .@card0, .@card1, .@card2, .@card3;
+		break;
+	default:
+	}
+	end;
+}

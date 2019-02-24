@@ -1,0 +1,195 @@
+//	https://rathena.org/board/topic/115744-a-battleground-idea-d/
+
+// reference ... just cut&paste from these topics
+// http://herc.ws/board/topic/15913-annieruru-emp-bg/
+// http://herc.ws/board/topic/11651-request-a-bg-score-system/
+// https://rathena.org/board/topic/115504-bg_warp-and-instance_enter-are-equals/
+// http://herc.ws/board/topic/15825-custom_bg-3ceam/
+// https://rathena.org/board/topic/75477-custom-bg/
+// https://rathena.org/board/topic/72372-bg-type-emperium-breaking/
+// https://rathena.org/board/topic/115076-annieruru-bg_emp05/
+
+function	script	F_ShuffleNumbers	{
+	deletearray getarg(2);
+	.@static = getarg(0);
+	.@range = getarg(1) +1 - .@static;
+	.@count = getarg(3, .@range);
+	if (.@range <= 0 || .@count <= 0)
+		return 0;
+	if (.@count > .@range)
+		.@count = .@range;
+	for (.@i = 0; .@i < .@range; ++.@i)
+		.@temparray[.@i] = .@i;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@rand = rand(.@range);
+		set getelementofarray( getarg(2), .@i ), .@temparray[.@rand] + .@static;
+		.@temparray[.@rand] = .@temparray[--.@range];
+	}
+	return .@count;
+}
+
+prontera,150,185,5	script	bg_assassination	1_F_MARIA,{
+	if ( .start ) {
+		mes "battleground in progress...";
+		close;
+	}
+	while ( .aid[.@i] != getcharid(3) && .@i < .size ) ++.@i;
+	if ( .@i < .size ) {
+		mes "You already join the queue.";
+		close;
+	}
+	select "join";
+	mes "you have to stick to this map";
+	close2;
+	.aid[ .size++ ] = getcharid(3);
+	for ( .@i = 0; .@i < .size; ++.@i ) {
+		if ( !isloggedin( .aid[.@i] ) ) {
+			deletearray .aid[.@i], 1;
+			--.@i;
+			--.size;
+		}
+		else {
+			attachrid .aid[.@i];
+			if ( strcharinfo(3) != strnpcinfo(4) ) {
+				deletearray .aid[.@i], 1;
+				--.@i;
+				--.size;
+			}
+		}
+	}
+	detachrid;
+	if ( .size < .minplayer2start *2 ) {
+		announce .size +" players join", bc_npc | bc_area;
+		end;
+	}
+	.start = true;
+	.red = bg_create( "bat_c01",53,128, strnpcinfo(0)+"::OnRedQuit", strnpcinfo(0)+"::OnRedDead" );
+	.blue = bg_create( "bat_c01",146,56, strnpcinfo(0)+"::OnBlueQuit", strnpcinfo(0)+"::OnBlueDead" );
+	callfunc "F_ShuffleNumbers", 0, .size -1, .@r;
+	for ( .@i = 0; .@i < .size; ++.@i ) {
+		attachrid .aid[ .@r[.@i] ];
+		bg_join ( .@i % 2 )? .red : .blue;
+	}
+	detachrid;
+	deletearray .aid;
+	.size = 0;
+	bg_warp .red, "bat_c01", 53,128;
+	bg_warp .blue, "bat_c01", 146,56;
+	setwall "bat_c01", 54,122, 6, DIR_NORTHEAST, 0, "bg_pvp_leader_red";
+	setwall "bat_c01", 140,56, 6, DIR_NORTHEAST, 0, "bg_pvp_leader_blue";
+	if ( !.skip ) sleep 10000;
+	bg_updatescore "bat_c01", .score[ .red ], .score[ .blue ];
+	while ( true ) {
+		for ( .@i = 5; .@i > 0; --.@i ) {
+			mapannounce "bat_c01", "["+ .@i +"]", bc_map;
+			if ( !.skip ) sleep 1000;
+		}
+		if ( .score[ .red ] == .winningscore -1 && .score[ .blue ] == .winningscore -1 )
+			mapannounce "bat_c01", "Final Round start!", bc_map;
+		else
+			mapannounce "bat_c01", "Round "+ ++.round +" start!", bc_map;
+		callsub L_SetLeader, .red, "Red";
+		callsub L_SetLeader, .blue, "Blue";
+		detachrid;
+		delwall "bg_pvp_leader_red";
+		delwall "bg_pvp_leader_blue";
+		if ( !.skip ) sleep .eventlasting * 1000;
+		deletearray .leader_aid;
+		bg_updatescore "bat_c01", .score[ .red ], .score[ .blue ];
+		if ( .score[ .red ] == .winningscore || .score[ .blue ] == .winningscore || !.winside ) break;
+		.winside = 0;
+		if ( !.skip ) sleep 1000;
+		bg_warp .red, "bat_c01", 53,128;
+		bg_warp .blue, "bat_c01", 146,56;
+		setwall "bat_c01", 54,122, 6, DIR_NORTHEAST, 0, "bg_pvp_leader_red";
+		setwall "bat_c01", 140,56, 6, DIR_NORTHEAST, 0, "bg_pvp_leader_blue";
+	}
+	if ( .score[ .red ] > .score[ .blue ] ) {
+		mapannounce "bat_c01", "- Red side wins !", bc_map;
+		bg_get_data .red, 1;
+		for ( .@i = 0; .@i < $@arenamemberscount; ++.@i )
+			getitem .rewarditem[0], .rewarditem[1], $@arenamembers[.@i];
+	}
+	else if ( .score[ .blue ] > .score[ .red ] ) { 
+		mapannounce "bat_c01", "- Blue side wins !", bc_map;
+		bg_get_data .blue, 1;
+		for ( .@i = 0; .@i < $@arenamemberscount; ++.@i )
+			getitem .rewarditem[0], .rewarditem[1], $@arenamembers[.@i];
+	}
+	else
+		mapannounce "bat_c01", "Time Out. Aborting the match.", bc_map;
+	sleep 5000;
+	bg_warp .red, "prontera", 145,182;
+	bg_warp .blue, "prontera", 155,182;
+	bg_destroy .red;
+	bg_destroy .blue;
+	.round = .winside = .skip = .start = 0;
+	deletearray .score;
+	end;
+OnInit:
+	.minplayer2start = 1;      // minimum players to start (ex. if 3vs3, set to 3).
+	.winningscore = 2;         // how many rounds to win
+	.eventlasting    = 20*60;  // event duration before auto-reset (20 minutes * seconds)
+	setarray .rewarditem[0],   // rewards for the winning team: <item>,<amount>,...
+		501, 10;
+	end;
+OnRedDead: callsub L_Dead, .red, "Red", .blue;
+OnBlueDead: callsub L_Dead, .blue, "Blue", .red;
+L_Dead:
+	if ( .leader_aid[ getarg(0) ] == getcharid(3) ) {
+		if ( killerrid == getcharid(3) )
+			mapannounce "bat_c01", "The target ["+ strcharinfo(0) +"] From "+ getarg(1) +" Team has suicide !", bc_map;
+		else if ( killerrid )
+			mapannounce "bat_c01", "The target ["+ strcharinfo(0) +"] From "+ getarg(1) +" Team has assassinated by ["+ rid2name(killerrid) +"] !", bc_map;
+		else
+			mapannounce "bat_c01", "The target ["+ strcharinfo(0) +"] From "+ getarg(1) +" Team has been killed !", bc_map;
+		.winside = getarg(2);
+		++.score[ .winside ];
+		awake strnpcinfo(0);
+	}
+	sleep2 1250;
+	percentheal 100,100;
+	end;
+OnRedQuit: callsub L_Quit, .red, "Red", .blue;
+OnBlueQuit: callsub L_Quit, .blue, "Blue", .red;
+L_Quit:
+	percentheal 100, 100;
+	bg_leave;
+	if ( !bg_get_data( getarg(0), 0 ) ) {
+		mapannounce "bat_c01", "All "+ getarg(1) +" Team members has left the Game !", bc_map;
+		.score[ getarg(2) ] = .winningscore;
+		.skip = true;
+		awake strnpcinfo(0);
+	}
+	else if ( .leader_aid[ getarg(0) ] == getcharid(3) ) {
+		mapannounce "bat_c01", "The target ["+ strcharinfo(0) +"] From "+ getarg(1) +" Team has left the Game !", bc_map;
+		.winside = getarg(2);
+		++.score[ .winside ];
+		awake strnpcinfo(0);
+	}
+	end;
+L_SetLeader:
+	bg_get_data getarg(0), 1;
+	.leader_aid[ getarg(0) ] = $@arenamembers[ rand( $@arenamemberscount ) ];
+	attachrid .leader_aid[ getarg(0) ];
+	addtimer 1, strnpcinfo(0) +"::OnSetTeam"+ getarg(1) +"Leader";
+	return;
+OnSetTeamRedLeader: callsub L_LeaderEffect, .red, EF_RED_HIT;
+OnSetTeamBlueLeader: callsub L_LeaderEffect, .blue, EF_BLUE_HIT;
+L_LeaderEffect:
+	while ( .leader_aid[ getarg(0) ] == getcharid(3) ) {
+		specialeffect2 getarg(1);
+		sleep2 1000;
+	}
+	end;
+}
+
+bat_c01	mapflag	battleground	2
+bat_c01	mapflag	nosave	SavePoint
+bat_c01	mapflag	nowarp
+bat_c01	mapflag	nowarpto
+bat_c01	mapflag	noteleport
+bat_c01	mapflag	nomemo
+bat_c01	mapflag	nopenalty
+bat_c01	mapflag	nobranch
+bat_c01	mapflag	noicewall

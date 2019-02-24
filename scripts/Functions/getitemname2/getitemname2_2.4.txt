@@ -1,0 +1,768 @@
+//===== Hercules Script =====================================
+//= [Function] getitemname2
+//===== By: =================================================
+//= AnnieRuru
+//===== Current Version: ====================================
+//= 2.4
+//===== Compatible With: ====================================
+//= hercules 2015-11-27
+//===== Description: ========================================
+//= custom function to show item names just like in game
+//===== Topic: ==============================================
+//= http://herc.ws/board/topic/11275-getitemname2/
+//===== Additional Comments: ================================
+//= callfunc( "getitemname2", ItemID, Identify, Refine, Broken, Card1, Card2, Card3, Card4 {, Bound } )
+//= it also creates a player array : @itemname2_info$
+//= [0] = color
+//=     ^000000 (black)  = normal equipment/items
+//=     ^999999 (gray)   = unidentify equipment
+//=     ^FF0000 (red)    = broken equipment
+//=     ^66CC00 (green)  = enchanted equipment (1)
+//=     ^0066CC (blue)   = enchanted equipment (2)
+//=     ^CC6600 (brown)  = enchanted equipment (3)
+//=     ^CC44CC (purple) = enchanted equipment (4)
+//=     ^CCCC00 (yellow) = bounded equipment
+//= [1] = ID information
+//=     Equipment = Char ID
+//=     Pet egg = Pet ID
+//= [2] = return full item name if unidentified ( used in unidentified items only )
+//= [3] = amount of star crumb used, return in number ( used in crafted item only )
+//= [4] = weapon element, return in string ( used in crafted item only )
+//= [5] = bound type, return in string
+//===========================================================
+/*
+//	for testing only
+prontera,152,188,5	script	test getitemname2	1_F_MARIA,{
+	//	debug
+	setarray .@a, 1203,1,4,0, 4001,4001,4859,4701;
+	mes @itemname2_info$ + callfunc("getitemname2", .@a[0],.@a[1],.@a[2],.@a[3], .@a[4],.@a[5],.@a[6],.@a[7]);
+	getitem2 .@a[0],1,.@a[1],.@a[2],.@a[3], .@a[4],.@a[5],.@a[6],.@a[7];
+	getinventorylist;
+	mes "^000000=== Total items : "+ @inventorylist_count +" ===";
+	.@i = 0;
+	while ( .@i < @inventorylist_count ) {
+		.@itemname$ = callfunc( "getitemname2", @inventorylist_id[.@i], @inventorylist_identify[.@i], @inventorylist_refine[.@i], @inventorylist_attribute[.@i], @inventorylist_card1[.@i], @inventorylist_card2[.@i], @inventorylist_card3[.@i], @inventorylist_card4[.@i], @inventorylist_bound[.@i]);
+		dispbottom .@itemname$ +": "+ @inventorylist_amount[.@i] +" ea." + @inventorylist_identify[.@i] +" "+ @inventorylist_attribute[.@i];
+		.@menu$ = .@menu$ + @itemname2_info$ + .@itemname$ +"; "+ @inventorylist_amount[.@i] +" ea.:";
+		.@i++;
+	}
+	.@s = select(.@menu$) -1;
+	mes @itemname2_info$[0] + callfunc( "getitemname2", @inventorylist_id[.@s], @inventorylist_identify[.@s], @inventorylist_refine[.@s], @inventorylist_attribute[.@s], @inventorylist_card1[.@s], @inventorylist_card2[.@s], @inventorylist_card3[.@s], @inventorylist_card4[.@s], @inventorylist_bound[.@s] ) +": "+ @inventorylist_amount[.@s] +" ea.^000000";
+	if ( getstrlen( @itemname2_info$[1] ) )
+		mes "ID = "+ @itemname2_info$[1];
+	if ( getstrlen( @itemname2_info$[2] ) )
+		mes "Full name = "+ @itemname2_info$[2];
+	if ( getstrlen( @itemname2_info$[3] ) )
+		mes "start crumb = "+ @itemname2_info$[3];
+	if ( getstrlen( @itemname2_info$[4] ) )
+		mes "weapon element = "+ @itemname2_info$[4];
+	if ( getstrlen( @itemname2_info$[5] ) )
+		mes "bound type = "+ @itemname2_info$[5];
+	close;
+}
+*/
+function	script	getitemname2	{
+	freeloop true;
+	deletearray @itemname2_info$;
+	.@id = getarg(0);
+	.@type = getiteminfo( .@id, 2 );
+	.@refine = getarg(2);
+	.@card[0] = getarg(4);
+	.@card[1] = getarg(5);
+	.@card[2] = getarg(6);
+	.@card[3] = getarg(7);
+	.@bound = getarg(8,0);
+	.@ref$ = ( .@refine )? "+"+ .@refine +" " : "" ; // I think no need refinement check for type 4 or 5, the source automatically convert refined etc items into no refinement
+	.@slots$ = ( .@slot = getitemslots( .@id ) )? " ["+ .@slot +"]" : "" ;
+
+	if ( .@bound ) {
+		@itemname2_info$[0] = "^CCAA00"; // this condition always get overwritten ...
+		if ( .@bound == 1 ) @itemname2_info$[5] = "Account";
+		else if ( .@bound == 2 ) @itemname2_info$[5] = "Guild";
+		else if ( .@bound == 3 ) @itemname2_info$[5] = "Party";
+		else if ( .@bound == 4 ) @itemname2_info$[5] = "Character";
+	}
+
+	if ( .@type != IT_WEAPON && .@type != IT_ARMOR && .@card[0] != 254 ) { // non-equipable item that isn't signed
+		.@pid = .@card[1] + ( ( .@card[1] >= 0 )? 0 : 1 << 16 ) + .@card[2] * ( 1 << 16 );
+		@itemname2_info$[1] = ( .@pid )? .@pid : "";
+		.@return$ = getitemname( .@id );
+	}
+	else if ( ( .@type == IT_WEAPON || .@type == IT_ARMOR ) && !.@card[0] && !.@card[1] && !.@card[2] && !.@card[3] ) // equipment with no card, for reduce gotocount
+		.@return$ = .@ref$ + getitemname( .@id ) + .@slots$;
+	else if ( ( .@type == IT_WEAPON || .@type == IT_ARMOR ) && ( .@card[0] || .@card[1] || .@card[2] || .@card[3] ) && .@card[0] != 254 && .@card[0] != 255 ) { // equipment that has cards, but not a signed item
+		.@string$ = "#"+ .@card[0] +"##"+ .@card[1] +"##"+ .@card[2] +"##"+ .@card[3] +"#";
+		.@i = 0;
+		while ( .@i < 4 ) {
+			if ( !compare( .@counted$, "#"+ .@card[.@i] +"#" ) ) {
+				.@cnt[.@i] = countstr( .@string$, "#"+ .@card[.@i] +"#" );
+				.@counted$ = .@counted$ +"#"+ .@card[.@i] +"#";
+			}
+			if ( getstrlen( $@cardprefix$[.@card[.@i]] ) && .@cnt[.@i] ) {
+				if ( .@cnt[.@i] == 2 )
+					.@cnt$[.@i] = "Double";
+				else if ( .@cnt[.@i] == 3 )
+					.@cnt$[.@i] = "Triple";
+				else if ( .@cnt[.@i] == 4 )
+					.@cnt$[.@i] = "Quadruple";
+				if ( !compare( $@cardprefix$[.@card[.@i]], "of " ) )
+					.@prefix$ = .@prefix$ + .@cnt$[.@i] +( ( getstrlen(.@cnt$[.@i]) )? " ": "" )+ $@cardprefix$[.@card[.@i]] +" ";
+				else
+					.@postfix$ = .@postfix$ +" "+ $@cardprefix$[.@card[.@i]] +( ( getstrlen(.@cnt$[.@i]) )? " ": "" )+ .@cnt$[.@i];
+			}
+			.@enchant = .@enchant + ( .@card[.@i] && .@i >= .@slot && ( .@card[.@i] /100 ) != 47 && ( .@card[.@i] /100 ) != 48 );
+			.@i++;
+		}
+		if ( .@enchant == 1 )
+			@itemname2_info$[0] = "^66CC00";
+		else if ( .@enchant == 2 )
+			@itemname2_info$[0] = "^0066CC";
+		else if ( .@enchant == 3 )
+			@itemname2_info$[0] = "^CC6600";
+		else if ( .@enchant == 4 )
+			@itemname2_info$[0] = "^CC44CC";
+		.@return$ = .@ref$ + .@prefix$ + getitemname( .@id ) + .@postfix$ + .@slots$;
+	}
+	else if ( .@card[0] == 254 || .@card[0] == 255 ) { // signed items
+		.@cid = @itemname2_info$[1] = .@card[2] + ( ( .@card[2] >= 0 )? 0 : 1 << 16 ) + .@card[3] * ( 1 << 16 );
+		if ( !query_sql("select name from `char` where char_id = "+ .@cid, .@name$) )
+			.@name$ = "Unknown";
+		.@sc = .@card[1] / 10;
+		if ( .@sc == 128 ) {
+			.@sc$ = "Very Strong ";
+			@itemname2_info$[3] = "1";
+		}
+		else if ( .@sc == 256 ) {
+			.@sc$ = "Very Very Strong ";
+			@itemname2_info$[3] = "2";
+		}
+		else if ( .@sc == 384 ) {
+			.@sc$ = "Very Very Very Strong ";
+			@itemname2_info$[3] = "3";
+		}
+		.@ele = .@card[1] % 10;
+		if ( .@ele == 1 )
+			.@ele$ = @itemname2_info$[4] = "Ice ";
+		else if ( .@ele == 2 )
+			.@ele$ = @itemname2_info$[4] = "Earth ";
+		else if ( .@ele == 3 )
+			.@ele$ = @itemname2_info$[4] = "Fire ";
+		else if ( .@ele == 4 )
+			.@ele$ = @itemname2_info$[4] = "Wind ";
+		.@return$ = .@ref$ + .@sc$ + .@name$ +"'s "+ .@ele$ + getitemname( .@id );
+	}
+
+	if ( !getarg(1) ) { // unidentified
+		if ( .@type == IT_ARMOR ) {
+			@itemname2_info$[0] = "^999999";
+			@itemname2_info$[2] = .@return$;
+			.@loc = getiteminfo( .@id, 5 );
+			.@return$ = // TODO : where to get this stuff already ??
+				( .@loc & 769 )?
+					// from top to bottom : Signpost, Ear Muff, Poo Poo Hat, Funeral Hat, Antenna, Egg Shell, Cap, Sheep Hat, Red Nose, Moustache, Bandana, Flower, Ribbon, Headband, Masquerade, Mask, Glasses, Hairband, Accessory, Else Hat
+					( .@id == 2272 )? "Signpost" :
+					( .@id == 2283 )? "Ear Muffs" :
+					( .@id == 2289 )? "Poo Poo Hat" :
+					( .@id == 2290 )? "Funeral Hat" :
+					( .@id == 5011 )? "Antenna" :
+					( .@id == 5015 )? "Egg Shell" :
+					( .@id == 5370 )? "Cap" :
+					( .@id == 5133 )? "Sheep Hat" :
+					( .@id == 2262 || .@id == 5204 )? "Red Nose" :
+					( .@id == 5373 || .@id == 5374 || .@id == 5375 )? "Helm" :
+					( .@id == 2237 || .@id == 2238 || .@id == 2240 || .@id == 2241 )? "Moustache" :
+					( .@id == 2211 || .@id == 2287 || .@id == 5350 || .@id == 5661 )? "Bandana" :
+					( .@id == 2207 || .@id == 2253 || .@id == 712 || .@id == 10009 || .@id == 5351 || .@id == 11712 )? "Flower" :
+					( .@id == 5220 || .@id == 5221 || .@id == 5315 || .@id == 2715 || .@id == 5382 || .@id == 5600 )? "Ribbon" :
+					( .@id == 5210 || .@id == 5212 || .@id == 5213 || .@id == 5215 || .@id == 5216 || .@id == 5218 )? "Headband" :
+					( .@id == 2278 || .@id == 2281 || .@id == 2297 || .@id == 5086 || .@id == 5087 || .@id == 5088 || .@id == 5089 || .@id == 5090 || .@id == 5121 || .@id == 5130 || .@id == 5143 || .@id == 5176 || .@id == 5309 || .@id == 5314 || .@id == 5326 || .@id == 5332 || .@id == 5397 || .@id == 5566 || .@id == 5475 )? "Masquerade" :
+					( .@id == 2218 || .@id == 2219 || .@id == 2265 || .@id == 2266 || .@id == 5004 || .@id == 2288 || .@id == 2292 || .@id == 5005 || .@id == 10002 || .@id == 5054 || .@id == 5096 || .@id == 5098 || .@id == 5272 || .@id == 5294 || .@id == 5461 || .@id == 5485 || .@id == 5565 || .@id == 5482 || .@id == 5483 || .@id == 5577 )? "Mask" :
+					( .@id == 2201 || .@id == 2202 || .@id == 2203 || .@id == 2204 || .@id == 2205 || .@id == 2212 || .@id == 2239 || .@id == 2242 || .@id == 2243 || .@id == 2260 || .@id == 2263 || .@id == 2271 || .@id == 2276 || .@id == 2291 || .@id == 2296 || .@id == 5006 || .@id == 10014 || .@id == 5288 || .@id == 5325 || .@id == 5401 )? "Glasses" :
+					( .@id == 2210 || .@id == 2213 || .@id == 2214 || .@id == 2215 || .@id == 2250 || .@id == 2254 || .@id == 2255 || .@id == 2273 || .@id == 2274 || .@id == 2275 || .@id == 2282 || .@id == 2295 || .@id == 5010 || .@id == 5057 || .@id == 5070 || .@id == 5071 || .@id == 5082 || .@id == 5101 || .@id == 5104 || .@id == 5118 || .@id == 5125 || .@id == 5207 || .@id == 5256 || .@id == 5257 || .@id == 5269 || .@id == 5286 || .@id == 5803 || .@id == 5301 || .@id == 5310 || .@id == 5320 || .@id == 5321 || .@id == 5329 || .@id == 5357 || .@id == 5376 || .@id == 5411 || .@id == 5436 || .@id == 5438 || .@id == 5439 || .@id == 5440 || .@id == 5441 || .@id == 5442 || .@id == 5547 || .@id == 5553 || .@id == 5360 || .@id == 5585 || .@id == 5678 || .@id == 5470 )? "Hairband" :
+					( .@id == 2208 || .@id == 2209 || .@id == 2267 || .@id == 2268 || .@id == 2269 || .@id == 2270 || .@id == 2279 || .@id == 2286 || .@id == 2294 || .@id == 2298 || .@id == 2601 || .@id == 2602 || .@id == 2603 || .@id == 2604 || .@id == 2605 || .@id == 2607 || .@id == 2608 || .@id == 2609 || .@id == 2610 || .@id == 2611 || .@id == 2612 || .@id == 2613 || .@id == 2614 || .@id == 2615 || .@id == 2616 || .@id == 2617 || .@id == 2618 || .@id == 2619 || .@id == 2620 || .@id == 5008 || .@id == 5013 || .@id == 2621 || .@id == 2622 || .@id == 2623 || .@id == 2624 || .@id == 2625 || .@id == 2626 || .@id == 2627 || .@id == 2628 || .@id == 10004 || .@id == 10005 || .@id == 10007 || .@id == 10011 || .@id == 10013 || .@id == 10015 || .@id == 10016 || .@id == 2629 || .@id == 2630 || .@id == 5061 || .@id == 5063 || .@id == 5064 || .@id == 5068 || .@id == 5074 || .@id == 5077 || .@id == 5079 || .@id == 5083 || .@id == 5085 || .@id == 2638 || .@id == 2639 || .@id == 2641 || .@id == 5102 || .@id == 2642 || .@id == 2643 || .@id == 2645 || .@id == 2648 || .@id == 2649 || .@id == 2650 || .@id == 2651 || .@id == 2652 || .@id == 2653 || .@id == 2654 || .@id == 2655 || .@id == 2656 || .@id == 5107 || .@id == 5110 || .@id == 5113 || .@id == 5117 || .@id == 2659 || .@id == 2660 || .@id == 2661 || .@id == 2662 || .@id == 2663 || .@id == 2664 || .@id == 2667 || .@id == 5139 || .@id == 5140 || .@id == 2668 || .@id == 5153 || .@id == 2670 || .@id == 5154 || .@id == 5155 || .@id == 5156 || .@id == 2671 || .@id == 5175 || .@id == 2672 || .@id == 2673 || .@id == 5191 || .@id == 5192 || .@id == 5193 || .@id == 5194 || .@id == 5195 || .@id == 5196 || .@id == 5197 || .@id == 2674 || .@id == 2675 || .@id == 5206 || .@id == 2676 || .@id == 5801 || .@id == 5277 || .@id == 5278 || .@id == 2701 || .@id == 2702 || .@id == 2703 || .@id == 2686 || .@id == 2687 || .@id == 2688 || .@id == 2689 || .@id == 2690 || .@id == 2691 || .@id == 2692 || .@id == 2693 || .@id == 2694 || .@id == 2695 || .@id == 2696 || .@id == 2697 || .@id == 2698 || .@id == 2699 || .@id == 2704 || .@id == 2705 || .@id == 5285 || .@id == 5305 || .@id == 5804 || .@id == 5244 || .@id == 5245 || .@id == 5248 || .@id == 5249 || .@id == 5250 || .@id == 5251 || .@id == 5311 || .@id == 5322 || .@id == 2709 || .@id == 2710 || .@id == 2712 || .@id == 2728 || .@id == 2729 || .@id == 2730 || .@id == 2731 || .@id == 2732 || .@id == 2716 || .@id == 2717 || .@id == 2718 || .@id == 2719 || .@id == 2720 || .@id == 2721 || .@id == 2722 || .@id == 2723 || .@id == 2724 || .@id == 2725 || .@id == 2726 || .@id == 2727 || .@id == 2714 || .@id == 5358 || .@id == 5361 || .@id == 5362 || .@id == 2737 || .@id == 5377 || .@id == 2742 ||				 .@id == 2751 || .@id == 2743 || .@id == 2744 || .@id == 2745 || .@id == 2746 || .@id == 2747 || .@id == 2748 || .@id == 2749 || .@id == 2765 || .@id == 2766 || .@id == 2767 || .@id == 2768 || .@id == 2769 || .@id == 2770 || .@id == 2771 || .@id == 2775 || .@id == 5462 || .@id == 5463 || .@id == 5444 || .@id == 5445 || .@id == 5446 || .@id == 2783 || .@id == 2784 || .@id == 2785 || .@id == 2786 || .@id == 10028 || .@id == 10029 || .@id == 10030 || .@id == 10031 || .@id == 10032 || .@id == 10033 || .@id == 10034 || .@id == 10035 || .@id == 10036 || .@id == 2787 || .@id == 2788 || .@id == 2789 || .@id == 2790 || .@id == 2791 || .@id == 2792 || .@id == 2793 || .@id == 5823 || .@id == 5820 || .@id == 5821 || .@id == 2794 || .@id == 2795 || .@id == 5521 || .@id == 2799 || .@id == 2800 || .@id == 2801 || .@id == 2802 || .@id == 2803 || .@id == 2804 || .@id == 2805 || .@id == 2806 || .@id == 2807 || .@id == 2798 || .@id == 5532 || .@id == 2815 || .@id == 5548 || .@id == 5574 || .@id == 5576 || .@id == 2828 || .@id == 5592 || .@id == 2830 || .@id == 2831 || .@id == 5594 || .@id == 5596 || .@id == 5597 || .@id == 5681 || .@id == 2845 || .@id == 2843 || .@id == 2844 || .@id == 2853 || .@id == 2854 || .@id == 2632 || .@id == 2633 )? "Accessory" :
+					( .@id == 2206 || .@id == 2216 || .@id == 2217 || .@id == 2220 || .@id == 2221 || .@id == 2222 || .@id == 2223 || .@id == 2226 || .@id == 2227 || .@id == 2236 || .@id == 2244 || .@id == 2245 || .@id == 2247 || .@id == 2248 || .@id == 2251 || .@id == 2252 || .@id == 2277 || .@id == 2280 || .@id == 5003 || .@id == 5012 || .@id == 5016 || .@id == 5018 || .@id == 5019 || .@id == 2264 || .@id == 10006 || .@id == 10010 || .@id == 10012 || .@id == 10018 || .@id == 5058 || .@id == 5059 || .@id == 5060 || .@id == 5062 || .@id == 5065 || .@id == 5067 || .@id == 5069 || .@id == 5073 || .@id == 5075 || .@id == 5076 || .@id == 5078 || .@id == 5084 || .@id == 5092 || .@id == 5093 || .@id == 5097 || .@id == 5099 || .@id == 5103 || .@id == 5136 || .@id == 5105 || .@id == 5106 || .@id == 5108 || .@id == 5109 || .@id == 5111 || .@id == 5112 || .@id == 5114 || .@id == 5115 || .@id == 5116 || .@id == 5119 || .@id == 5120 || .@id == 5122 || .@id == 5123 || .@id == 5129 || .@id == 5132 || .@id == 5137 || .@id == 5138 || .@id == 5141 || .@id == 5144 || .@id == 5145 || .@id == 5146 || .@id == 5147 || .@id == 5150 || .@id == 5158 || .@id == 5167 || .@id == 5168 || .@id == 5170 || .@id == 5172 || .@id == 5173 || .@id == 5174 || .@id == 5188 || .@id == 5189 || .@id == 5190 || .@id == 5198 || .@id == 5200 || .@id == 5199 || .@id == 5201 || .@id == 5202 || .@id == 5208 || .@id == 5209 || .@id == 5214 || .@id == 5219 || .@id == 5222 || .@id == 5227 || .@id == 5228 || .@id == 5229 || .@id == 5230 || .@id == 5231 || .@id == 5232 || .@id == 5233 || .@id == 5234 || .@id == 5235 || .@id == 5236 || .@id == 5237 || .@id == 5252 || .@id == 5253 || .@id == 5254 || .@id == 5255 || .@id == 5258 || .@id == 5226 || .@id == 5259 || .@id == 5260 || .@id == 5263 || .@id == 5264 || .@id == 5243 || .@id == 5270 || .@id == 5273 || .@id == 5274 || .@id == 5275 || .@id == 5276 || .@id == 5802 || .@id == 5282 || .@id == 5283 || .@id == 5284 || .@id == 5287 || .@id == 5289 || .@id == 5290 || .@id == 5291 || .@id == 5293 || .@id == 5302 || .@id == 5304 || .@id == 5307 || .@id == 5308 || .@id == 5312 || .@id == 5316 || .@id == 5317 || .@id == 5318 || .@id == 5319 || .@id == 5323 || .@id == 5324 || .@id == 5330 || .@id == 5806 || .@id == 5333 || .@id == 5334 || .@id == 5335 || .@id == 5336 || .@id == 5337 || .@id == 5338 || .@id == 5339 || .@id == 5340 || .@id == 5341 || .@id == 5342 || .@id == 5343 || .@id == 5344 || .@id == 5345 || .@id == 5346 || .@id == 5353 || .@id == 5347 || .@id == 5348 || .@id == 5349 || .@id == 5352 || .@id == 5809 || .@id == 5354 || .@id == 5355 || .@id == 5356 || .@id == 5810 || .@id == 5359 || .@id == 5366 || .@id == 5368 || .@id == 5369 || .@id == 5371 || .@id == 5379 || .@id == 5380 || .@id == 5381 || .@id == 5383 || .@id == 5384 || .@id == 5372 || .@id == 5378 || .@id == 5386 || .@id == 5387 || .@id == 5388 || .@id == 5390 || .@id == 5392 || .@id == 5393 || .@id == 5812 || .@id == 5395 || .@id == 5405 || .@id == 5364 || .@id == 5365 || .@id == 5367 || .@id == 5406 || .@id == 5407 || .@id == 5408 || .@id == 5409 || .@id == 5410 || .@id == 5399 || .@id == 5413 || .@id == 5414 || .@id == 5415 || .@id == 5416 || .@id == 5417 || .@id == 5418 || .@id == 5422 || .@id == 5423 || .@id == 5424 || .@id == 5425 || .@id == 5426 || .@id == 5427 || .@id == 5428 || .@id == 5429 || .@id == 5430 || .@id == 5432 || .@id == 5433 || .@id == 5450 || .@id == 5456 || .@id == 5457 || .@id == 5458 || .@id == 5459 || .@id == 5478 || .@id == 5484 || .@id == 5813 || .@id == 5486 || .@id == 5487 || .@id == 5488 || .@id == 5437 || .@id == 5443 || .@id == 5447 || .@id == 5448 || .@id == 5449 || .@id == 5490 || .@id == 5435 || .@id == 5491 || .@id == 5494 || .@id == 5496 || .@id == 5497 || .@id == 5499 || .@id == 5500 || .@id == 5501 || .@id == 5502 || .@id == 5504 || .@id == 5505 || .@id == 5503 || .@id == 5815 || .@id == 5816 || .@id == 5818 || .@id == 5822 || .@id == 5506 || .@id == 5507 || .@id == 5508 || .@id == 5509 || .@id == 5510 || .@id == 5511 || .@id == 5519 || .@id == 5522 || .@id == 5523 || .@id == 5524 || .@id == 5525 || .@id == 5526 || .@id == 5527 || .@id == 5528 || .@id == 5824 || .@id == 5530 || .@id == 5531 || .@id == 5534 || .@id == 5535 || .@id == 5537 || .@id == 5538 || .@id == 5539 || .@id == 5544 || .@id == 5561 || .@id == 5562 || .@id == 5431 || .@id == 5826 || .@id == 5568 || .@id == 5572 || .@id == 5479 || .@id == 5480 || .@id == 5481 || .@id == 5575 || .@id == 5583 || .@id == 5586 || .@id == 5587 || .@id == 5827 || .@id == 5593 || .@id == 5601 || .@id == 5434 || .@id == 5466 || .@id == 5467 || .@id == 5468 || .@id == 5471 || .@id == 5465 || .@id == 5472 || .@id == 5473 || .@id == 5474 || .@id == 5476 || .@id == 5469 || .@id == 5563 || .@id == 5690 || .@id == 5739 || .@id == 5740 || .@id == 5744 || .@id == 5745 )? "Hat" :
+					"Headgear" :
+				( .@loc & 16 )?
+					// Clothing, Else Armor
+					( .@id == 2301 || .@id == 2302 || .@id == 2303 || .@id == 2304 || .@id == 2305 || .@id == 2306 || .@id == 2307 || .@id == 2308 || .@id == 2309 || .@id == 2310 || .@id == 2311 || .@id == 2318 || .@id == 2319 || .@id == 2320 || .@id == 2321 || .@id == 2322 || .@id == 2323 || .@id == 2324 || .@id == 2325 || .@id == 2326 || .@id == 2327 || .@id == 2330 || .@id == 2331 || .@id == 2332 || .@id == 2333 || .@id == 2334 || .@id == 2335 || .@id == 2336 || .@id == 2337 || .@id == 2338 || .@id == 2339 || .@id == 2361 || .@id == 2362 || .@id == 2363 || .@id == 2370 || .@id == 2371 || .@id == 2372 || .@id == 2373 || .@id == 2374 || .@id == 2397 || .@id == 15012 )? "Clothing" :
+					"Armor" :
+				( .@loc & 32 )?
+					// Guard, Else Shield
+					( .@id == 2110 || .@id == 2111 || .@id == 2136 )? "Guard" :
+					"Shield" :
+				( .@loc & 4 )? "Garment" :
+				( .@loc & 64 )? "Shoes" :
+				( .@loc & 136 )?
+					// Ring, Else Accessory
+					( .@id == 2631 || .@id == 2640 || .@id == 2677 || .@id == 2678 || .@id == 2679 || .@id == 2680 || .@id == 2681 || .@id == 2682 || .@id == 2683 || .@id == 2684 || .@id == 2685 || .@id == 2711 || .@id == 5828 )? "Ring" :
+					"Accessory" :
+				"Equipment - ERROR";
+		}
+		else if ( .@type == IT_WEAPON ) {
+			@itemname2_info$[0] = "^999999";
+			@itemname2_info$[2] = .@return$;
+			.@view = getiteminfo( .@id, 11 );
+			if ( .@view == 1 ) .@return$ = "Dagger";
+			else if ( .@view == 2 ) .@return$ = "Sword";
+			else if ( .@view == 3 ) .@return$ = "Two-handed Sword";
+			else if ( .@view == 4 || .@view == 5 ) .@return$ = "Spear";
+			else if ( .@view == 6 || .@view == 7 ) .@return$ = "Axe";
+			else if ( .@view == 8 ) .@return$ = "Mace";
+			else if ( .@view == 10 ) {
+				if ( .@id == 2262 || .@id == 5204 ) .@return$ = "Staff";
+				else .@return$ = "Rod";
+			}
+			else if ( .@view == 11 ) .@return$ = "Bow";
+			else if ( .@view == 12 ) .@return$ = "Claw";
+			else if ( .@view == 13 ) .@return$ = "Musical Instrument";
+			else if ( .@view == 14 ) .@return$ = "Whip";
+			else if ( .@view == 15 ) .@return$ = "Book";
+			else if ( .@view == 16 ) .@return$ = "Katar";
+			else if ( .@view == 17 ) .@return$ = "Revolver";
+			else if ( .@view == 18 ) .@return$ = "Rifle";
+			else if ( .@view == 19 ) .@return$ = "Gatling Gun";
+			else if ( .@view == 20 ) .@return$ = "Shotgun";
+			else if ( .@view == 21 ) .@return$ = "Grenade Launcher";
+			else if ( .@view == 22 ) .@return$ = "Huuma Shuriken";
+			else .@return$ = "Weapon - ERROR";
+		}
+	}
+//	else if ( getarg(3) ) // broken equipment ... seems no longer show red
+//		@itemname2_info$[0] = "^FF0000";
+
+	if ( !getstrlen( @itemname2_info$[0] ) )
+		@itemname2_info$[0] = "^000000";
+
+	return .@return$;
+}
+
+-	script	itemname2_prefix	FAKE_NPC,{
+OnInit:
+	$@cardprefix$[4001] = "Lucky";
+	$@cardprefix$[4002] = "Vital";
+	$@cardprefix$[4003] = "Hard";
+	$@cardprefix$[4004] = "Dexterous";
+	$@cardprefix$[4005] = "Hallowed";
+	$@cardprefix$[4006] = "Lucky";
+	$@cardprefix$[4007] = "Beholder";
+	$@cardprefix$[4008] = "Extra";
+	$@cardprefix$[4009] = "Light";
+	$@cardprefix$[4010] = "Wise";
+	$@cardprefix$[4011] = "Dynamic";
+	$@cardprefix$[4012] = "Rigid";
+	$@cardprefix$[4013] = "Excellent";
+	$@cardprefix$[4014] = "of Champion";
+	$@cardprefix$[4015] = "Quick";
+	$@cardprefix$[4016] = "Speedy";
+	$@cardprefix$[4017] = "Stun";
+	$@cardprefix$[4018] = "Smart";
+	$@cardprefix$[4019] = "Martyr";
+	$@cardprefix$[4020] = "Blink";
+	$@cardprefix$[4021] = "Skillful";
+	$@cardprefix$[4022] = "of Spore";
+	$@cardprefix$[4023] = "of Desert";
+	$@cardprefix$[4024] = "Drowsy";
+	$@cardprefix$[4025] = "Keen";
+	$@cardprefix$[4026] = "Shrewd";
+	$@cardprefix$[4027] = "Athletic";
+	$@cardprefix$[4028] = "Double-forced";
+	$@cardprefix$[4029] = "Wolverine";
+	$@cardprefix$[4030] = "Windy";
+	$@cardprefix$[4031] = "of Ares";
+	$@cardprefix$[4032] = "of Athena";
+	$@cardprefix$[4033] = "Detoxication";
+	$@cardprefix$[4034] = "Clever";
+	$@cardprefix$[4035] = "Bloody";
+	$@cardprefix$[4036] = "Robust";
+	$@cardprefix$[4037] = "Untouchable";
+	$@cardprefix$[4038] = "of Health";
+	$@cardprefix$[4039] = "of Aristotle";
+	$@cardprefix$[4040] = "Teleport";
+	$@cardprefix$[4041] = "of Sandman";
+	$@cardprefix$[4042] = "of Heman";
+	$@cardprefix$[4043] = "Hurricane";
+	$@cardprefix$[4044] = "Hiding";
+	$@cardprefix$[4045] = "Heavy";
+	$@cardprefix$[4046] = "of Cleric";
+	$@cardprefix$[4047] = "Ghost";
+	$@cardprefix$[4048] = "Poison";
+	$@cardprefix$[4049] = "Flammable";
+	$@cardprefix$[4050] = "of Hermes";
+	$@cardprefix$[4051] = "of Flash";
+	$@cardprefix$[4052] = "Erudite";
+	$@cardprefix$[4053] = "Healing";
+	$@cardprefix$[4054] = "Holy";
+	$@cardprefix$[4055] = "Ice";
+	$@cardprefix$[4056] = "of Warmth";
+	$@cardprefix$[4057] = "Silence";
+	$@cardprefix$[4058] = "Cranial";
+	$@cardprefix$[4059] = "of Cadi";
+	$@cardprefix$[4060] = "Clamorous";
+	$@cardprefix$[4061] = "Immortal";
+	$@cardprefix$[4062] = "Envenom";
+	$@cardprefix$[4063] = "Insecticide";
+	$@cardprefix$[4064] = "Nimble";
+	$@cardprefix$[4065] = "Underneath";
+	$@cardprefix$[4066] = "Brutal";
+	$@cardprefix$[4067] = "Atomic";
+	$@cardprefix$[4068] = "Chemical";
+	$@cardprefix$[4069] = "Saharic";
+	$@cardprefix$[4070] = "of Witch";
+	$@cardprefix$[4071] = "Angelic";
+	$@cardprefix$[4072] = "Solid";
+	$@cardprefix$[4073] = "Discount";
+	$@cardprefix$[4074] = "of Gargantua";
+	$@cardprefix$[4075] = "Hypnotic";
+	$@cardprefix$[4076] = "Cursing";
+	$@cardprefix$[4077] = "Under a Cast";
+	$@cardprefix$[4078] = "of Recovery";
+	$@cardprefix$[4079] = "of Muscle";
+	$@cardprefix$[4080] = "Fisher";
+	$@cardprefix$[4081] = "Glorious";
+	$@cardprefix$[4082] = "Gigantic";
+	$@cardprefix$[4083] = "Homer's";
+	$@cardprefix$[4084] = "Blast";
+	$@cardprefix$[4085] = "Damned";
+	$@cardprefix$[4086] = "Critical";
+	$@cardprefix$[4087] = "Order";
+	$@cardprefix$[4088] = "Guard";
+	$@cardprefix$[4089] = "Aqua";
+	$@cardprefix$[4090] = "Amulet";
+	$@cardprefix$[4091] = "of Counter";
+	$@cardprefix$[4092] = "Boned";
+	$@cardprefix$[4093] = "Cure";
+	$@cardprefix$[4094] = "Kingbird";
+	$@cardprefix$[4095] = "Genie's";
+	$@cardprefix$[4096] = "Venomer's";
+	$@cardprefix$[4097] = "Green";
+	$@cardprefix$[4098] = "of Zephyrus";
+	$@cardprefix$[4099] = "of Ifrit";
+	$@cardprefix$[4100] = "Soul-Enchanted";
+	$@cardprefix$[4101] = "of Gnome";
+	$@cardprefix$[4102] = "Mocking";
+	$@cardprefix$[4103] = "Clairvoyant";
+	$@cardprefix$[4104] = "Chaos";
+	$@cardprefix$[4105] = "Unfrozen";
+	$@cardprefix$[4106] = "Ancient";
+	$@cardprefix$[4107] = "Fledged";
+	$@cardprefix$[4108] = "Innoxious";
+	$@cardprefix$[4109] = "Flameguard";
+	$@cardprefix$[4110] = "Viper's";
+	$@cardprefix$[4111] = "Decussate";
+	$@cardprefix$[4112] = "Peerless";
+	$@cardprefix$[4113] = "of Ghost";
+	$@cardprefix$[4114] = "Poisoning";
+	$@cardprefix$[4115] = "Malicious";
+	$@cardprefix$[4116] = "Divine";
+	$@cardprefix$[4117] = "Hybrid";
+	$@cardprefix$[4118] = "Dragoon";
+	$@cardprefix$[4119] = "Evil";
+	$@cardprefix$[4120] = "of Dragoon";
+	$@cardprefix$[4121] = "Perfect";
+	$@cardprefix$[4122] = "Adurate";
+	$@cardprefix$[4123] = "Bearer's";
+	$@cardprefix$[4124] = "Plasterer's";
+	$@cardprefix$[4125] = "Aqua";
+	$@cardprefix$[4126] = "Titan";
+	$@cardprefix$[4127] = "Insomniac";
+	$@cardprefix$[4128] = "of Deaf";
+	$@cardprefix$[4129] = "of Rogue";
+	$@cardprefix$[4130] = "Divine";
+	$@cardprefix$[4131] = "Hasty";
+	$@cardprefix$[4132] = "of Gemstone";
+	$@cardprefix$[4133] = "Immune";
+	$@cardprefix$[4134] = "Spiritual";
+	$@cardprefix$[4135] = "Mirror";
+	$@cardprefix$[4136] = "from Hell";
+	$@cardprefix$[4137] = "of Infinity";
+	$@cardprefix$[4138] = "Satanic";
+	$@cardprefix$[4139] = "of Moonlight";
+	$@cardprefix$[4140] = "Liberation";
+	$@cardprefix$[4141] = "Deadly";
+	$@cardprefix$[4142] = "of Berserk";
+	$@cardprefix$[4143] = "Neutral";
+	$@cardprefix$[4144] = "of Eternity";
+	$@cardprefix$[4145] = "of Bigmouth";
+	$@cardprefix$[4146] = "Reflect";
+	$@cardprefix$[4147] = "Scythe-like";
+	$@cardprefix$[4148] = "of Kirin";
+	$@cardprefix$[4149] = "of Serenity";
+	$@cardprefix$[4150] = "Spell-Proof";
+	$@cardprefix$[4151] = "Havoc Bringer's";
+	$@cardprefix$[4152] = "Sprightly";
+	$@cardprefix$[4153] = "of Cancer";
+	$@cardprefix$[4154] = "Sweet Scented";
+	$@cardprefix$[4155] = "Deadly Goblin's";
+	$@cardprefix$[4156] = "of Fatal Flame";
+	$@cardprefix$[4157] = "Piercing";
+	$@cardprefix$[4158] = "Slaughter";
+	$@cardprefix$[4159] = "Deluxe";
+	$@cardprefix$[4160] = "Superior";
+	$@cardprefix$[4161] = "Anti-Magic";
+	$@cardprefix$[4162] = "Sightless";
+	$@cardprefix$[4163] = "Wild";
+	$@cardprefix$[4164] = "Fisherman's";
+	$@cardprefix$[4165] = "of Insect Soul Eater";
+	$@cardprefix$[4166] = "of Jinx";
+	$@cardprefix$[4167] = "of Beast Soul Eater";
+	$@cardprefix$[4168] = "of Doom";
+	$@cardprefix$[4169] = "Spell Master's";
+	$@cardprefix$[4170] = "Solidifying";
+	$@cardprefix$[4171] = "Soul Draining";
+	$@cardprefix$[4172] = "Slicing";
+	$@cardprefix$[4173] = "Mesmerizing";
+	$@cardprefix$[4174] = "Deviant";
+	$@cardprefix$[4175] = "Shoving";
+	$@cardprefix$[4176] = "Fatal Serpentine";
+	$@cardprefix$[4177] = "Green Stone";
+	$@cardprefix$[4178] = "Bow-Master's";
+	$@cardprefix$[4179] = "of Highlight";
+	$@cardprefix$[4180] = "of Dragon Soul Eater";
+	$@cardprefix$[4181] = "Soundless";
+	$@cardprefix$[4182] = "of Demon Soul Eater";
+	$@cardprefix$[4183] = "Werewolf";
+	$@cardprefix$[4184] = "Crushing";
+	$@cardprefix$[4185] = "of Wisdom";
+	$@cardprefix$[4186] = "Strenuous";
+	$@cardprefix$[4187] = "of the Spooky Night";
+	$@cardprefix$[4188] = "Red Stone";
+	$@cardprefix$[4189] = "of Misfortune";
+	$@cardprefix$[4190] = "of Last Laugh";
+	$@cardprefix$[4191] = "of the Stix";
+	$@cardprefix$[4192] = "of Fatal Pisces";
+	$@cardprefix$[4193] = "of Patience";
+	$@cardprefix$[4194] = "Overpowering";
+	$@cardprefix$[4195] = "Blue Stone";
+	$@cardprefix$[4196] = "of Jellopy";
+	$@cardprefix$[4197] = "Lucky Streak";
+	$@cardprefix$[4198] = "of True Sight";
+	$@cardprefix$[4199] = "Dashing";
+	$@cardprefix$[4200] = "of Mystical Resistance";
+	$@cardprefix$[4201] = "Crippling";
+	$@cardprefix$[4202] = "of Exorcism";
+	$@cardprefix$[4203] = "Blazing";
+	$@cardprefix$[4204] = "Poacher's";
+	$@cardprefix$[4205] = "Blue Cubic";
+	$@cardprefix$[4206] = "Cubic";
+	$@cardprefix$[4207] = "Anti-Small";
+	$@cardprefix$[4208] = "Energetic";
+	$@cardprefix$[4209] = "Fiddler's";
+	$@cardprefix$[4210] = "Pressure";
+	$@cardprefix$[4211] = "Virtuoso's";
+	$@cardprefix$[4212] = "of Knock-Back";
+	$@cardprefix$[4213] = "of Reticence";
+	$@cardprefix$[4214] = "Man-Eater's";
+	$@cardprefix$[4215] = "Rationing";
+	$@cardprefix$[4216] = "Freezing";
+	$@cardprefix$[4217] = "Rejuvenating";
+	$@cardprefix$[4218] = "Nightmarish";
+	$@cardprefix$[4219] = "Magic Stone";
+	$@cardprefix$[4220] = "Faithful";
+	$@cardprefix$[4221] = "Insect Collector's";
+	$@cardprefix$[4222] = "of Sleep";
+	$@cardprefix$[4223] = "Stun-Proof";
+	$@cardprefix$[4224] = "Monsoon";
+	$@cardprefix$[4225] = "Slingshot";
+	$@cardprefix$[4226] = "Supreme";
+	$@cardprefix$[4227] = "Roast Scented";
+	$@cardprefix$[4228] = "of Siesta";
+	$@cardprefix$[4229] = "of Torment";
+	$@cardprefix$[4230] = "Coward's";
+	$@cardprefix$[4231] = "Charging";
+	$@cardprefix$[4232] = "Refreshing";
+	$@cardprefix$[4233] = "Lucky Fluke";
+	$@cardprefix$[4234] = "of Clarity";
+	$@cardprefix$[4235] = "Fallen Angel's";
+	$@cardprefix$[4236] = "Protective";
+	$@cardprefix$[4237] = "of Godly Wrath";
+	$@cardprefix$[4238] = "of Doubled Power";
+	$@cardprefix$[4239] = "Veteran Hunter's";
+	$@cardprefix$[4240] = "Magic-Proof";
+	$@cardprefix$[4241] = "Miraculous";
+	$@cardprefix$[4242] = "Prime";
+	$@cardprefix$[4243] = "of Escape";
+	$@cardprefix$[4244] = "Seeker's";
+	$@cardprefix$[4245] = "Assassinator's";
+	$@cardprefix$[4246] = "Killing";
+	$@cardprefix$[4247] = "Starfish's";
+	$@cardprefix$[4248] = "Shining Cross";
+	$@cardprefix$[4249] = "Witch Doctor's";
+	$@cardprefix$[4250] = "Anti-Large";
+	$@cardprefix$[4251] = "Invasion";
+	$@cardprefix$[4252] = "Four Leaf Clover";
+	$@cardprefix$[4253] = "of Royal Guard";
+	$@cardprefix$[4254] = "Anti-Medium";
+	$@cardprefix$[4255] = "Smashing";
+	$@cardprefix$[4256] = "Desirable";
+	$@cardprefix$[4257] = "Wing";
+	$@cardprefix$[4258] = "Prodigy";
+	$@cardprefix$[4259] = "of Nature";
+	$@cardprefix$[4260] = "Confusion Resistant";
+	$@cardprefix$[4261] = "Bleed Resistant";
+	$@cardprefix$[4262] = "Dark Sky";
+	$@cardprefix$[4263] = "Bloodlust";
+	$@cardprefix$[4264] = "Thunderbolt";
+	$@cardprefix$[4265] = "of Dawn";
+	$@cardprefix$[4266] = "Magic Resistant";
+	$@cardprefix$[4267] = "Dragon Slayer's";
+	$@cardprefix$[4268] = "Extending";
+	$@cardprefix$[4269] = "Fatasm";
+	$@cardprefix$[4270] = "of Venom";
+	$@cardprefix$[4271] = "Yellow Stone";
+	$@cardprefix$[4272] = "Swift";
+	$@cardprefix$[4273] = "Shell";
+	$@cardprefix$[4274] = "of Undead Soul Eater";
+	$@cardprefix$[4275] = "Undead Killer's";
+	$@cardprefix$[4276] = "Crucial";
+	$@cardprefix$[4277] = "Dominatrix";
+	$@cardprefix$[4278] = "of Magical Immunity";
+	$@cardprefix$[4279] = "Soul Collector's";
+	$@cardprefix$[4280] = "Blessed";
+	$@cardprefix$[4281] = "Diligent";
+	$@cardprefix$[4282] = "of Reservoir";
+	$@cardprefix$[4283] = "Mana Sphere";
+	$@cardprefix$[4284] = "of Caress";
+	$@cardprefix$[4285] = "Elven-Enchanted";
+	$@cardprefix$[4286] = "Terrorizing";
+	$@cardprefix$[4287] = "Magically Shielded";
+	$@cardprefix$[4288] = "Maestro";
+	$@cardprefix$[4289] = "of Plant Soul Eater";
+	$@cardprefix$[4290] = "Mirror";
+	$@cardprefix$[4291] = "Deadly Kobold's";
+	$@cardprefix$[4292] = "Deadly Plant's";
+	$@cardprefix$[4293] = "of Chance";
+	$@cardprefix$[4294] = "Sneaky";
+	$@cardprefix$[4295] = "of Blackout";
+	$@cardprefix$[4296] = "Greedy";
+	$@cardprefix$[4297] = "Poaching";
+	$@cardprefix$[4298] = "of Mayhem";
+	$@cardprefix$[4299] = "Guardian's";
+	$@cardprefix$[4300] = "Venomous Charge";
+	$@cardprefix$[4301] = "Traumatic";
+	$@cardprefix$[4302] = "High Risk";
+	$@cardprefix$[4303] = "Mystic";
+	$@cardprefix$[4304] = "Shield Master's";
+	$@cardprefix$[4305] = "Explosive";
+	$@cardprefix$[4306] = "King's";
+	$@cardprefix$[4307] = "of Marine Soul Eater";
+	$@cardprefix$[4308] = "Power Draining";
+	$@cardprefix$[4309] = "Reinforced";
+	$@cardprefix$[4310] = "Fatally Evil";
+	$@cardprefix$[4311] = "Anti-Evil";
+	$@cardprefix$[4312] = "of the Soul";
+	$@cardprefix$[4313] = "Bogie";
+	$@cardprefix$[4314] = "Fire-Proof";
+	$@cardprefix$[4315] = "of Stone Curse";
+	$@cardprefix$[4316] = "of Angel Soul Eater";
+	$@cardprefix$[4317] = "Aural";
+	$@cardprefix$[4318] = "Storm-Bringer's";
+	$@cardprefix$[4319] = "Sword-Master's";
+	$@cardprefix$[4320] = "Meteoric";
+	$@cardprefix$[4321] = "Polymorphic";
+	$@cardprefix$[4322] = "of Retaliation";
+	$@cardprefix$[4323] = "of Frost";
+	$@cardprefix$[4324] = "Arctic";
+	$@cardprefix$[4325] = "Vicious";
+	$@cardprefix$[4326] = "Ocean Scented";
+	$@cardprefix$[4327] = "Spell Flow";
+	$@cardprefix$[4328] = "Hyper";
+	$@cardprefix$[4329] = "Soul Gain";
+	$@cardprefix$[4330] = "Curse Lift";
+	$@cardprefix$[4331] = "Evasion";
+	$@cardprefix$[4332] = "of Talent";
+	$@cardprefix$[4333] = "of Chaotic Venom";
+	$@cardprefix$[4334] = "Anti-Sniping";
+	$@cardprefix$[4335] = "Gnome";
+	$@cardprefix$[4336] = "of Vitality";
+	$@cardprefix$[4337] = "of Wildcat";
+	$@cardprefix$[4338] = "of Vital Switching";
+	$@cardprefix$[4339] = "of Stone Wall";
+	$@cardprefix$[4340] = "of Requiem";
+	$@cardprefix$[4341] = "Disarm";
+	$@cardprefix$[4342] = "Mammoth";
+	$@cardprefix$[4343] = "of Creator";
+	$@cardprefix$[4344] = "of Value";
+	$@cardprefix$[4345] = "Sylph";
+	$@cardprefix$[4346] = "of Power Switching";
+	$@cardprefix$[4347] = "Stamina";
+	$@cardprefix$[4348] = "Gangster";
+	$@cardprefix$[4349] = "Anti-Arrow";
+	$@cardprefix$[4350] = "Undine";
+	$@cardprefix$[4351] = "Low Level";
+	$@cardprefix$[4352] = "of Regeneration";
+	$@cardprefix$[4353] = "of Rejuvenation";
+	$@cardprefix$[4354] = "of Stability";
+	$@cardprefix$[4355] = "Healthy";
+	$@cardprefix$[4356] = "Magic Cancel";
+	$@cardprefix$[4357] = "of Fury";
+	$@cardprefix$[4358] = "Lost-Power";
+	$@cardprefix$[4359] = "of Shadow";
+	$@cardprefix$[4360] = "Assassin";
+	$@cardprefix$[4361] = "of Hollgrehenn";
+	$@cardprefix$[4362] = "Heat";
+	$@cardprefix$[4363] = "Protection";
+	$@cardprefix$[4364] = "of Magic Sealing";
+	$@cardprefix$[4365] = "of Tempest";
+	$@cardprefix$[4366] = "of Caster";
+	$@cardprefix$[4367] = "of Squeezing";
+	$@cardprefix$[4368] = "Rapid";
+	$@cardprefix$[4369] = "of Luck Switching";
+	$@cardprefix$[4370] = "Weakening";
+	$@cardprefix$[4371] = "of Paladin";
+	$@cardprefix$[4372] = "Life Stream";
+	$@cardprefix$[4373] = "Cursed";
+	$@cardprefix$[4374] = "of Vision";
+	$@cardprefix$[4375] = "Extra High Level";
+	$@cardprefix$[4376] = "Manful";
+	$@cardprefix$[4377] = "Sweetie";
+	$@cardprefix$[4378] = "Low Level";
+	$@cardprefix$[4379] = "Low Level";
+	$@cardprefix$[4380] = "Salamander";
+	$@cardprefix$[4381] = "of Wanderer";
+	$@cardprefix$[4382] = "of Scholar";
+	$@cardprefix$[4383] = "Chaotic";
+	$@cardprefix$[4384] = "Magic Eater";
+	$@cardprefix$[4385] = "Drink";
+	$@cardprefix$[4386] = "of Magic Shelter";
+	$@cardprefix$[4387] = "of Agility Switching";
+	$@cardprefix$[4388] = "Soul";
+	$@cardprefix$[4389] = "Elemental";
+	$@cardprefix$[4390] = "Blooding";
+	$@cardprefix$[4391] = "Snack";
+	$@cardprefix$[4392] = "of Dexterity Switching";
+	$@cardprefix$[4393] = "of Intelligence Switching";
+	$@cardprefix$[4394] = "Divine Cross";
+	$@cardprefix$[4395] = "Slug";
+	$@cardprefix$[4396] = "Dull";
+	$@cardprefix$[4397] = "Stupidity";
+	$@cardprefix$[4398] = "Darkness";
+	$@cardprefix$[4399] = "Penetration";
+	$@cardprefix$[4400] = "of Temptation";
+	$@cardprefix$[4401] = "Swift";
+	$@cardprefix$[4402] = "Strange";
+	$@cardprefix$[4403] = "of Reload";
+	$@cardprefix$[4404] = "of Chaotic Bleeding";
+	$@cardprefix$[4405] = "of Magic Mirror";
+	$@cardprefix$[4406] = "Twinkle";
+	$@cardprefix$[4407] = "of Elimination";
+	$@cardprefix$[4408] = "Abyss";
+	$@cardprefix$[4409] = "Panic";
+	$@cardprefix$[4410] = "Madness";
+	$@cardprefix$[4411] = "Arta's";
+	$@cardprefix$[4412] = "Aria";
+	$@cardprefix$[4413] = "Resistance";
+	$@cardprefix$[4414] = "Gorgon's";
+	$@cardprefix$[4415] = "Sweet";
+	$@cardprefix$[4416] = "of Grain";
+	$@cardprefix$[4417] = "of Flow";
+	$@cardprefix$[4418] = "of Hail";
+	$@cardprefix$[4419] = "Jack Frost";
+	$@cardprefix$[4420] = "of Comfort";
+	$@cardprefix$[4421] = "of Chinook";
+	$@cardprefix$[4422] = "Breeze";
+	$@cardprefix$[4423] = "of Sharkia";
+	$@cardprefix$[4424] = "Stony";
+	$@cardprefix$[4425] = "Beast";
+	$@cardprefix$[4426] = "Exceeding";
+	$@cardprefix$[4427] = "of Force";
+	$@cardprefix$[4428] = "of Shaft";
+	$@cardprefix$[4429] = "Nessus's";
+	$@cardprefix$[4430] = "of Inferno";
+	$@cardprefix$[4431] = "Stygian";
+	$@cardprefix$[4432] = "Scorching";
+	$@cardprefix$[4433] = "of Ignis";
+	$@cardprefix$[4434] = "Miner's";
+	$@cardprefix$[4435] = "Outrageous";
+	$@cardprefix$[4436] = "Lunatic";
+	$@cardprefix$[4437] = "Rabid";
+	$@cardprefix$[4438] = "Mental";
+	$@cardprefix$[4439] = "of Anathema";
+	$@cardprefix$[4440] = "of Ignoring";
+	$@cardprefix$[4441] = "Arrogant";
+	$@cardprefix$[4442] = "of Basis";
+	$@cardprefix$[4443] = "of Underneath";
+	$@cardprefix$[4444] = "of Saharic";
+	$@cardprefix$[4445] = "of Windy";
+	$@cardprefix$[4447] = "of Envenom";
+	$@cardprefix$[4448] = "of Damned";
+	$@cardprefix$[4449] = "of Hallowed";
+	$@cardprefix$[4450] = "Surplus";
+	$@cardprefix$[4451] = "of Excess";
+	$@cardprefix$[4452] = "Magical";
+	$@cardprefix$[4453] = "Fierce";
+	$@cardprefix$[4454] = "Sorry";
+	$@cardprefix$[4455] = "Love";
+	$@cardprefix$[4457] = "Psychic";
+	$@cardprefix$[4458] = "of Illusion";
+	$@cardprefix$[4459] = "of Fast";
+	$@cardprefix$[4460] = "of Healing";
+	$@cardprefix$[4461] = "of Sharp";
+	$@cardprefix$[4462] = "Prime Defense";
+	$@cardprefix$[4463] = "Prime Attack";
+	$@cardprefix$[4464] = "Fatal";
+	$@cardprefix$[4465] = "Sweeping";
+	$@cardprefix$[4466] = "Straight Shooting";
+	$@cardprefix$[4467] = "Heavy";
+	$@cardprefix$[4468] = "Polution";
+	$@cardprefix$[4469] = "Marine";
+	$@cardprefix$[4470] = "Botany";
+	$@cardprefix$[4471] = "Draco";
+	$@cardprefix$[4472] = "Carnivore";
+	$@cardprefix$[4473] = "Undead";
+	$@cardprefix$[4474] = "Mortal";
+	$@cardprefix$[4475] = "Intangible";
+	$@cardprefix$[4476] = "Entomic";
+	$@cardprefix$[4477] = "Demonic";
+	$@cardprefix$[4480] = "Of Halfreload";
+	$@cardprefix$[4481] = "Half Jack Frost";
+	$@cardprefix$[4482] = "Of Half regeneration";
+	$@cardprefix$[4483] = "Half Spiritual";
+	$@cardprefix$[4484] = "Of Half Gemstone";
+	$@cardprefix$[4485] = "Half Abyss";
+	$@cardprefix$[4991] = "Carefree";
+	$@cardprefix$[4998] = "of Valor";
+	$@cardprefix$[4999] = "of Aegis";
+	$@cardprefix$[4505] = "of Mad Witch";
+	$@cardprefix$[4506] = "of Archer";
+	$@cardprefix$[4507] = "Scaraba";
+	$@cardprefix$[4508] = "of Mad Berserker";
+	$@cardprefix$[4509] = "Insectproof";
+	$@cardprefix$[4510] = "Black-out";
+	$@cardprefix$[4511] = "Silentium";
+	$@cardprefix$[4512] = "of Acolyte";
+	$@cardprefix$[4513] = "of Thief";
+	$@cardprefix$[4514] = "Exorcism";
+	$@cardprefix$[4515] = "Flora";
+	$@cardprefix$[4516] = "of Stone wall";
+	$@cardprefix$[4517] = "of Magician";
+	$@cardprefix$[4518] = "Burning";
+	$@cardprefix$[4519] = "Seraphim";
+	$@cardprefix$[4520] = "Screaming";
+	$@cardprefix$[4521] = "Mortal Blow";
+	$@cardprefix$[4522] = "Cold";
+	$@cardprefix$[4523] = "Aquarius";
+	$@cardprefix$[4524] = "of Swordman";
+	$@cardprefix$[4525] = "Sweeping";
+	$@cardprefix$[4526] = "of Magic Defense";
+	$@cardprefix$[4527] = "of Defense";
+	$@cardprefix$[4528] = "Spirit";
+	$@cardprefix$[4529] = "Physical";
+	$@cardprefix$[4530] = "of Merchant";
+	$@cardprefix$[4531] = "Under Curse";
+	$@cardprefix$[4532] = "Sprinting";
+	$@cardprefix$[4533] = "Blinding";
+	$@cardprefix$[4534] = "Water Bomb";
+	$@cardprefix$[4493] = "Half High Risk";
+	$@cardprefix$[4582] = "Endurance";
+	$@cardprefix$[4583] = "Of poisonous weeds";
+	$@cardprefix$[4584] = "Vampire";
+	$@cardprefix$[4585] = "Of Curse";
+	$@cardprefix$[4586] = "Wind";
+	$@cardprefix$[4587] = "Slasher";
+	$@cardprefix$[4588] = "Of Powerful";
+	$@cardprefix$[4589] = "Of Reach";
+	$@cardprefix$[4590] = "Of Lethargy";
+	$@cardprefix$[4591] = "Of Blood";
+	$@cardprefix$[4592] = "Of Chemical";
+	end;
+}

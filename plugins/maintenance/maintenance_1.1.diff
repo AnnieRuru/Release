@@ -1,0 +1,536 @@
+ src/map/atcommand.c | 145 +++++++++++++++++++++++++++++++++++++++++++++++++
+ src/map/chrif.c     | 113 ++++++++++++++++++++++++++++++++++++++
+ src/map/chrif.h     |   9 +++
+ src/map/clif.c      |  13 +++++
+ src/map/pc.c        |   5 ++
+ src/map/script.c    | 154 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 439 insertions(+)
+
+diff --git a/src/map/atcommand.c b/src/map/atcommand.c
+index b5e8fa7..175fb42 100644
+--- a/src/map/atcommand.c
++++ b/src/map/atcommand.c
+@@ -9374,6 +9374,149 @@ static inline void atcmd_channel_help(int fd, const char *command, bool can_crea
+ 	clif->message(fd,atcmd_output);
+ 	return true;
+ }
++
++ACMD(maintenance) {
++	int group_id, kick_duration, maintenance_duration;
++	char reason[99], esc_reason[198], esc_name[46], min_display[3];
++	short weekday, hour, minute;
++	if ( chrif->maintenance_starttime > time(NULL) ) {
++		char aaa[255];
++		int countdown = chrif->maintenance_starttime - (int)time(NULL);
++		clif->message( fd, "Type '@maintenanceoff' to turn off maintenance mode." );
++		safesnprintf( aaa, 255, "Maintenance mode will start in %d min %d sec.", countdown /60, countdown %60 );
++		clif->message( fd, aaa );
++		return true;
++	}
++	if ( chrif->maintenance_endtime > time(NULL) ) {
++		char aaa[255];
++		int countdown = chrif->maintenance_endtime - (int)time(NULL);
++		clif->message( fd, "Type '@maintenanceoff' to turn off maintenance mode." );
++		safesnprintf( aaa, 255, "Server is currently in maintenance mode, will end in %d min %d sec on %s", countdown /60, countdown %60, chrif->maintenance_timeformat );
++		clif->message( fd, aaa );
++		return true;
++	}
++	if ( !message || !*message ) {
++		clif->message( fd, "@maintenance Syntax :" );
++		clif->message( fd, "@maintenance <Group ID can stay 1~99> <duration to kick in minute> <maintenance duration in minute> <reason>" );
++		return false;
++	}
++	if ( sscanf( message, "%d %d %d %99[^\n]", &group_id, &kick_duration, &maintenance_duration, &reason ) < 4 ) {
++		clif->message( fd, "@maintenance Syntax :" );
++		clif->message( fd, "@maintenance <Group ID can stay 1~99> <duration to kick in minute> <maintenance duration in minute> <reason>" );
++		return false;
++	}
++	if ( !group_id ) {
++		clif->message( fd, "The Group ID field cannot be 0, otherwise normal player able to login." );
++		return false;
++	}
++	if ( group_id < 1 || group_id > 99 ) {
++		safesnprintf( atcmd_output, 99, "Invalid Group ID %d. Range must between 1~99.", group_id );
++		clif->message( fd, atcmd_output );
++		return false;
++	}
++	if ( kick_duration <= 0 ) {
++		clif->message( fd, "Kick duration cannot be 0 or negative numbers." );
++		return false;
++	}
++	if ( kick_duration > 1440 ) {
++		clif->message( fd, "Kick duration cannot be more than 1 day." );
++		return false;
++	}
++	if ( maintenance_duration <= 0 ) {
++		clif->message( fd, "Maintenance duration cannot be 0 or negative numbers." );
++		return false;
++	}
++	if ( maintenance_duration > 10080 ) {
++		clif->message( fd, "Maintenance duration cannot be more than 1 week." );
++		return false;
++	}
++	if ( strlen(reason) < 4 ) {
++		clif->message( fd, "You must input a valid reason for doing this." );
++		return false;
++	}
++	SQL->EscapeString( map->mysql_handle, esc_name, sd->status.name );
++	SQL->EscapeString( map->mysql_handle, esc_reason, reason );
++	if ( SQL->Query( map->mysql_handle, "insert into maintenance values ( null, %d, '%s', '%s', %d, now(), timestampadd( minute, %d, now() ), timestampadd( minute, %d, now() ) )", sd->status.account_id, esc_name, esc_reason, group_id, kick_duration, kick_duration + maintenance_duration ) == SQL_ERROR ) {
++		Sql_ShowDebug( map->mysql_handle );
++		return false;
++	}
++	if ( SQL->Query( map->mysql_handle, "select unix_timestamp( start_time ), unix_timestamp( end_time ), weekday( end_time ), hour( end_time ), minute( end_time ) from maintenance where id = ( select max(id) from maintenance )" ) == SQL_ERROR ) {
++		Sql_ShowDebug( map->mysql_handle );
++		return false;
++	}
++	else if ( SQL->NextRow( map->mysql_handle ) == SQL_SUCCESS ) {
++		char *data;
++		chrif->maintenance_group = group_id;
++		if ( SQL->GetData( map->mysql_handle, 0, &data, NULL ) == SQL_SUCCESS )
++			chrif->maintenance_starttime = atoi(data);
++		if ( SQL->GetData( map->mysql_handle, 1, &data, NULL ) == SQL_SUCCESS )
++			chrif->maintenance_endtime = atoi(data);
++		if ( SQL->GetData( map->mysql_handle, 2, &data, NULL ) == SQL_SUCCESS )
++			weekday = atoi(data);
++		if ( SQL->GetData( map->mysql_handle, 3, &data, NULL ) == SQL_SUCCESS )
++			hour = atoi(data);
++		if ( SQL->GetData( map->mysql_handle, 4, &data, NULL ) == SQL_SUCCESS )
++			minute = atoi(data);
++		SQL->FreeResult( map->mysql_handle );
++	}
++	else {
++		SQL->FreeResult( map->mysql_handle );
++		return false;
++	}
++	{	// stupid date_format doesn't work
++		char* weekdayname[7] = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
++		char am_pm[3];
++		if ( hour == 0 ) {
++			hour = 12;
++			safesnprintf( am_pm, 3, "AM" );
++		}
++		else if ( hour < 12 )
++			safesnprintf( am_pm, 3, "AM" );
++		else {
++			hour = hour - 12;
++			safesnprintf( am_pm, 3, "PM" );
++		}
++		if ( minute < 10 )
++			safesnprintf( min_display, 3, "0%d", minute );
++		else
++			safesnprintf( min_display, 3, "%d", minute );
++		safesnprintf( chrif->maintenance_timeformat, 24, "%s, %d:%s %s", weekdayname[ weekday ], hour, min_display, am_pm );
++		safesnprintf( atcmd_output, 255, "Maintenance mode will be commence in %d minutes. Players are adviced to log out right now. Maintenance last %d minutes. Server will come back up on %s", kick_duration, maintenance_duration, chrif->maintenance_timeformat );
++		intif->broadcast( atcmd_output , strlen(atcmd_output)+1, 0xFFFF00 );
++	}
++	chrif->maintenance_countid = timer->add( timer->gettick() +( ( kick_duration == 1 )? 1000 : 60000 ), chrif->maintenance_countdown, 0, 0 );
++	ShowStatus( CL_YELLOW "Maintenance will start in %d min by " CL_GREEN "%s" CL_RESET ".\n", kick_duration, sd->status.name );
++	return true;
++}
++
++ACMD(maintenanceoff) {
++	char esc_name[46];
++	if ( chrif->maintenance_endtime <= time(NULL) ) {
++		clif->message( fd, "The server is currently in not in maintenance mode." );
++		return true;
++	}
++	SQL->EscapeString( map->mysql_handle, esc_name, sd->status.name );
++	if ( SQL->Query( map->mysql_handle, "insert into maintenance values ( null, %d, '%s', '   @maintenanceoff', 0, null, now(), now() )", sd->status.account_id, esc_name ) == SQL_ERROR ) {
++		Sql_ShowDebug( map->mysql_handle );
++		return false;
++	}
++	chrif->maintenance_group = 0;
++	chrif->maintenance_starttime = (int)time(NULL);
++	chrif->maintenance_endtime = (int)time(NULL);
++	if ( chrif->maintenance_countid != INVALID_TIMER ) {
++		timer->delete( chrif->maintenance_countid, chrif->maintenance_countdown );
++		chrif->maintenance_countid = INVALID_TIMER;
++	}
++	if ( chrif->maintenance_timerid != INVALID_TIMER ) {
++		timer->delete( chrif->maintenance_timerid, chrif->maintenance_progress );
++		chrif->maintenance_timerid = INVALID_TIMER;
++	}
++	safesnprintf( atcmd_output, 255, "%s ended the Maintenance mode. Players are able to login now.", sd->status.name );
++	intif->broadcast( atcmd_output , strlen(atcmd_output)+1, 0xFFFF00 );
++	ShowStatus( CL_YELLOW "Maintenance has ended by " CL_GREEN "%s" CL_RESET ".\n", sd->status.name );
++	return true;
++}
++
+ /**
+  * Fills the reference of available commands in atcommand DBMap
+  **/
+@@ -9384,6 +9527,8 @@ void atcommand_basecommands(void) {
+ 	 * Command reference list, place the base of your commands here
+ 	 **/
+ 	AtCommandInfo atcommand_base[] = {
++		ACMD_DEF(maintenance),
++		ACMD_DEF(maintenanceoff),
+ 		ACMD_DEF2("warp", mapmove),
+ 		ACMD_DEF(where),
+ 		ACMD_DEF(jumpto),
+diff --git a/src/map/chrif.c b/src/map/chrif.c
+index ebdace2..cd41dd9 100644
+--- a/src/map/chrif.c
++++ b/src/map/chrif.c
+@@ -413,6 +413,63 @@ bool chrif_changemapserverack(int account_id, int login_id1, int login_id2, int
+ 	return (!login_id1)?false:true; // Is this the best approach here?
+ }
+ 
++int chrif_maintenance_countdown( int tid, int64 tick, int id, intptr data ) {
++	char aaa[255];
++	int countdown = chrif->maintenance_starttime - (int)time(NULL);
++	if ( countdown > 90 ) {
++		safesnprintf( aaa, 255, "Maintainance will start in %d minutes", countdown /60 );
++		intif->broadcast( aaa , strlen(aaa)+1, 0xFFFF00 );
++		timer->delete( chrif->maintenance_countid, chrif->maintenance_countdown );
++		if ( ( countdown % 60 ) > 0 ) // fine tune the timer
++			chrif->maintenance_countid = timer->add( timer->gettick() + ( ( countdown % 60 ) * 1000 ), chrif->maintenance_countdown, 0, 0 );
++		else
++			chrif->maintenance_countid = timer->add( timer->gettick() + 60000, chrif->maintenance_countdown, 0, 0 );
++	}
++	else if ( countdown > 15 ) {
++		safesnprintf( aaa, 255, "Maintainance will start in %d seconds", countdown );
++		intif->broadcast( aaa , strlen(aaa)+1, 0xFFFF00 );
++		timer->delete( chrif->maintenance_countid, chrif->maintenance_countdown );
++		if ( ( countdown % 10 ) > 0 ) // fine tune the timer
++			chrif->maintenance_countid = timer->add( timer->gettick() + ( ( countdown % 10 ) * 1000 ), chrif->maintenance_countdown, 0, 0 );
++		else
++			chrif->maintenance_countid = timer->add( timer->gettick() + 10000, chrif->maintenance_countdown, 0, 0 );
++	}
++	else if ( countdown > 0 ) {
++		safesnprintf( aaa, 255, "Maintainance will start in %d seconds", countdown );
++		intif->broadcast( aaa , strlen(aaa)+1, 0xFFFF00 );
++		timer->delete( chrif->maintenance_countid, chrif->maintenance_countdown );
++		chrif->maintenance_countid = timer->add( timer->gettick() + 1000, chrif->maintenance_countdown, 0, 0 );
++	}
++	else {
++		struct s_mapiterator* iter = mapit->alloc( MAPIT_NORMAL, BL_PC );
++		TBL_PC *sd;
++		safesnprintf( aaa, 255, "Maintainance starts now. Every player will be kick out." );
++		intif->broadcast( aaa , strlen(aaa)+1, 0xFFFF00 );
++		for ( sd = (TBL_PC*)mapit->first(iter); mapit->exists(iter); sd = (TBL_PC*)mapit->next(iter) )
++			if ( sd->group_id < chrif->maintenance_group )
++				clif->authfail_fd( sd->fd, 1 );
++		mapit->free(iter);
++		timer->delete( chrif->maintenance_countid, chrif->maintenance_countdown );
++		chrif->maintenance_countid = INVALID_TIMER;
++		chrif->maintenance_timerid = timer->add( timer->gettick() + ( ( chrif->maintenance_endtime - chrif->maintenance_starttime )*1000 ), chrif->maintenance_progress, 0, 0 );
++		ShowStatus( CL_YELLOW "Maintenance has started." CL_RESET "\n" );
++	}
++	return false;
++}
++
++int chrif_maintenance_progress( int tid, int64 tick, int id, intptr data ) {
++	char aaa[255];
++	timer->delete( chrif->maintenance_timerid, chrif->maintenance_progress );
++	chrif->maintenance_timerid = INVALID_TIMER;
++	safesnprintf( aaa, 255, "Maintenance mode has ended. Players are able to login now." );
++	intif->broadcast( aaa , strlen(aaa)+1, 0xFFFF00 );
++	chrif->maintenance_group = 0;
++	chrif->maintenance_starttime = (int)time(NULL);
++	chrif->maintenance_endtime = (int)time(NULL);
++	ShowStatus( CL_YELLOW "Maintenance has ended." CL_RESET "\n" );
++	return false;
++}
++
+ /*==========================================
+  *
+  *------------------------------------------*/
+@@ -439,6 +496,59 @@ void chrif_connectack(int fd) {
+ 	
+ 	sockt->datasync(fd, true);
+ 	chrif->skillid2idx(fd);
++	if ( SQL->Query( map->mysql_handle, "select minlv2connect, unix_timestamp( start_time ), unix_timestamp( end_time ), weekday( end_time ), hour( end_time ), minute( end_time ) from maintenance where id = ( select max(id) from maintenance )" ) == SQL_ERROR )
++		Sql_ShowDebug( map->mysql_handle );
++	else if ( SQL->NextRow( map->mysql_handle ) == SQL_SUCCESS ) {
++		char *data;
++		short weekday, hour, minute;
++		char* weekdayname[7] = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
++		char am_pm[3], min_display[3];
++		size_t len;
++		if ( SQL->GetData( map->mysql_handle, 0, &data, NULL ) == SQL_SUCCESS )
++			chrif->maintenance_group = atoi(data);
++		if ( SQL->GetData( map->mysql_handle, 1, &data, &len ) == SQL_SUCCESS )
++			chrif->maintenance_starttime = atoi(data);
++		else
++			chrif->maintenance_starttime = 0;
++		if ( SQL->GetData( map->mysql_handle, 2, &data, NULL ) == SQL_SUCCESS )
++			chrif->maintenance_endtime = atoi(data);
++		if ( SQL->GetData( map->mysql_handle, 3, &data, NULL ) == SQL_SUCCESS )
++			weekday = atoi(data);
++		if ( SQL->GetData( map->mysql_handle, 4, &data, NULL ) == SQL_SUCCESS )
++			hour = atoi(data);
++		if ( SQL->GetData( map->mysql_handle, 5, &data, NULL ) == SQL_SUCCESS )
++			minute = atoi(data);
++		if ( hour == 0 ) {
++			hour = 12;
++			safesnprintf( am_pm, 3, "AM" );
++		}
++		else if ( hour < 12 )
++			safesnprintf( am_pm, 3, "AM" );
++		else {
++			hour = hour - 12;
++			safesnprintf( am_pm, 3, "PM" );
++		}
++		if ( minute < 10 )
++			safesnprintf( min_display, 3, "0%d", minute );
++		else
++			safesnprintf( min_display, 3, "%d", minute );
++		safesnprintf( chrif->maintenance_timeformat, 24, "%s, %d:%s %s", weekdayname[ weekday ], hour, min_display, am_pm );
++	}
++	chrif->maintenance_countid = INVALID_TIMER;
++	chrif->maintenance_timerid = INVALID_TIMER;
++	if ( chrif->maintenance_starttime > time(NULL) ) {
++		int countdown = chrif->maintenance_starttime - (int)time(NULL);
++		if ( countdown > 60 )
++			chrif->maintenance_countid = timer->add( timer->gettick() + ( ( countdown % 60 )*1000 ), chrif->maintenance_countdown, 0, 0 );
++		else
++			chrif->maintenance_countid = timer->add( timer->gettick() + 1000, chrif->maintenance_countdown, 0, 0 );
++		ShowStatus( CL_YELLOW "Maintenance will start in %d min %d sec." CL_RESET "\n", countdown /60, countdown %60 );
++	}
++	else if ( chrif->maintenance_endtime > time(NULL) ) {
++		int countdown = chrif->maintenance_endtime - (int)time(NULL);
++		chrif->maintenance_timerid = timer->add( timer->gettick() + ( countdown *1000 ), chrif->maintenance_progress, 0, 0 );
++		ShowStatus( CL_YELLOW "Maintenance will end in %d min %d sec." CL_RESET "\n", countdown/60, countdown %60 );
++	}
+ }
+ 
+ /**
+@@ -1753,4 +1863,7 @@ void chrif_defaults(void) {
+ 	chrif->parse = chrif_parse;
+ 	chrif->save_scdata_single = chrif_save_scdata_single;
+ 	chrif->del_scdata_single = chrif_del_scdata_single;
++
++	chrif->maintenance_countdown = chrif_maintenance_countdown;
++	chrif->maintenance_progress = chrif_maintenance_progress;
+ }
+diff --git a/src/map/chrif.h b/src/map/chrif.h
+index 11baaf5..278d88d 100644
+--- a/src/map/chrif.h
++++ b/src/map/chrif.h
+@@ -146,6 +146,15 @@ struct chrif_interface {
+ 	int (*parse) (int fd);
+ 	void (*save_scdata_single) (int account_id, int char_id, short type, struct status_change_entry *sce);
+ 	void (*del_scdata_single) (int account_id, int char_id, short type);
++	int (*maintenance_countdown) ( int tid, int64 tick, int id, intptr data );
++	int (*maintenance_progress) ( int tid, int64 tick, int id, intptr data );
++
++	int maintenance_group;
++	int maintenance_starttime;
++	int maintenance_endtime;
++	int maintenance_countid;
++	int maintenance_timerid;
++	char maintenance_timeformat[24];
+ };
+ 
+ struct chrif_interface *chrif;
+diff --git a/src/map/clif.c b/src/map/clif.c
+index d9acf07..1c2975b 100644
+--- a/src/map/clif.c
++++ b/src/map/clif.c
+@@ -9276,6 +9276,19 @@ void clif_parse_LoadEndAck(int fd,struct map_session_data *sd) {
+ #endif
+ 	bool first_time = false;
+ 
++	if ( sd->state.connect_new ) {
++		if ( chrif->maintenance_starttime > time(NULL) ) {
++			char aaa[255];
++			safesnprintf( aaa, 255, "Maintenance starts in %d min %d sec, last %d minutes. Server up by %s", ( chrif->maintenance_starttime - (int)time(NULL) ) /60, ( chrif->maintenance_starttime - (int)time(NULL) ) %60, ( chrif->maintenance_endtime - chrif->maintenance_starttime ) /60, chrif->maintenance_timeformat );
++			clif->message( sd->fd, aaa );
++		}
++		else if ( chrif->maintenance_endtime > time(NULL) ) {
++			char aaa[255];
++			safesnprintf( aaa, 255, "Server is currently in maintenance mode, will end in %d min %d sec on %s", ( chrif->maintenance_endtime - (int)time(NULL) ) /60, ( chrif->maintenance_endtime - (int)time(NULL) ) %60, chrif->maintenance_timeformat );
++			clif->message( sd->fd, aaa );
++		}
++	}
++
+ 	if(sd->bl.prev != NULL)
+ 		return;
+ 
+diff --git a/src/map/pc.c b/src/map/pc.c
+index 2372d31..122bae6 100644
+--- a/src/map/pc.c
++++ b/src/map/pc.c
+@@ -973,6 +973,11 @@ bool pc_authok(struct map_session_data *sd, int login_id2, time_t expiration_tim
+ 	int64 tick = timer->gettick();
+ 	uint32 ip = session[sd->fd]->client_addr;
+ 
++	if ( time(NULL) > chrif->maintenance_starttime && chrif->maintenance_endtime > time(NULL) && group_id < chrif->maintenance_group ) {
++		clif->authfail_fd( sd->fd, 1 );
++		return false;
++	}
++
+ 	sd->login_id2 = login_id2;
+ 
+ 	if (pc->set_group(sd, group_id) != 0) {
+diff --git a/src/map/script.c b/src/map/script.c
+index 2c89321..1cc9c28 100644
+--- a/src/map/script.c
++++ b/src/map/script.c
+@@ -18735,10 +18735,164 @@ bool script_hp_add(char *name, char *args, bool (*func)(struct script_state *st)
+ 	return script->add_builtin(&buildin, true);
+ }
+ 
++//	maintenance <Group ID can stay 1~99>, <duration to kick in minute>, <maintenance duration in minute> { , <reason> };
++BUILDIN(maintenance) {
++	int group_id, kick_duration, maintenance_duration;
++	char reason[99], esc_reason[198], min_display[3];
++	short weekday, hour, minute;
++	if ( chrif->maintenance_endtime > time(NULL) ) {
++		ShowError( "buildin_maintenance: Maintenance is currently ON.\n" );
++		return false;
++	}
++	group_id = script_getnum(st,2);
++	kick_duration = script_getnum(st,3);
++	maintenance_duration = script_getnum(st,4);
++	if ( !group_id ) {
++		ShowError( "buildin_maintenance: Group ID field cannot be 0.\n" );
++		return false;
++	}
++	if ( group_id < 1 || group_id > 99 ) {
++		ShowError( "buildin_maintenance: Invalid Group ID %d. Range must between 1~99.\n", group_id );
++		return false;
++	}
++	if ( kick_duration <= 0 ) {
++		ShowError( "buildin_maintenance: Kick duration cannot be 0 or negative numbers.\n" );
++		return false;
++	}
++	if ( kick_duration > 1440 ) {
++		ShowError( "buildin_maintenance: Kick duration cannot be more than 1 day.\n" );
++		return false;
++	}
++	if ( maintenance_duration <= 0 ) {
++		ShowError( "buildin_maintenance: Maintenance duration cannot be 0 or negative numbers.\n" );
++		return false;
++	}
++	if ( maintenance_duration > 10080 ) {
++		ShowError( "buildin_maintenance: Maintenance duration cannot be more than 1 week.\n" );
++		return false;
++	}
++	safesnprintf( reason, 99, script_hasdata(st,5)? script_getstr(st,5) : "   *Regular server maintenance*" );
++	SQL->EscapeString( map->mysql_handle, esc_reason, reason );
++	if ( SQL->Query( map->mysql_handle, "insert into maintenance values ( null, 0, 'NPC', '%s', %d, now(), timestampadd( minute, %d, now() ), timestampadd( minute, %d, now() ) )", esc_reason, group_id, kick_duration, kick_duration + maintenance_duration ) == SQL_ERROR ) {
++		Sql_ShowDebug( map->mysql_handle );
++		return false;
++	}
++	if ( SQL->Query( map->mysql_handle, "select unix_timestamp( start_time ), unix_timestamp( end_time ), weekday( end_time ), hour( end_time ), minute( end_time ) from maintenance where id = ( select max(id) from maintenance )" ) == SQL_ERROR ) {
++		Sql_ShowDebug( map->mysql_handle );
++		return false;
++	}
++	else if ( SQL->NextRow( map->mysql_handle ) == SQL_SUCCESS ) {
++		char *data;
++		chrif->maintenance_group = group_id;
++		if ( SQL->GetData( map->mysql_handle, 0, &data, NULL ) == SQL_SUCCESS )
++			chrif->maintenance_starttime = atoi(data);
++		if ( SQL->GetData( map->mysql_handle, 1, &data, NULL ) == SQL_SUCCESS )
++			chrif->maintenance_endtime = atoi(data);
++		if ( SQL->GetData( map->mysql_handle, 2, &data, NULL ) == SQL_SUCCESS )
++			weekday = atoi(data);
++		if ( SQL->GetData( map->mysql_handle, 3, &data, NULL ) == SQL_SUCCESS )
++			hour = atoi(data);
++		if ( SQL->GetData( map->mysql_handle, 4, &data, NULL ) == SQL_SUCCESS )
++			minute = atoi(data);
++		SQL->FreeResult( map->mysql_handle );
++	}
++	else {
++		SQL->FreeResult( map->mysql_handle );
++		return false;
++	}
++	{	// stupid date_format doesn't work
++		char* weekdayname[7] = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
++		char am_pm[3], aaa[255];
++		if ( hour == 0 ) {
++			hour = 12;
++			safesnprintf( am_pm, 3, "AM" );
++		}
++		else if ( hour < 12 )
++			safesnprintf( am_pm, 3, "AM" );
++		else {
++			hour = hour - 12;
++			safesnprintf( am_pm, 3, "PM" );
++		}
++		if ( minute < 10 )
++			safesnprintf( min_display, 3, "0%d", minute );
++		else
++			safesnprintf( min_display, 3, "%d", minute );
++		safesnprintf( chrif->maintenance_timeformat, 24, "%s, %d:%s %s", weekdayname[ weekday ], hour, min_display, am_pm );
++		safesnprintf( aaa, 255, "Maintenance mode will be commence in %d minutes. Players are adviced to log out right now. Maintenance last %d minutes. Server will come back up on %s", kick_duration, maintenance_duration, chrif->maintenance_timeformat );
++		intif->broadcast( aaa , strlen(aaa)+1, 0xFFFF00 );
++	}
++	chrif->maintenance_countid = timer->add( timer->gettick() +( ( kick_duration == 1 )? 1000 : 60000 ), chrif->maintenance_countdown, 0, 0 );
++	ShowStatus( CL_YELLOW "Maintenance will start in %d min" CL_RESET ".\n", kick_duration );
++	return true;
++}
++
++BUILDIN(maintenanceoff) {
++	char reason[99], esc_reason[198];
++	if ( chrif->maintenance_endtime <= time(NULL) ) {
++		ShowError( "buildin_maintenanceoff: Maintenance is currently OFF.\n" );
++		return false;
++	}
++	safesnprintf( reason, 99, script_hasdata(st,2)? script_getstr(st,2) : "   *maintenance off*" );
++	SQL->EscapeString( map->mysql_handle, esc_reason, reason );
++	if ( SQL->Query( map->mysql_handle, "insert into maintenance values ( null, 0, 'NPC', '%s', 0, null, now(), now() )", esc_reason ) == SQL_ERROR ) {
++		Sql_ShowDebug( map->mysql_handle );
++		return false;
++	}
++	chrif->maintenance_group = 0;
++	chrif->maintenance_starttime = (int)time(NULL);
++	chrif->maintenance_endtime = (int)time(NULL);
++	if ( chrif->maintenance_countid > INVALID_TIMER ) {
++		timer->delete( chrif->maintenance_countid, chrif->maintenance_countdown );
++		chrif->maintenance_countid = INVALID_TIMER;
++	}
++	if ( chrif->maintenance_timerid > INVALID_TIMER ) {
++		timer->delete( chrif->maintenance_timerid, chrif->maintenance_progress );
++		chrif->maintenance_timerid = INVALID_TIMER;
++	}
++	intif->broadcast( "Maintenance mode has ended. Players are able to login now." , 255, 0xFFFF00 );
++	ShowStatus( CL_YELLOW "Maintenance has ended" CL_RESET ".\n" );
++	return true;
++}
++
++BUILDIN(maintenancecheck) {
++	int type = script_hasdata(st,2)? script_getnum(st,2) : 0;
++	switch( type ) {
++	default:
++		if ( chrif->maintenance_starttime > time(NULL) )
++			script_pushint(st, 1);
++		else if ( chrif->maintenance_endtime > time(NULL) )
++			script_pushint(st, 2);
++		else
++			script_pushint(st, 0);
++		return true;
++	case 1:
++		script_pushint(st, chrif->maintenance_group);
++		return true;
++	case 2:
++		script_pushint(st, chrif->maintenance_starttime);
++		return true;
++	case 3:
++		script_pushint(st, chrif->maintenance_endtime);
++		return true;
++	case 4:
++		script_pushint(st, chrif->maintenance_countid);
++		return true;
++	case 5:
++		script_pushint(st, chrif->maintenance_timerid);
++		return true;
++//	case 6: // for some reason this cause memory leak
++//		script_pushstr(st, chrif->maintenance_timeformat );
++//		return true;
++	}
++}
++
+ #define BUILDIN_DEF(x,args) { buildin_ ## x , #x , args }
+ #define BUILDIN_DEF2(x,x2,args) { buildin_ ## x , x2 , args }
+ void script_parse_builtin(void) {
+ 	struct script_function BUILDIN[] = {
++		BUILDIN_DEF(maintenance,"iii?"),
++		BUILDIN_DEF(maintenanceoff,"?"),
++		BUILDIN_DEF(maintenancecheck,"?"),
+ 		// NPC interaction
+ 		BUILDIN_DEF(mes,"s*"),
+ 		BUILDIN_DEF(next,""),

@@ -1,0 +1,94 @@
+// https://rathena.org/board/topic/115861-woe-random-castle/
+
+//	remember to disable these links
+//== npc\guild\agit_controller.txt
+//== npc\guild2\agit_start_se.txt
+//== npc\re\guild3\agit_start_te.txt
+
+function	script	F_ShuffleNumbers	{
+	deletearray getarg(2);
+	.@static = getarg(0);
+	.@range = getarg(1) +1 - .@static;
+	.@count = getarg(3, .@range);
+	if (.@range <= 0 || .@count <= 0)
+		return 0;
+	if (.@count > .@range)
+		.@count = .@range;
+	for (.@i = 0; .@i < .@range; ++.@i)
+		.@temparray[.@i] = .@i;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@rand = rand(.@range);
+		set getelementofarray( getarg(2), .@i ), .@temparray[.@rand] + .@static;
+		.@temparray[.@rand] = .@temparray[--.@range];
+	}
+	return .@count;
+}
+
+-	script	castle_randomize	-1,{
+OnInit:
+	setarray .castle$[0],
+		"aldeg_cas01","aldeg_cas02","aldeg_cas03","aldeg_cas04","aldeg_cas05",
+		"gefg_cas01","gefg_cas02","gefg_cas03","gefg_cas04","gefg_cas05",
+		"payg_cas01","payg_cas02","payg_cas03","payg_cas04","payg_cas05",
+		"prtg_cas01","prtg_cas02","prtg_cas03","prtg_cas04","prtg_cas05";
+//	bindatcmd "cas", strnpcinfo(0)+"::OnDebug";
+	end;
+OnClock2100:
+OnAgitInit:
+	if ( gettime(DT_HOUR) != 21 ) end;
+	agitstart;
+	end;
+OnClock2200:
+	agitend;
+	end;
+OnAgitStart:
+	// luckily 20/2 has no remainder
+	if ( !getarraysize( $castle_random$ ) ) {
+		callfunc "F_ShuffleNumbers", 0, 19, .@r;
+		for ( .@i = 0; .@i < 20; ++.@i )
+			$castle_random$[.@i] = .castle$[ .@r[.@i] ];
+	}
+	sleep 100;
+	announce "The Castles open today are "+ getcastlename( $castle_random$[0] ) +" and "+  getcastlename( $castle_random$[1] ) +" !!", bc_woe;
+	for ( .@i = 0; .@i < 20; ++.@i ) {
+		if ( .castle$[.@i] != $castle_random$[0] && .castle$[.@i] != $castle_random$[1] ) {
+			removemapflag .castle$[.@i], mf_gvg_castle;
+			killmonster .castle$[.@i], "Agit#"+ .castle$[.@i] +"::OnAgitBreak";		
+			gvgoff .castle$[.@i];
+		}	
+	}
+	deletearray $castle_random$, 2;
+//	for ( .@i = 0; .@i < 20; ++.@i )
+//		announce (.@i +1) +". "+ .castle$[.@i] +" -> "+ getcastlename( .castle$[.@i] ), bc_all, ( ( getmapflag( .castle$[.@i], mf_gvg_castle ) )? 0x00FF00 : 0xFF0000 ) ;
+	end;
+OnAgitEnd:
+	for ( .@i = 0; .@i < 20; ++.@i )
+		if ( !getmapflag( .castle$[.@i], mf_gvg_castle ) )
+			setmapflag .castle$[.@i], mf_gvg_castle;
+	end;
+OnDebug:
+	switch ( atoi( .@atcmd_parameters$ ) ) {
+	case 1: warp "aldeg_cas01",216,23; end;
+	case 2: warp "aldeg_cas02",213,23; end;
+	case 3: warp "aldeg_cas03",205,31; end;
+	case 4: warp "aldeg_cas04",36,217; end;
+	case 5: warp "aldeg_cas05",27,101; end;
+	case 6: warp "gefg_cas01",197,181; end;
+	case 7: warp "gefg_cas02",176,178; end;
+	case 8: warp "gefg_cas03",244,166; end;
+	case 9: warp "gefg_cas04",174,177; end;
+	case 10: warp "gefg_cas05",194,184; end;
+	case 11: warp "payg_cas01",139,139; end;
+	case 12: warp "payg_cas02",38,25;   end;
+	case 13: warp "payg_cas03",269,265; end;
+	case 14: warp "payg_cas04",270,28;  end;
+	case 15: warp "payg_cas05",30,30;   end;
+	case 16: warp "prtg_cas01",197,197; end;
+	case 17: warp "prtg_cas02",157,174; end;
+	case 18: warp "prtg_cas03",16,220;  end;
+	case 19: warp "prtg_cas04",291,14;  end;
+	case 20: warp "prtg_cas05",266,266; end;
+	default:
+	}
+	end;
+}

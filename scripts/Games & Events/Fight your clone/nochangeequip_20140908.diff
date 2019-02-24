@@ -1,0 +1,115 @@
+ db/const.txt     |  1 +
+ src/map/map.h    |  1 +
+ src/map/npc.c    |  2 ++
+ src/map/pc.c     | 10 ++++++++++
+ src/map/script.c |  3 +++
+ src/map/script.h |  3 ++-
+ 6 files changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/db/const.txt b/db/const.txt
+index 8023fc3..52742b7 100644
+--- a/db/const.txt
++++ b/db/const.txt
+@@ -361,6 +361,7 @@ mf_battleground	51
+ mf_reset	52
+ mf_notomb	53
+ mf_nocashshop	54
++mf_nochangeequip	55
+ 
+ cell_walkable	0
+ cell_shootable	1
+diff --git a/src/map/map.h b/src/map/map.h
+index dba565c..dcbc07c 100644
+--- a/src/map/map.h
++++ b/src/map/map.h
+@@ -647,6 +647,7 @@ struct map_data {
+ 		unsigned noknockback : 1;
+ 		unsigned notomb : 1;
+ 		unsigned nocashshop : 1;
++		unsigned nochangeequip : 1;
+ 	} flag;
+ 	struct point save;
+ 	struct npc_data *npc[MAX_NPC_PER_MAP];
+diff --git a/src/map/npc.c b/src/map/npc.c
+index f4f20a6..cd6cd58 100644
+--- a/src/map/npc.c
++++ b/src/map/npc.c
+@@ -4003,6 +4003,8 @@ const char* npc_parse_mapflag(char* w1, char* w2, char* w3, char* w4, const char
+ 		map->list[m].flag.src4instance = (state) ? 1 : 0;
+ 	} else if ( !strcmpi(w3,"nocashshop") ) {
+ 		map->list[m].flag.nocashshop = (state) ? 1 : 0;
++	} else if (!strcmpi(w3,"nochangeequip")) {
++		map->list[m].flag.nochangeequip = (state) ? 1 : 0;
+ 	} else {
+ 		ShowError("npc_parse_mapflag: unrecognized mapflag '%s' in file '%s', line '%d'.\n", w3, filepath, strline(buffer,start-buffer));
+ 		if (retval) *retval = EXIT_FAILURE;
+diff --git a/src/map/pc.c b/src/map/pc.c
+index 2372d31..5ce6248 100644
+--- a/src/map/pc.c
++++ b/src/map/pc.c
+@@ -8759,6 +8759,11 @@ int pc_equipitem(struct map_session_data *sd,int n,int req_pos)
+ 
+ 	nullpo_ret(sd);
+ 
++	if ( map->list[sd->bl.m].flag.nochangeequip ) {
++		clif->message( sd->fd, "You are not allow to change equipment in this map." );
++		return 0;
++	}
++
+ 	if( n < 0 || n >= MAX_INVENTORY ) {
+ 		clif->equipitemack(sd,0,0,EIA_FAIL);
+ 		return 0;
+@@ -8979,6 +8984,11 @@ int pc_unequipitem(struct map_session_data *sd,int n,int flag) {
+ 	bool status_cacl = false;
+ 	nullpo_ret(sd);
+ 
++	if ( map->list[sd->bl.m].flag.nochangeequip ) {
++		clif->message( sd->fd, "You are not allow to change equipment in this map." );
++		return 0;
++	}
++
+ 	if( n < 0 || n >= MAX_INVENTORY ) {
+ 		clif->unequipitemack(sd,0,0,UIA_FAIL);
+ 		return 0;
+diff --git a/src/map/script.c b/src/map/script.c
+index cbea20e..d65e44f 100644
+--- a/src/map/script.c
++++ b/src/map/script.c
+@@ -10970,6 +10970,7 @@ void script_detach_rid(struct script_state* st) {
+ 			case MF_RESET:              script_pushint(st,map->list[m].flag.reset); break;
+ 			case MF_NOTOMB:             script_pushint(st,map->list[m].flag.notomb); break;
+ 			case MF_NOCASHSHOP:         script_pushint(st,map->list[m].flag.nocashshop); break;
++			case MF_NOCHANGEEQUIP:      script_pushint(st,map->list[m].flag.nochangeequip); break;
+ 		}
+ 	}
+ 
+@@ -11086,6 +11087,7 @@ int script_mapflag_pvp_sub(struct block_list *bl,va_list ap) {
+ 			case MF_RESET:              map->list[m].flag.reset = 1; break;
+ 			case MF_NOTOMB:             map->list[m].flag.notomb = 1; break;
+ 			case MF_NOCASHSHOP:         map->list[m].flag.nocashshop = 1; break;
++			case MF_NOCHANGEEQUIP:      map->list[m].flag.nochangeequip = 1; break;
+ 		}
+ 	}
+ 
+@@ -11172,6 +11174,7 @@ int script_mapflag_pvp_sub(struct block_list *bl,va_list ap) {
+ 			case MF_RESET:              map->list[m].flag.reset = 0; break;
+ 			case MF_NOTOMB:             map->list[m].flag.notomb = 0; break;
+ 			case MF_NOCASHSHOP:         map->list[m].flag.nocashshop = 0; break;
++			case MF_NOCHANGEEQUIP:      map->list[m].flag.nochangeequip = 0; break;
+ 		}
+ 	}
+ 
+diff --git a/src/map/script.h b/src/map/script.h
+index 48abf14..58a9eb6 100644
+--- a/src/map/script.h
++++ b/src/map/script.h
+@@ -317,7 +317,8 @@ enum {
+ 	MF_BATTLEGROUND,
+ 	MF_RESET,
+ 	MF_NOTOMB,
+-	MF_NOCASHSHOP
++	MF_NOCASHSHOP,
++	MF_NOCHANGEEQUIP
+ };
+ 
+ /**

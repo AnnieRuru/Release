@@ -1,0 +1,37 @@
+//===== rAthena Patch ========================================
+//= Maximum Level Exp Gain
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.0
+//===== Compatible With: ===================================== 
+//= rAthena 2019-02-19
+//===== Description: =========================================
+//= stop players from gaining exp after certain level
+//===== Topic ================================================
+//= https://rathena.org/board/topic/91115-event-watcher/?do=findComment&comment=238849
+//===== Additional Comments: =================================  
+//= no battle_config, as rathena members not very fluent with it
+//============================================================
+
+ src/map/pc.cpp | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/src/map/pc.cpp b/src/map/pc.cpp
+index 5aace7ecb..4fb097b61 100755
+--- a/src/map/pc.cpp
++++ b/src/map/pc.cpp
+@@ -6719,6 +6719,13 @@ void pc_gainexp(struct map_session_data *sd, struct block_list *src, unsigned in
+ 	if (!(exp_flag&2))
+ 		pc_calcexp(sd, &base_exp, &job_exp, src);
+ 
++	if ( !(exp_flag & 1) ) {
++		if ( sd->status.base_level >= 5 )
++			base_exp = 0;
++		if ( sd->status.job_level >= 5 )
++			job_exp = 0;
++	}
++
+ 	nextb = pc_nextbaseexp(sd);
+ 	nextj = pc_nextjobexp(sd);
+ 

@@ -1,0 +1,104 @@
+//===== eAthena Script =====================================
+//= Fight Your Clone
+//===== By: ================================================
+//= Annieruru
+//===== Current Version: ===================================
+//= 1.0
+//===== Compatible With: ===================================
+//= Hercules 2014-03-12
+//===== Description: =======================================
+//= kill as many clones as possible and get the most kills in ranking
+//===== Topic ==============================================
+//= http://hercules.ws/board/topic/4850-fight-your-clone/
+//===== Additional Comments: ===============================
+//= and this gonna be a popular script ? I dunno...
+//==========================================================
+
+/* SQL Query
+alter table `char` add column clone_kills smallint(6) unsigned default 0, add index (clone_kills);
+*/
+
+prontera,155,180,0	script	Fight Your Clone	123,{
+	mes "["+ strnpcinfo(1) +"]";
+	mes "Do you want to prove yourself by fighting your own clones ?";
+	next;
+	switch ( select ( "Yes", "View Ranking", ( getgmlevel() >= .gm_reset )? "Reset Ladder" : "" ) ) {
+	case 1:
+		if ( ( .@ins = instance_create( "Fight Your Clone", getcharid(3), IOT_CHAR ) ) < 0 ) {
+			mes "error : "+ .@ins;
+			close;
+		}
+		if ( instance_attachmap( "guild_vs2", .@ins, 1, getcharid(3)+"FYC" ) == "" ) {
+			mes "error : 5";
+			close;
+		}
+		instance_set_timeout 3600, 1, .@ins; // 1 hour to kill, 1 seconds to destroy
+		instance_init .@ins;
+		instance_attach .@ins;
+		warp has_instance("guild_vs2"), 0,0;
+		clone has_instance("guild_vs2"), 0,0, instance_npcname( "FYC_instance_npc" )+"::OnCloneKilled", getcharid(0), 0, 0x8D;
+		end;
+	case 2:
+		.@nb = query_sql( "select name, clone_kills from `char` where clone_kills > 0 order by clone_kills desc limit "+ .ladder_length, .@name$, .@clone_kills );
+		if ( !.@nb ) {
+			mes "["+ strnpcinfo(1) +"]";
+			mes " ";
+			mes "The Ranking currently is empty.";
+			close;
+		}
+		for ( .@j = 0; .@j < .@nb; .@j += .show_per_page ) {
+			mes "["+ strnpcinfo(1) +"]";
+			for ( .@i = .@j; .@i < ( .show_per_page + .@j ) && .@i < .@nb; .@i++ )
+				mes "^996600"+( .@i +1 )+". ^0000FF"+ .@name$[.@i] +" ^FF0000"+ .@clone_kills[.@i] +"^000000 Kill(s)";
+			if ( .@j + .show_per_page < .@nb )
+				next;
+			else
+				close;
+		}
+		close;
+	case 3:
+		mes "["+ strnpcinfo(1) +"]";
+		mes "Are you sure you want to reset this ladder ?";
+		if ( select ( "No", "Yes " ) == 1 ) close;
+		query_sql "update `char` set clone_kills = 0";
+		mes " ";
+		mes "The ladder has been reset";
+		close;
+	}
+	end;
+OnInit:
+	.gm_reset = 99; // at which GM level can reset the ladder ?
+	.ladder_length = 100; // display how many players in the ladder ? 100 = display top 100 players
+	.show_per_page = 10; // show how many players in 1 page ?
+	end;
+OnPCDieEvent:
+	if ( strcharinfo(3) == has_instance("guild_vs2") ) {
+		instance_attach has_instance2("guild_vs2");
+		announce strcharinfo(0) +" die at killing "+ 'evil_clone_killed +" clones", bc_map;
+		getitem 501, 'evil_clone_killed; // reward items based on how many clones were killed
+		query_sql "select clone_kills from `char` where char_id = "+ getcharid(0), .@clone_kills;
+		if ( 'evil_clone_killed > .@clone_kills )
+			query_sql "update `char` set clone_kills = "+ 'evil_clone_killed +" where char_id = "+ getcharid(0);
+	}
+	end;
+}
+
+guild_vs2,0,0,0	script	FYC_instance_npc	-1,{
+OnCloneKilled:
+	'evil_clone_killed++;
+	clone has_instance("guild_vs2"), 0,0, instance_npcname( "FYC_instance_npc" )+"::OnCloneKilled", getcharid(0), 0, 0x8D;
+	clone has_instance("guild_vs2"), 0,0, instance_npcname( "FYC_instance_npc" )+"::OnCloneKilled", getcharid(0), 0, 0x8D;
+	end;
+}
+
+guild_vs2	mapflag	nosave	SavePoint
+guild_vs2	mapflag	nowarp
+guild_vs2	mapflag	nowarpto
+guild_vs2	mapflag	noreturn
+guild_vs2	mapflag	noteleport
+guild_vs2	mapflag	nomemo
+guild_vs2	mapflag	nopenalty
+guild_vs2	mapflag	nobranch
+guild_vs2	mapflag	noicewall
+guild_vs2	mapflag	src4instance
+guild_vs2	mapflag	nochangeequip

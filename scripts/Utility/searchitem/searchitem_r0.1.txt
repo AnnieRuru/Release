@@ -1,0 +1,131 @@
+//===== rAthena Script =======================================
+//= searchitem
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: ===================================== 
+//= rAthena 2019-01-20
+//===== Description: ========================================= 
+//= search for an item in the server
+//===== Topic ================================================
+//= solved in discord
+//===== Additional Comments: =================================
+//= 
+//============================================================
+
+-	script	sfksdf	-1,{
+OnInit:
+	bindatcmd "searchitem", strnpcinfo(0)+"::Onaaa", 99,100; // only Admin(99) can use
+	end;
+Onaaa:
+	mes "[Search Item]\r";
+	mes "input item ID";
+	next;
+	input .@itemid;
+	mes "[Search Item]\r";
+	if ( getiteminfo( .@itemid, 2 ) == -1 ) {
+		mes "There is no such item";
+		close;
+	}
+	.@refine = .@card1 = .@card2 = .@card3 = .@card4 = -1;
+	while ( true ) {
+		mes getitemname(.@itemid);
+		mes "refinement = "+( ( .@refine == -1 )?"^FF0000unknown^000000":.@refine );
+		mes "card no.1 = "+( ( .@card1 == -1 )?"^FF0000unknown^000000":( "^70AC11"+ getitemname(.@card1) +" ^EE8800("+ .@card1 +")^000000" ) );
+		mes "card no.2 = "+( ( .@card2 == -1 )?"^FF0000unknown^000000":( "^70AC11"+ getitemname(.@card2) +" ^EE8800("+ .@card2 +")^000000" ) );
+		mes "card no.3 = "+( ( .@card3 == -1 )?"^FF0000unknown^000000":( "^70AC11"+ getitemname(.@card3) +" ^EE8800("+ .@card3 +")^000000" ) );
+		mes "card no.4 = "+( ( .@card4 == -1 )?"^FF0000unknown^000000":( "^70AC11"+ getitemname(.@card4) +" ^EE8800("+ .@card4 +")^000000" ) );
+		next;
+		switch ( select ( "Start Search", "Input refine", "Input card no.1", "Input card no.2", "Input card no.3", "Input card no.4" ) ) {
+		mes "[Search Item]";
+		case 1:
+			break;
+		case 2:
+			mes "\rInput refinement";
+			mes "-1 for unsure/unknown";
+			next;
+			input .@refine, -1, 100;
+			break;
+		default:
+			.@menu = @menu - 2;
+			mes "\rInput card no."+ .@menu;
+			mes "-1 for unsure/unknown";
+			next;
+			input getd(".@card"+ .@menu +"_"), -1, 2147000000;
+			if ( getiteminfo( getd(".@card"+ .@menu +"_"), 2 ) != IT_CARD && getd(".@card"+ .@menu +"_") != -1 ) {
+				mes "^FF0000Find Lost items^000000";
+				mes "That item is not a card";
+				next;
+			}
+			else
+				setd ".@card"+ .@menu, getd(".@card"+ .@menu +"_");
+		}
+		if ( @menu == 1 )
+			break;
+	}
+	mes "\rselect a category";
+	while ( true ) {
+		next;
+		switch ( select ( "inventory", "cart", "storage", "guild storage" ) ) {
+		mes "^FF0000Find Lost items^000000";
+		case 1:
+			.@nb = query_sql("select char_id, amount, refine, card0, card1, card2, card3 from inventory where nameid = "+ .@itemid +( (.@refine == -1)?"":" && refine = "+ .@refine )+( (.@card1 == -1)?"":" && ( card0 = "+ .@card1 +" || card1 = "+ .@card1 +" || card2 = "+ .@card1 +" || card3 = "+ .@card1 +" )" )+( (.@card2 == -1)?"":" && ( card0 = "+ .@card2 +" || card1 = "+ .@card2 +" || card2 = "+ .@card2 +" || card3 = "+ .@card2 +" )" )+( (.@card3 == -1)?"":" && ( card0 = "+ .@card3 +" || card1 = "+ .@card3 +" || card2 = "+ .@card3 +" || card3 = "+ .@card3 +" )" )+( (.@card4 == -1)?"":" && ( card0 = "+ .@card4 +" || card1 = "+ .@card4 +" || card2 = "+ .@card4 +" || card3 = "+ .@card4 +" )" ), .@cid, .@amount, .@refine, .@card_1, .@card_2, .@card_3, .@card_4);
+			mes "*** Inventory ***";
+			if ( !.@nb )
+				mes "\r^FF0000No result^000000";
+			else {
+				for ( .@i = 0; .@i < .@nb; ++.@i ) {
+					mes " ";
+					mes "^996600"+ ( .@i +1 ) +" ^000000Char ID = ^EE8800("+ .@cid[.@i] +")";
+					mes "^996600"+ .@amount[.@i] +" ^00AA00"+ getitemname(.@itemid) +" "+( (.@refine[.@i])?"+"+ .@refine[.@i]:"" )+" ^EE8800("+ .@itemid +")";
+					for ( .@j = 1; .@j <= 4 && getd(".@card_"+ .@j +"["+ .@i +"]") > 500; ++.@j )
+						mes "^70AC11> "+ getitemname( getd(".@card_"+ .@j +"["+ .@i +"]") ) +" ("+ getd(".@card_"+ .@j +"["+ .@i +"]") +")";
+				}
+			}
+			break;
+		case 2:
+			.@nb = query_sql("select char_id, amount, refine, card0, card1, card2, card3 from cart_inventory where nameid = "+ .@itemid +( (.@refine == -1)?"":" && refine = "+ .@refine )+( (.@card1 == -1)?"":" && ( card0 = "+ .@card1 +" || card1 = "+ .@card1 +" || card2 = "+ .@card1 +" || card3 = "+ .@card1 +" )" )+( (.@card2 == -1)?"":" && ( card0 = "+ .@card2 +" || card1 = "+ .@card2 +" || card2 = "+ .@card2 +" || card3 = "+ .@card2 +" )" )+( (.@card3 == -1)?"":" && ( card0 = "+ .@card3 +" || card1 = "+ .@card3 +" || card2 = "+ .@card3 +" || card3 = "+ .@card3 +" )" )+( (.@card4 == -1)?"":" && ( card0 = "+ .@card4 +" || card1 = "+ .@card4 +" || card2 = "+ .@card4 +" || card3 = "+ .@card4 +" )" ), .@cid, .@amount, .@refine, .@card_1, .@card_2, .@card_3, .@card_4);
+			mes "*** Cart ***";
+			if ( !.@nb )
+				mes "\r^FF0000No result^000000";
+			else {
+				for ( .@i = 0; .@i < .@nb; ++.@i ) {
+					mes "\r^996600"+ ( .@i +1 ) +" ^000000Char ID = ^EE8800("+ .@cid[.@i] +")";
+					mes "^996600"+ .@amount[.@i] +" ^00AA00"+ getitemname(.@itemid) +" "+( (.@refine[.@i])?"+"+ .@refine[.@i]:"" )+" ^EE8800("+ .@itemid +")";
+					for ( .@j = 1; .@j <= 4 && getd(".@card_"+ .@j +"["+ .@i +"]") > 500; ++.@j )
+						mes "^70AC11> "+ getitemname( getd(".@card_"+ .@j +"["+ .@i +"]") ) +" ("+ getd(".@card_"+ .@j +"["+ .@i +"]") +")";
+				}
+			}
+			break;
+		case 3:
+			set .@nb, query_sql("select account_id, amount, refine, card0, card1, card2, card3 from storage where nameid = "+ .@itemid +( (.@refine == -1)?"":" && refine = "+ .@refine )+( (.@card1 == -1)?"":" && ( card0 = "+ .@card1 +" || card1 = "+ .@card1 +" || card2 = "+ .@card1 +" || card3 = "+ .@card1 +" )" )+( (.@card2 == -1)?"":" && ( card0 = "+ .@card2 +" || card1 = "+ .@card2 +" || card2 = "+ .@card2 +" || card3 = "+ .@card2 +" )" )+( (.@card3 == -1)?"":" && ( card0 = "+ .@card3 +" || card1 = "+ .@card3 +" || card2 = "+ .@card3 +" || card3 = "+ .@card3 +" )" )+( (.@card4 == -1)?"":" && ( card0 = "+ .@card4 +" || card1 = "+ .@card4 +" || card2 = "+ .@card4 +" || card3 = "+ .@card4 +" )" ), .@aid, .@amount, .@refine, .@card_1, .@card_2, .@card_3, .@card_4);
+			mes "*** Storage ***";
+			if ( !.@nb )
+				mes "\r^FF0000No result^000000";
+			else {
+				for ( .@i = 0; .@i < .@nb; ++.@i ) {
+					mes "\r^996600"+ ( .@i +1 ) +" ^000000Account ID = ^EE8800("+ .@aid[.@i] +")";
+					mes "^996600"+ .@amount[.@i] +" ^00AA00"+ getitemname(.@itemid) +" "+( (.@refine[.@i])?"+"+ .@refine[.@i]:"" )+" ^EE8800("+ .@itemid +")";
+					for ( .@j = 1; .@j <= 4 && getd(".@card_"+ .@j +"["+ .@i +"]") > 500; ++.@j )
+						mes "^70AC11> "+ getitemname( getd(".@card_"+ .@j +"["+ .@i +"]") ) +" ("+ getd(".@card_"+ .@j +"["+ .@i +"]") +")";
+				}
+			}
+			break;
+		case 4:
+			set .@nb, query_sql("select guild_id, amount, refine, card0, card1, card2, card3 from guild_storage where nameid = "+ .@itemid +( (.@refine == -1)?"":" && refine = "+ .@refine )+( (.@card1 == -1)?"":" && ( card0 = "+ .@card1 +" || card1 = "+ .@card1 +" || card2 = "+ .@card1 +" || card3 = "+ .@card1 +" )" )+( (.@card2 == -1)?"":" && ( card0 = "+ .@card2 +" || card1 = "+ .@card2 +" || card2 = "+ .@card2 +" || card3 = "+ .@card2 +" )" )+( (.@card3 == -1)?"":" && ( card0 = "+ .@card3 +" || card1 = "+ .@card3 +" || card2 = "+ .@card3 +" || card3 = "+ .@card3 +" )" )+( (.@card4 == -1)?"":" && ( card0 = "+ .@card4 +" || card1 = "+ .@card4 +" || card2 = "+ .@card4 +" || card3 = "+ .@card4 +" )" )+" limit 128", .@gid, .@amount, .@refine, .@card_1, .@card_2, .@card_3, .@card_4);
+			mes "*** Guild Storage ***";
+			if ( !.@nb )
+				mes "\r^FF0000No result^000000";
+			else {
+				for ( .@i = 0; .@i < .@nb; ++.@i ) {
+					mes "^996600"+ ( .@i +1 ) +" ^000000Guild ID = ^EE8800("+ .@gid[.@i] +")";
+					mes "^996600"+ .@amount[.@i] +" ^00AA00"+ getitemname(.@itemid) +" "+( (.@refine[.@i])?"+"+ .@refine[.@i]:"" )+" ^EE8800("+ .@itemid +")";
+					for ( .@j = 1; .@j <= 4 && getd(".@card_"+ .@j +"["+ .@i +"]") > 500; ++.@j )
+						mes "^70AC11> "+ getitemname( getd(".@card_"+ .@j +"["+ .@i +"]") ) +" ("+ getd(".@card_"+ .@j +"["+ .@i +"]") +")";
+				}
+			}
+			break;
+		}
+	}
+}

@@ -1,0 +1,187 @@
+// http://herc.ws/board/topic/15825-custom_bg-3ceam/
+
+-	script	custom_bg#control	-1,{
+OnInit:
+	set .minplayer2start, 2; // minimum player to start ... please do not set to 1
+	setarray .rewarditem,
+		501, 10, // reward to the winning team
+		501, 3; // reward to the losing team
+	set .startingscore, 99; // score at start
+	set .eventlasting, 120; // event last 120 seconds
+	set .red_cloth, 1; // color value from red clothing
+	set .blue_cloth, 2; // color value from blue clothing
+	set .grey_cloth, 3; // color value from grey clothing
+	end;
+OnStart:
+	if ( getwaitingroomstate( 0, .rednpcname$ ) < .minplayer2start || getwaitingroomstate( 0, .bluenpcname$ ) < .minplayer2start )
+		end;
+	set .red, waitingroom2bg( "bat_c01",53,128, strnpcinfo(0)+"::OnRedQuit", strnpcinfo(0)+"::OnRedDead", .rednpcname$ );
+	copyarray .team1aid[.@i], $@arenamembers[.@i], $@arenamembersnum;
+	set .team1count, .minplayer2start;
+	set .blue, waitingroom2bg( "bat_c01",146,56, strnpcinfo(0)+"::OnBlueQuit", strnpcinfo(0)+"::OnBlueDead", .bluenpcname$ );
+	copyarray .team2aid[.@i], $@arenamembers[.@i], $@arenamembersnum;
+	set .team2count, .minplayer2start;
+	delwaitingroom .rednpcname$;
+	delwaitingroom .bluenpcname$;
+	bg_warp .red, "bat_c01", 53,128;
+	bg_warp .blue, "bat_c01", 146,56;
+	set .score[1], .startingscore;
+	set .score[2], .startingscore;
+	bg_updatescore "bat_c01", .score[1], .score[2];
+	callsub L_setleader, 1;
+	callsub L_setleader, 2;
+	for ( set .@i, 0; .@i < .minplayer2start; set .@i, .@i +1 ) {
+		attachrid .team1aid[.@i];
+		@clotes_color = getlook( LOOK_CLOTHES_COLOR );
+		setlook LOOK_CLOTHES_COLOR, ( .leader_aid[1] == getcharid(3) )? .grey_cloth : .red_cloth;
+	}
+	for ( set .@i, 0; .@i < .minplayer2start; set .@i, .@i +1 ) {
+		attachrid .team2aid[.@i];
+		@clotes_color = getlook( LOOK_CLOTHES_COLOR );
+		setlook LOOK_CLOTHES_COLOR, ( .leader_aid[2] == getcharid(3) )? .grey_cloth : .blue_cloth;
+	}
+	sleep 5000;
+	mapannounce "bat_c01", "[Clan War] : Clan with most kills within 2 mins wins!",0;
+	set .time, gettimetick(2);
+	callsub L_showdigitall, 0, 1;
+	sleep .eventlasting * 1000;
+	bg_updatescore "bat_c01", .score[1], .score[2];
+	if ( .score[1] > .score[2] ) {
+		mapannounce "bat_c01", "[Clan War] : The Troll Clan has won the war!", 0;
+		callsub L_reward, 1, 0;
+		callsub L_reward, 2, 2;
+	}
+	else if ( .score[1] < .score[2] ) {
+		mapannounce "bat_c01", "[Clan War] : The Fairy Clan has won the war!", 0;
+		callsub L_reward, 2, 0;
+		callsub L_reward, 1, 2;
+	}
+	else {
+		mapannounce "bat_c01", "[Clan War] : The war has been declared draw!",0;
+		callsub L_reward, 1, 2;
+		callsub L_reward, 2, 2;
+	}
+	callsub L_showdigitall, gettimetick(2) - .time, 0;
+	bg_warp .red, "prontera",152,178;
+	bg_warp .blue, "prontera",154,178;
+	bg_destroy .red;
+	bg_destroy .blue;
+	donpcevent .rednpcname$ +"::OnStart";
+	donpcevent .bluenpcname$ +"::OnStart";
+	set .leader_aid[1], 0;
+	set .leader_aid[2], 0;
+	for ( set .@i, 0; .@i < .team1count; set .@i, .@i +1 ) {
+		attachrid .team1aid[.@i];
+		setlook look_clothes_color, @clotes_color;
+		@clotes_color = 0;
+	}
+	for ( set .@i, 0; .@i < .team2count; set .@i, .@i +1 ) {
+		attachrid .team2aid[.@i];
+		setlook look_clothes_color, @clotes_color;
+		@clotes_color = 0;
+	}
+	end;
+L_setleader:
+	while ( ( set( .@tmp, getd( ".team"+ getarg(0) +"aid["+ rand( getd(".team"+ getarg(0) +"count") ) +"]" ) ) ) == playerattached() );
+	set .leader_aid[ getarg(0) ], .@tmp;
+	set .@origin, playerattached();
+	attachrid .leader_aid[ getarg(0) ];
+	addtimer 1, strnpcinfo(0) +"::Onteam"+ getarg(0) +"leader";
+	attachrid .@origin;
+	return;
+L_showdigitall:
+	for ( set .@i, 0; .@i < .team1count; set .@i, .@i +1 ) {
+		if ( isloggedin( .team1aid[.@i] ) ) {
+			attachrid .team1aid[.@i];
+			showdigit getarg(0), getarg(1);
+		}
+	}
+	for ( set .@i, 0; .@i < .team2count; set .@i, .@i +1 ) {
+		if ( isloggedin( .team2aid[.@i] ) ) {
+			attachrid .team2aid[.@i];
+			showdigit getarg(0), getarg(1);
+		}
+	}
+	detachrid;
+	return;
+L_reward:
+	for ( set .@i, 0; .@i < getd(".team"+ getarg(0) +"count"); set .@i, .@i +1 )
+		getitem .rewarditem[ getarg(1) ], .rewarditem[ getarg(1) +1 ], getd(".team"+ getarg(0) +"aid["+ .@i +"]" );
+	return;
+OnRedDead: callsub L_dead, 1;
+OnBlueDead: callsub L_dead, 2;
+L_dead:
+	if ( .leader_aid[ getarg(0) ] != getcharid(3) )
+		set .score[ getarg(0) ], .score[ getarg(0) ] -1;
+	else {
+		callsub L_setleader, getarg(0);
+		set .score[ getarg(0) ], .score[ getarg(0) ] -2;
+	}
+	bg_updatescore "bat_c01", .score[1], .score[2];
+	if ( .score[ getarg(0) ] <= 0 )
+		awake strnpcinfo(0);
+	sleep2 1250;
+	percentheal 100,100;
+	end;
+OnRedQuit: callsub L_quit, 1, .red;
+OnBlueQuit: callsub L_quit, 2, .blue;
+L_quit:
+	percentheal 100, 100;
+	while ( getd( ".team"+ getarg(0) +"aid["+ .@i +"]" ) != getcharid(3) && .@i < getd(".team"+ getarg(0) +"count") )
+		set .@i, .@i +1;
+	deletearray getd( ".team"+ getarg(0) +"aid["+ .@i +"]" ), 1;
+	setd ".team"+ getarg(0) +"count", getd(".team"+ getarg(0) +"count") -1;
+	if ( .leader_aid[ getarg(0) ] == getcharid(3) )
+		callsub L_setleader, getarg(0);
+	setlook LOOK_CLOTHES_COLOR, @clotes_color;
+	@clotes_color = 0;
+	if ( bg_get_data( getarg(1), 0 ) > 1 ) end;
+	set .score[ getarg(0) ], 0;
+	awake strnpcinfo(0);
+	end;
+Onteam1leader: callsub L_lead, 1, 548;
+Onteam2leader: callsub L_lead, 2, 549;
+L_lead:
+	while ( .leader_aid[ getarg(0) ] == getcharid(3) ) {
+		specialeffect2 getarg(1);
+		sleep2 1000;
+	}
+	end;
+}
+
+prontera,150,190,5	script	Troll Clan #custom_bg	468,{
+	end;
+OnInit:
+	sleep 1;
+	set getvariableofnpc( .rednpcname$, "custom_bg#control" ), strnpcinfo(0);
+OnStart:
+	waitingroom "Kill War", getvariableofnpc( .minplayer2start, "custom_bg#control" ) +1, strnpcinfo(0)+"::OnJoin",1;
+	end;
+OnJoin:
+	announce "[Clan War] : Troll Clan side has ["+ getwaitingroomstate(0) +"/"+ getvariableofnpc( .minplayer2start, "custom_bg#control" ) +"] Users. ( Kill War )",0;
+	donpcevent "custom_bg#control::OnStart";
+	end;
+}
+prontera,155,190,5	script	Fairy Clan #custom_bg	435,{
+	end;
+OnInit:
+	sleep 1;
+	set getvariableofnpc( .bluenpcname$, "custom_bg#control" ), strnpcinfo(0);
+OnStart:
+	waitingroom "Kill War", getvariableofnpc( .minplayer2start, "custom_bg#control" ) +1, strnpcinfo(0)+"::OnJoin",1;
+	end;
+OnJoin:
+	announce "[Clan War] : Fairy Clan side has ["+ getwaitingroomstate(0) +"/"+ getvariableofnpc( .minplayer2start, "custom_bg#control" ) +"] Users. ( Kill War )",0;
+	donpcevent "custom_bg#control::OnStart";
+	end;
+}
+
+bat_c01	mapflag	battleground	2
+bat_c01	mapflag	nosave	SavePoint
+bat_c01	mapflag	nowarp
+bat_c01	mapflag	nowarpto
+bat_c01	mapflag	noteleport
+bat_c01	mapflag	nomemo
+bat_c01	mapflag	nopenalty
+bat_c01	mapflag	nobranch
+bat_c01	mapflag	noicewall

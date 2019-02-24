@@ -1,0 +1,95 @@
+//===== Hercules Script ======================================
+//= Stylist npc
+//===== By: ==================================================
+//= AnnieRuru
+//= original by Euphy
+//===== Current Version: =====================================
+//= 1.4
+//===== Compatible With: ===================================== 
+//= Hercules 2019-02-23
+//===== Description: =========================================
+//= stylist npc
+//===== Topic ================================================
+//= http://herc.ws/board/topic/16581-stylist/
+//===== Additional Comments: =================================  
+//= add 3rd job body style
+//============================================================
+
+prontera,170,180,1	script	Stylist#custom_stylist	2_M_DYEINGER,{
+	.@choose = select( "Hair Style", "Hair Color", "Cloth Color", ( !(eaclass() & EAJL_THIRD) || BaseJob == Job_SuperNovice )? "": _("Body Style") ) -1;
+	.@lookpart = .@part = .look[.@choose];
+	if ( BaseClass == Job_Summoner )
+		.@part += Job_Summoner;
+	for ( .@i = 0; .@i < .maxindex[.@part]; ++.@i )
+		if ( getd(".list"+ .@part +"["+ .@i +"]") == getlook( .@lookpart ) )
+			break;
+	.@revert = .@i;
+	while ( true ) {
+		setlook .@lookpart, getd(".list"+ .@part +"["+ .@i +"]");
+		showscript sprintf( _$( "This is style #%d." ), getd(".list"+ .@part +"["+ .@i +"]") );
+		.@next = ( .@i == .maxindex[.@part] )? 0 : .@i+1;
+		.@previous = ( .@i == 0 )? .maxindex[.@part] : .@i-1;	
+		switch(select(
+			sprintf( _$("~ Next (%s%d%s)"), F_MesColor(C_BLUE), getd(".list"+ .@part +"["+ .@next +"]"), F_MesColor(C_BLACK) ),
+			sprintf( _$("~ Previous (%s%d%s)"), F_MesColor(C_BLUE), getd(".list"+ .@part +"["+ .@previous +"]"), F_MesColor(C_BLACK) ),
+			" ~ Jump to...",
+			sprintf( _$("~ Revert to original (%s%d%s)"), F_MesColor(C_BLUE), getd(".list"+ .@part +"["+ .@revert +"]"), F_MesColor(C_BLACK)) )) {
+		case 1:
+			.@i = .@next;
+			break;
+		case 2:
+			.@i = .@previous;
+			break;
+		case 3:
+			message getcharid(CHAR_ID_ACCOUNT), sprintf( _$( "Choose a style between %d - %d." ), .minstyles[.@part], .maxstyles[.@part] );
+			input .@num;
+			for ( .@j = 0; .@j < .maxindex[.@part]; ++.@j )
+				if ( getd(".list"+ .@part +"["+ .@j +"]") == .@num )
+					break;
+			if ( .@j == .maxindex[.@part] )
+				message getcharid(CHAR_ID_ACCOUNT), "That style is unavailable.";
+			else
+				.@i = .@j;
+			break;
+		case 4:
+			.@i = .@revert;
+		}
+	}
+	end;
+OnInit:
+//	.list$[LOOK_HAIR] = "0-5,11-18,20-23";
+	.list$[LOOK_HAIR] = getbattleflag("min_hair_style") +"-"+ getbattleflag("max_hair_style");
+	.list$[LOOK_HAIR_COLOR] = getbattleflag("min_hair_color") +"-"+ getbattleflag("max_hair_color");
+	.list$[LOOK_CLOTHES_COLOR] = getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+	.list$[LOOK_BODY2] = getbattleflag("min_body_style") +"-"+ getbattleflag("max_body_style");
+//	.list$[LOOK_BODY2] = "0-1";
+
+	.list$[Job_Summoner + LOOK_HAIR] = getbattleflag("min_hair_style") +"-"+ getbattleflag("max_hair_style");
+	.list$[Job_Summoner + LOOK_HAIR_COLOR] = getbattleflag("min_hair_color") +"-"+ getbattleflag("max_hair_color");
+	.list$[Job_Summoner + LOOK_CLOTHES_COLOR] = getbattleflag("min_cloth_color") +"-1";
+
+	freeloop true;
+	setarray .look[0], LOOK_HAIR, LOOK_HAIR_COLOR, LOOK_CLOTHES_COLOR, LOOK_BODY2,
+		Job_Summoner + LOOK_HAIR, Job_Summoner + LOOK_HAIR_COLOR, Job_Summoner + LOOK_CLOTHES_COLOR;
+	for ( .@i = 0; .@i < 7; ++.@i ) {
+		deletearray .@array$;
+		.@index = 0;
+		.@size = explode( .@array$, .list$[.look[.@i]], "," );
+		for ( .@j = 0; .@j < .@size; ++.@j ) {
+			if ( compare( .@array$[.@j], "-" ) ) {
+				explode( .@range$, .@array$[.@j], "-" );
+				.@min = atoi(.@range$[0]);
+				.@max = atoi(.@range$[1]);
+				.@range = .@max - .@min +1;
+				for ( .@k = 0; .@k < .@range; ++.@k )
+					setd ".list"+ .look[.@i] +"["+( .@index++ )+"]", .@min + .@k;
+			}
+			else
+				setd ".list"+ .look[.@i] +"["+( .@index++ )+"]", atoi( .@array$ );
+		}
+		.maxindex[.look[.@i]] = .@index -1;
+		.minstyles[.look[.@i]] = getd(".list"+ .look[.@i]);
+		.maxstyles[.look[.@i]] = getd(".list"+ .look[.@i] +"["+( .@index -1 )+"]");
+	}
+	end;
+}

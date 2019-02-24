@@ -1,0 +1,158 @@
+//===== Hercules Script =====================================
+//= Russian Roulette
+//===== By: ================================================
+//= AnnieRuru
+//===== Current Version: ===================================
+//= 1.1
+//===== Compatible With: ===================================
+//= Hercules 2018-05-24
+//===== Description: =======================================
+//= Just join this event and test your luck
+//===== Topic ==============================================
+//= http://herc.ws/board/topic/15927-russian-roulette/
+//===== Additional Comments: ===============================
+//= an event that is good for AFK :P
+//==========================================================
+
+prontera,154,187,5	script	Russian Roulette	4_M_GUNSLINGER3,{
+	mes "["+ strnpcinfo(NPC_NAME) +"]";
+	if ( .start == false ) {
+		mes "Registration closed. Please come again.";
+		close;
+	}
+	if ( .start == 2 ) {
+		mes "Game is in progress...";
+		close;
+	}
+	if ( getgmlevel() >= 60 ) {
+		mes "Sorry, a GM cannot participate in this event.";
+		close;
+	}
+	if ( BaseLevel < 55 ) {
+		mes "You must have a Base Level of 55 of above to join this event.";
+		close;
+	}
+	if ( queuesize(.qid) >= .register_limit ) {
+		mes "This event has reach the maximum player participations.";
+		close;
+	}
+	if ( queueadd( .qid, getcharid(3) ) == false ) {
+		mes "You have register for thie event.";
+		close;
+	}
+	mes "Register successfully.";
+	close;
+OnClock2000:
+OnStart:
+	.start = 1;
+	.qid = queue();
+	queueopt .qid, QUEUEOPT_DEATH, strnpcinfo(0)+"::OnQuit";
+	queueopt .qid, QUEUEOPT_LOGOUT, strnpcinfo(0)+"::OnQuit";
+	queueopt .qid, QUEUEOPT_MAPCHANGE, strnpcinfo(0)+"::OnQuit";
+	announce "Russian Roulette event will start in "+ .register_timer +" min.", bc_all;
+	sleep .register_timer * 60000;
+	.start = 2;
+	announce "Russian Roulette event registration close.", bc_all;
+	if ( queuesize(.qid) < .register_min ) {
+		announce "Russian Roulette: Not enough players for the event.", bc_all;
+		queuedel .qid;
+		.start = false;
+		end;
+	}
+	if ( queuesize(.qid) >= 50 )
+		.@chance = 2;
+	else if ( queuesize(.qid) >= 15 )
+		.@chance = 3;
+	else
+		.@chance = 4;
+	npctalk "You have 1:"+ .@chance +" chance of surviving per round...";
+	sleep 3000;
+	npctalk "Everyone ready ?";
+	sleep 3000;
+	while ( .start ) {
+		if ( .@round == 20 )
+			goto L_end;
+		.@iter = queueiterator(.qid);
+		npctalk "Round "+ ++.@round +" Start !!";
+		sleep 3000;
+		if ( !.start ) {
+			qiclear .@iter;
+			end;
+		}
+		while ( .@aid = qiget(.@iter) ) {
+			getmapxy .@map$, .@x, .@y, UNITTYPE_PC, .@aid;
+			if ( distance(.@x, .@y, .x, .y) > getbattleflag("area_size") ) {
+				npctalk F_Rand(
+					rid2name(.@aid) +" !! Don't think you can run far away from me !!",
+					"Watch my long range ballistic !! Now you die "+ rid2name(.@aid) +" !!",
+					"(Filled the pistol with bullets) BANG !!",
+					"Surgical Strike Launch ... 3... 2... 1.. BOOM !!",
+					"Nuclear Launch Detected.",
+					"KAMEHAME HAA !!");
+				specialeffect F_Rand( EF_FIREPILLARBOMB, EF_HIT2, EF_ARROWSTORM_STR ), AREA, .@aid;
+				specialeffect F_Rand( EF_AIMED_STR, EF_TRACKCASTING ), AREA;
+				showscript "**Sniped !!*", .@aid;
+				unitkill .@aid;
+			}
+			else if ( rand(.@chance) ) {
+				npctalk F_Rand(
+					"You are so lucky "+ rid2name(.@aid) +" !!",
+					"WOOT !! Miss !!"
+					"Angel has protect "+ rid2name(.@aid) +" ?",
+					"Oh ? I didn't think that was a miss !",
+					"Let's see if the goddess will protect "+ rid2name(.@aid) +" next time ...");
+				specialeffect F_Rand( EF_MAGICALBULLET, EF_TRACKING ), AREA, .@aid;
+				showscript "Miss !!", .@aid;
+//				if ( !rand(10) ) // 10% chance
+//					getitem Poring_Coin, 1, .@aid;
+			}
+			else {
+				npctalk F_Rand(
+					"AHAHAHA !! Bad luck for you "+ rid2name(.@aid) +" !!",
+					"Grim Reaper has come to take your life !! HAHAHA !!",
+					"Oops !! I accidentally pull my trigger ... Sorry "+ rid2name(.@aid) +".",
+					"My bad, this was an accident !! I swear it !!",
+					"AHA ~ that was a nice one !!");
+				specialeffect F_Rand( EF_RAPIDSHOWER, EF_FIREPILLARBOMB ), AREA, .@aid;
+				showscript "** Bang !!*", .@aid;
+				unitkill .@aid;
+			}
+			sleep 3000;
+			if ( !.start ) break;
+		}
+		qiclear .@iter;
+	}
+	end;
+OnQuit:
+	queueremove .qid, getcharid(3);
+	if ( queuesize(.qid) > 1 || .start != 2 ) end;
+	.@iter = queueiterator(.qid);
+	.@aid = qiget(.@iter);
+	qiclear .@iter;
+	announce "Russian Roulette: The Winner is "+ rid2name(.@aid) +" !!", bc_npc | bc_area;
+	getitem Poring_Coin, 10, .@aid;
+	queuedel .qid;
+	.start = false;
+	end;
+L_end:
+	npctalk "Seems a lot time has passed ... now I just randomly declare the winner...";
+	.@iter = queueiterator(.qid);
+	while ( .@num = qiget(.@iter) )
+		.@aid[.@c++] = .@num;
+	qiclear .@iter;
+	.@winner = .@aid[ rand(.@c) ];
+	announce "Russian Roulette: The Winner is "+ rid2name(.@winner) +" !!", bc_npc | bc_area;
+	getitem Poring_Coin, 10, .@winner;
+	queuedel .qid;
+	.start = false;
+	end;
+OnInit:
+	.register_limit = 100; // maximum amount of players able to participate in this event
+	.register_min = 2; // minimum amount of players to start this event, or else it auto-abort
+	.register_timer = 5; // how many minutes for player to register this event ?
+
+	getmapxy .@map$, .x, .y, UNITTYPE_NPC;
+	bindatcmd "roulette", strnpcinfo(0)+"::OnStart", 99,100;
+	setmapflag .@map$, mf_nopenalty;
+	end;
+}

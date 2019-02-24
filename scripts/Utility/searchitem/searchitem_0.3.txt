@@ -1,0 +1,117 @@
+//===== Hercules Script ======================================
+//= searchitem
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.3
+//===== Compatible With: ===================================== 
+//= Hercules 2019-02-19
+//===== Description: ========================================= 
+//= search for an item in the server
+//===== Topic ================================================
+//= 
+//===== Additional Comments: =================================
+//= Hercules ... needs 2 PR to make this work
+//= https://github.com/HerculesWS/Hercules/pull/2375
+//= https://github.com/HerculesWS/Hercules/pull/2367
+//= and ... having some bugs ...
+//= https://github.com/HerculesWS/Hercules/issues/1554#issuecomment-465200150
+//============================================================
+
+-	script	sfksdf	FAKE_NPC,{
+OnInit:
+	bindatcmd "searchitem", strnpcinfo(0)+"::Onaaa", 99,100; // only Admin(99) can use
+	end;
+Onaaa:
+	mes "[Search Item]\r";
+	mes "input item ID";
+	next;
+	input .@itemid;
+	mes "[Search Item]\r";
+	if ( getiteminfo( .@itemid, 2 ) == -1 ) {
+		mes "There is no such item";
+		close;
+	}
+	.@refine = .@card1 = .@card2 = .@card3 = .@card4 = -1;
+	.@unknown$ = _("^FF0000unknown^000000");
+	while ( true ) {
+		mes getitemname(.@itemid);
+		mesf "refinement = %s", ( .@refine == -1 )? .@unknown$ : .@refine ;
+//		mesf "card no.1 = %s", ( .@card1 == -1 )? .@unknown$ :( "^70AC11"+ getitemname(.@card1) +" ^EE8800("+ .@card1 +")^000000" );
+//		mesf "card no.2 = %s", ( .@card2 == -1 )? .@unknown$ :( "^70AC11"+ getitemname(.@card2) +" ^EE8800("+ .@card2 +")^000000" );
+//		mesf "card no.3 = %s", ( .@card3 == -1 )? .@unknown$ :( "^70AC11"+ getitemname(.@card3) +" ^EE8800("+ .@card3 +")^000000" );
+//		mesf "card no.4 = %s", ( .@card4 == -1 )? .@unknown$ :( "^70AC11"+ getitemname(.@card4) +" ^EE8800("+ .@card4 +")^000000" );
+		mesf "card no.1 = %s", ( .@card1 == -1 )? .@unknown$ :( sprintf( "^70AC11%s ^EE8800(%d)^000000", getitemname(.@card1), .@card1 ) );
+		mesf "card no.2 = %s", ( .@card2 == -1 )? .@unknown$ :( sprintf( "^70AC11%s ^EE8800(%d)^000000", getitemname(.@card2), .@card2 ) );
+		mesf "card no.3 = %s", ( .@card3 == -1 )? .@unknown$ :( sprintf( "^70AC11%s ^EE8800(%d)^000000", getitemname(.@card3), .@card3 ) );
+		mesf "card no.4 = %s", ( .@card4 == -1 )? .@unknown$ :( sprintf( "^70AC11%s ^EE8800(%d)^000000", getitemname(.@card4), .@card4 ) );
+		next;
+		switch ( select ( "Start Search", "Input refine", "Input card no.1", "Input card no.2", "Input card no.3", "Input card no.4" ) ) {
+		mes "[Search Item]";
+		case 1:
+			break;
+		case 2:
+			mes "\rInput refinement";
+			mes "-1 for unsure/unknown";
+			next;
+			input .@refine, -1, 100;
+			break;
+		default:
+			.@menu = @menu - 2;
+			mes "\rInput card no."+ .@menu;
+			mes "-1 for unsure/unknown";
+			next;
+//			input getd(".@card"+ .@menu +"_"), -1, MAX_ITEM_ID;
+			input getd(".@card"+ .@menu +"_"), -1, 2147000000;
+			if ( getiteminfo( getd(".@card"+ .@menu +"_"), 2 ) != IT_CARD && getd(".@card"+ .@menu +"_") != -1 ) {
+				mes "^FF0000Find Lost items^000000";
+				mes "That item is not a card";
+				next;
+			}
+			else
+				setd ".@card"+ .@menu, getd(".@card"+ .@menu +"_");
+		}
+		if ( @menu == 1 )
+			break;
+	}
+	mes "\rselect a category";
+	while ( true ) {
+		next;
+		switch ( select ( "Inventory", "Cart", "Storage", "Guild Storage", "Mail Attachment" ) ) {
+		mes "^FF0000Find Lost items^000000";
+		case 1:
+			callsub L_SearchItem, _("Inventory"), "char_id", "inventory", _("Char ID"), .@itemid, .@refine, .@card1, .@card2, .@card3, .@card4;
+			break;
+		case 2:
+			callsub L_SearchItem, _("Cart"), "char_id", "cart_inventory", _("Char ID"), .@itemid, .@refine, .@card1, .@card2, .@card3, .@card4;
+			break;
+		case 3:
+			callsub L_SearchItem, _("Storage"), "account_id", "storage", _("Account ID"), .@itemid, .@refine, .@card1, .@card2, .@card3, .@card4;
+			break;
+		case 4:
+			callsub L_SearchItem, _("Guild Storage"), "guild_id", "guild_storage", _("Guild ID"), .@itemid, .@refine, .@card1, .@card2, .@card3, .@card4;
+			break;
+		case 5:
+			callsub L_SearchItem, _("Mail Attachment"), "receiver_id", "rodex_items", _("Char ID"), .@itemid, .@refine, .@card1, .@card2, .@card3, .@card4;
+			break;
+		}
+	}
+L_SearchItem:
+	if ( getarg(0) != "Mail Attachment" )
+		.@nb = query_sql( "select "+ getarg(1) +", amount, refine, card0, card1, card2, card3 from "+ getarg(2) +" where nameid = "+ getarg(4) +( ( getarg(5) == -1)?"":" && refine = "+ getarg(5) )+( ( getarg(6) == -1)?"":" && ( card0 = "+ getarg(6) +" || card1 = "+ getarg(6) +" || card2 = "+ getarg(6) +" || card3 = "+ getarg(6) +" )" )+( ( getarg(7) == -1)?"":" && ( card0 = "+ getarg(7) +" || card1 = "+ getarg(7) +" || card2 = "+ getarg(7) +" || card3 = "+ getarg(7) +" )" )+( ( getarg(8) == -1)?"":" && ( card0 = "+ getarg(8) +" || card1 = "+ getarg(8) +" || card2 = "+ getarg(8) +" || card3 = "+ getarg(8) +" )" )+( ( getarg(9) == -1)?"":" && ( card0 = "+ getarg(9) +" || card1 = "+ getarg(9) +" || card2 = "+ getarg(9) +" || card3 = "+ getarg(9) +" )" )+" limit 500", .@id, .@amount, .@refine_, .@card_1, .@card_2, .@card_3, .@card_4);
+	else
+		.@nb = query_sql( "select mail_id as mailid, (select "+ getarg(1) +" from rodex_mail where mail_id = mailid), amount, refine, card0, card1, card2, card3 from "+ getarg(2) +" where nameid = "+ getarg(4) +( ( getarg(5) == -1)?"":" && refine = "+ getarg(5) )+( ( getarg(6) == -1)?"":" && ( card0 = "+ getarg(6) +" || card1 = "+ getarg(6) +" || card2 = "+ getarg(6) +" || card3 = "+ getarg(6) +" )" )+( ( getarg(7) == -1)?"":" && ( card0 = "+ getarg(7) +" || card1 = "+ getarg(7) +" || card2 = "+ getarg(7) +" || card3 = "+ getarg(7) +" )" )+( ( getarg(8) == -1)?"":" && ( card0 = "+ getarg(8) +" || card1 = "+ getarg(8) +" || card2 = "+ getarg(8) +" || card3 = "+ getarg(8) +" )" )+( ( getarg(9) == -1)?"":" && ( card0 = "+ getarg(9) +" || card1 = "+ getarg(9) +" || card2 = "+ getarg(9) +" || card3 = "+ getarg(9) +" )" )+" limit 500", .@dummy, .@id, .@amount, .@refine_, .@card_1, .@card_2, .@card_3, .@card_4);
+	mesf "*** %s ***", getarg(0);
+	if ( !.@nb )
+		mes "\r^FF0000No result^000000";
+	else {
+		mesf "^0000FF%d result^000000", .@nb;
+		for ( .@i = 0; .@i < .@nb; ++.@i ) {
+			mesf "\r^996600%d ^000000%s = ^EE8800(%d)", .@i +1, getarg(3), .@id[.@i];
+			mesf "^996600%d ^00AA00%s %s ^EE8800(%d)", .@amount[.@i], getitemname( getarg(4) ), ( .@refine_[.@i] )?"+"+ .@refine_[.@i] : "", getarg(4);
+			for ( .@j = 1; .@j <= 4 && getd(".@card_"+ .@j +"["+ .@i +"]") > 500; ++.@j )
+				mesf "^70AC11> %s (%d)", getitemname( getd(".@card_"+ .@j +"["+ .@i +"]") ), getd(".@card_"+ .@j +"["+ .@i +"]");
+		}
+	}
+	return;
+}

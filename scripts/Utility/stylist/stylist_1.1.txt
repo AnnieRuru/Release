@@ -1,0 +1,62 @@
+//===== Hercules Script ======================================
+//= Stylist npc
+//===== By: ==================================================
+//= AnnieRuru
+//= original by Euphy
+//===== Current Version: =====================================
+//= 1.1
+//===== Compatible With: ===================================== 
+//= Hercules 2019-01-22
+//===== Description: =========================================
+//= stylist npc
+//===== Topic ================================================
+//= herc.ws/board/topic/11382-help-me-make-an-npc-to-check-style-variables/
+//===== Additional Comments: =================================  
+//= there is a bug on Euphy's stylist npc, the style number should start with 0, but his script always start with 1
+//= and the naming sense very bad, .@style and .@styles, should be avioded
+//============================================================
+
+prontera,155,185,1	script	Stylist2	2_M_DYEINGER,{
+	.@choose = select( "Hair style", "Hair color", "Cloth color" );
+	.@part = .look[.@choose];
+	.@i = .@revert = getlook( .@part );
+	while ( true ) {
+		setlook .@part, .@i;
+		dispbottom "This is style #"+ .@i +".";
+		.@next = .@i +1;
+		for ( .@j = 0; .@j < .blacklistsize[.@part]; ++.@j )
+			if ( .@next == getd(".blacklist"+ .@part +"["+ .@j +"]") )
+				++.@next;
+		if ( .@next > .maxstyles[.@part] )
+			.@next = 0;
+		.@previous = .@i -1;
+		for ( .@j = .blacklistsize[.@part] -1; .@j >= 0; --.@j )
+			if ( .@previous == getd(".blacklist"+ .@part +"["+ .@j +"]") )
+				--.@previous;
+		if ( .@previous < 0 )
+			.@previous = .maxstyles[.@part];
+		switch ( select( " ~ Next (^0055FF"+ .@next +"^000000)", " ~ Previous (^0055FF"+ .@previous +"^000000)", " ~ Jump to...", " ~ Revert to original (^0055FF"+ .@revert +"^000000)" ) ) {
+		case 1: .@i = .@next; break;
+		case 2: .@i = .@previous; break;
+		case 3:
+			dispbottom "Choose a style between 0 - "+ .maxstyles[.@part] +".";
+			input .@i, 0, .maxstyles[.@part];
+			break;
+		case 4: .@i = .@revert;
+		}
+	}
+	end;
+OnInit:
+	setarray getd(".blacklist"+ LOOK_HAIR), 1,3,5,7,9,11,13; // ID that skip for hair styles
+	setarray getd(".blacklist"+ LOOK_HAIR_COLOR), 2,4,6,8,10,12; // ID that skip for hair color
+	setarray getd(".blacklist"+ LOOK_CLOTHES_COLOR), 3,6,9,12,15,18; // ID that skip for cloth color
+
+	.maxstyles[LOOK_HAIR] = getbattleflag("max_hair_style");
+	.maxstyles[LOOK_HAIR_COLOR] = getbattleflag("max_hair_color");
+	.maxstyles[LOOK_CLOTHES_COLOR] = getbattleflag("max_cloth_color");
+	setarray .look[1], LOOK_HAIR, LOOK_HAIR_COLOR, LOOK_CLOTHES_COLOR;
+	.blacklistsize[LOOK_HAIR] = getarraysize( getd(".blacklist"+ LOOK_HAIR) );
+	.blacklistsize[LOOK_HAIR_COLOR] = getarraysize( getd(".blacklist"+ LOOK_HAIR_COLOR) );
+	.blacklistsize[LOOK_CLOTHES_COLOR] = getarraysize( getd(".blacklist"+ LOOK_CLOTHES_COLOR) );
+	end;
+}

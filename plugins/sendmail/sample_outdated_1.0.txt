@@ -1,0 +1,25 @@
+prontera,155,187,5	script	test party	100,{
+	if ( !getcharid(1) ) end;
+	.@sender$ = strnpcinfo(1);
+	.@title$ = "event WON";
+	.@msg$ = "testing 1...2...3...";
+	.@zeny = 999;
+	.@itemid = 1201;
+	.@amount = 1;
+	.@refine = 5;
+	.@attribute = 0;
+	.@card0 = 4001;
+	.@card1 = 4002;
+	.@card2 = 4003;
+	.@card3 = 4004;
+	getpartymember getcharid(1), 1;
+	getpartymember getcharid(1), 2;
+	for ( .@i = 0; .@i < $@partymembercount; .@i++ ) {
+		if ( isloggedin( $@partymemberaid[.@i] , $@partymembercid[.@i] ) )
+			sendmail $@partymembercid[.@i], .@sender$, .@title$, .@msg$, .@zeny, .@itemid, .@amount, .@refine, .@attribute, .@card0, .@card1, .@card2, .@card3;
+		else
+			query_sql "insert into mail ( dest_id, send_name, title, message, zeny, nameid, amount, refine, attribute, identify, card0, card1, card2, card3, time ) values ( "+
+				$@partymembercid[.@i] +", '"+ escape_sql(.@sender$) +"', '"+ escape_sql(.@title$) +"', '"+ escape_sql(.@msg$) +"', "+ .@zeny +", "+ .@itemid +", "+ .@amount +", "+ .@refine +", "+ .@attribute +", 1, "+ .@card0 +", "+ .@card1 +", "+ .@card2 +", "+ .@card3 +", unix_timestamp(now()) )";
+	}
+	end;
+}

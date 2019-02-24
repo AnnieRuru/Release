@@ -1,0 +1,637 @@
+//===== Hercules Script ======================================
+//= Sample Quest Log
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.0
+//===== Compatible With: ===================================== 
+//= Hercules 2019-02-23
+//===== Description: =========================================
+//= Demonstrate Quest Log System
+//= 1. just talk to npc A->B->C, demonstrate *checkquest
+//= 2. countitem quest, just *checkitem, but note the client side description
+//= 3. kill monster quest, demonstrate how to use *checkquest( x, HUNTING )
+//= 4. time limit quest, demonstrate how to use *checkquest( x, PLAYTIME  )
+//= 5. monster drop quest, there is a Drops: field in the db\quest_db.conf
+//===== Topic ================================================
+//= http://herc.ws/board/topic/7218-sample-questlog-script/
+//===== Additional Comments: =================================  
+//= IconName = "ico_dq.bmp", // DAILY QUEST
+//= IconName = "ico_ep.bmp", // EPISODE QUEST
+//= IconName = "ico_ev.bmp", // EVENT QUEST
+//= IconName = "ico_gq.bmp", // GUIDE QUEST
+//= IconName = "ico_jq.bmp", // JOB QUEST
+//= IconName = "ico_lq.bmp", // LOCAL QUEST
+//= IconName = "ico_nq.bmp", // NORMAL QUEST
+//============================================================
+
+/*	Hercules\db\quest_db.conf
+{
+	Id: 49900
+	Name: "Acolyte Trouble"
+},
+{
+	Id: 49901
+	Name: "Acolyte Trouble"
+},
+{
+	Id: 49902
+	Name: "Acolyte Trouble"
+},
+{
+	Id: 49903
+	Name: "Acolyte Trouble"
+},
+{
+	Id: 49904
+	Name: "Gemstone Shortage"
+},
+{
+	Id: 49905
+	Name: "Gemstone Shortage"
+},
+{
+	Id: 49906
+	Name: "Gemstone Shortage"
+},
+{
+	Id: 49907
+	Name: "Poring Problem"
+},
+{
+	Id: 49908
+	Name: "Poring Problem"
+	Targets: (
+	{
+		MobId: 1002
+		Count: 10
+	},
+	)
+},
+{
+	Id: 49909
+	Name: "Poring Problem"
+},
+{
+	Id: 49910
+	Name: "Hand over the Artifact"
+},
+{
+	Id: 49911
+	Name: "Hand over the Artifact"
+	TimeLimit: 15
+},
+{
+	Id: 49912
+	Name: "Hand over the Artifact"
+},
+{
+	Id: 49913
+	Name: "Hand over the Artifact"
+},
+{
+	Id: 49914
+	Name: "Shining Rocker"
+},
+{
+	Id: 49915
+	Name: "Shining Rocker"
+	Targets: (
+	{
+		MobId: 1052
+		Count: 1
+	},
+	)
+	Drops: (
+	{
+		ItemId: 714
+		Rate: 10000
+		MobId: 1052
+	},
+	)
+},
+{
+	Id: 49916
+	Name: "Shining Rocker"
+},
+*/
+
+/*	client\system\OngoingQuestInfoList_Sakray.lub
+	[49900] = {
+		Title = "Acolyte Trouble",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Talk to the <NAVI>Acolyte<INFO>prt_church,102,77,</INFO></NAVI> inside prontera church",
+			"to find out what happen to her"
+		},
+		Summary = "Talk to the Acolyte",
+		NpcSpr = "4_F_SISTER",
+		RewardEXP = "1000",
+		RewardJEXP = "1000",
+	},
+	[49901] = {
+		Title = "Acolyte Trouble",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Journey to Izlude town",
+			"Talk to <NAVI>Acolyte's mother<INFO>izlude,88,139,</INFO></NAVI>"
+		},
+		Summary = "Find old lady in izlude",
+		NpcSpr = "4_F_TWMIDWOMAN",
+		RewardEXP = "1000",
+		RewardJEXP = "1000",
+	},
+	[49902] = {
+		Title = "Acolyte Trouble",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Go back to Prontera Church and hand over the",
+			"letter to the <NAVI>Acolyte<INFO>prt_church,102,77,</INFO></NAVI>"
+		},
+		Summary = "Talk to the Acolyte",
+		NpcSpr = "4_F_SISTER",
+		RewardEXP = "1000",
+		RewardJEXP = "1000",
+	},
+	[49903] = {
+		Title = "Acolyte Trouble",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Mission COMPLETE !",
+			"Submit to  <NAVI>Tavern Master<INFO>prontera,156,180,</INFO></NAVI>"
+		},
+		Summary = "Submit to Tavern Master",
+		NpcSpr = "1_M_04",
+		RewardEXP = "1000",
+		RewardJEXP = "1000",
+	},
+	[49904] = {
+		Title = "Gemstone shortage",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Talk to <NAVI>Gemstone Seller<INFO>prontera,248,151,</INFO></NAVI>",
+			"to find out why he is frustrating"
+		},
+		Summary = "Talk to Gemstone Seller",
+		NpcSpr = "1_M_MERCHANT",
+		RewardItemList = {
+			{ ItemID = 969, ItemNum = 1 }
+		}
+	},
+	[49905] = {
+		Title = "Gemstone shortage",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Collect: 10 <ITEM>Yellow Gemstone<INFO>715</ITEM></INFO>",
+			"10 <ITEM>Blue Gemstones<INFO>716</ITEM></INFO>",
+			"10 <ITEM>Red Gemstones<INFO>717</ITEM></INFO>",
+			"Bring them to <NAVI>Gemstone Seller<INFO>prontera,248,151,</INFO></NAVI>"
+		},
+		Summary = "Talk to Gemstone Seller",
+		NpcSpr = "1_M_MERCHANT",
+		RewardItemList = {
+			{ ItemID = 969, ItemNum = 1 }
+		}
+	},
+	[49906] = {
+		Title = "Gemstone shortage",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Mission COMPLETE !",
+			"Submit to <NAVI>Tavern Master<INFO>prontera,156,180,</INFO></NAVI>"
+		},
+		Summary = "Submit to Tavern Master",
+		NpcSpr = "1_M_04",
+		RewardItemList = {
+			{ ItemID = 969, ItemNum = 1 }
+		}
+	},
+	[49907] = {
+		Title = "Poring Problem",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Talk to the <NAVI>Guard<INFO>prontera,147,28,</INFO></NAVI>"
+		},
+		Summary = "Talk to Prontera guard",
+		NpcSpr = "8W_SOLDIER",
+		RewardEXP = "1000",
+		RewardJEXP = "1000",
+	},
+	[49908] = {
+		Title = "Poring Problem",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Poring has invaded Prontera town last night",
+			"Help out the town by killing them.",
+			"Submit to the <NAVI>Guard<INFO>prontera,147,28,</INFO></NAVI> when finished."
+		},
+		Summary = "Kill 10 Porings",
+		NpcSpr = "8W_SOLDIER",
+		RewardEXP = "1000",
+		RewardJEXP = "1000",
+	},
+	[49909] = {
+		Title = "Poring Problem",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Mission COMPLETE !",
+			"Submit to <NAVI>Tavern Master<INFO>prontera,156,180,</INFO></NAVI>"
+		},
+		Summary = "Submit to Tavern Master",
+		NpcSpr = "1_M_04",
+		RewardEXP = "1000",
+		RewardJEXP = "1000",
+	},
+	[49910] = {
+		Title = "Hand over the Artifact",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"There is a rare artifact in the town kept by",
+			"<NAVI>Artifact Collector<INFO>prontera,57,293,</INFO></NAVI>. Hand over the artifact",
+			"to Tavern Master."
+		},
+		Summary = "Talk to the Artifact Collector",
+		NpcSpr = "1_M_01",
+		RewardEXP = "1000",
+		RewardJEXP = "1000",
+	},
+	[49911] = {
+		Title = "Hand over the Artifact",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Talk to <NAVI>Assistant<INFO>prontera,31,158,</INFO></NAVI> FAST! Time is running out!"
+		},
+		Summary = "Talk to Assistant FAST!",
+		NpcSpr = "1_F_01",
+		RewardEXP = "1000",
+		RewardJEXP = "1000",
+	},
+	[49912] = {
+		Title = "Hand over the Artifact",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Return to <NAVI>Artifact Collector<INFO>prontera,57,293,</INFO></NAVI>."
+		},
+		Summary = "Return to Artifact Collector",
+		NpcSpr = "1_M_01",
+		RewardEXP = "1000",
+		RewardJEXP = "1000",
+	},
+	[49913] = {
+		Title = "Hand over the Artifact",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Mission COMPLETE !",
+			"Submit to <NAVI>Tavern Master<INFO>prontera,156,180,</INFO></NAVI>"
+		},
+		Summary = "Submit to Tavern Master",
+		NpcSpr = "1_M_04",
+		RewardEXP = "1000",
+		RewardJEXP = "1000",
+	},
+	[49914] = {
+		Title = "Shining Rocker",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Talk to the <NAVI>Scientist<INFO>prt_in,109,69,</INFO></NAVI>"
+		},
+		Summary = "Talk to the Scientist",
+		NpcSpr = "4_F_SCIENCE",
+	},
+	[49915] = {
+		Title = "Shining Rocker",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Find and kill a Rocker",
+			"Note: will definitely drop <ITEM>Emperium<INFO>714</ITEM></INFO>",
+			"When done, talk to <NAVI>Scientist<INFO>prt_in,109,69,</INFO></NAVI>"
+		},
+		Summary = "Kill a Rocker",
+		NpcSpr = "4_F_SCIENCE",
+		RewardItemList = {
+			{ ItemID = 714, ItemNum = 1 }
+		}
+	},
+	[49916] = {
+		Title = "Shining Rocker",
+		IconName = "ico_lq.bmp",
+		Description = {
+			"Mission COMPLETE !",
+			"Submit to <NAVI>Tavern Master<INFO>prontera,156,180,</INFO></NAVI>"
+		},
+		Summary = "Submit to Tavern Master",
+		NpcSpr = "1_M_04",
+	},
+*/
+
+/* 
+prontera,153,180,5	script	reset quest(debug)	1_M_04,{
+	for ( .@i = 49900; .@i <= 49916; .@i++ )
+		if ( questprogress(.@i) )
+			erasequest .@i;
+	end;
+}
+*/
+
+prontera,156,180,5	script	Prontera Tavern	1_M_04,{
+	if ( questprogress(49903) == 1 ) {
+		mes .npcname$;
+		mes "You completed the [Acolyte Trouble] mission!";
+		completequest 49903;
+		getexp 1000,1000;
+		next;
+	}
+	if ( questprogress(49906) == 1 ) {
+		mes .npcname$;
+		mes "You completed the [Gemstone Shortage] mission!";
+		completequest 49906;
+		getitem Gold, 1;
+		next;
+	}
+	if ( questprogress(49909) == 1 ) {
+		mes .npcname$;
+		mes "You completed the [Poring Problem] mission!";
+		completequest 49909;
+		getexp 1000,1000;
+		next;
+	}
+	if ( questprogress(49913) == 1 ) {
+		mes .npcname$;
+		mes "You completed the [Hand over the Artifact] mission!";
+		completequest 49913;
+		getexp 1000,1000;
+		next;
+	}
+	if ( questprogress(49916) == 1 ) {
+		mes .npcname$;
+		mes "You completed the [Shining Rocker] mission!";
+		completequest 49916;
+		next;
+	}
+	mes .npcname$;
+	mes "Select a mission";
+	next;
+	switch ( select ( "Acolyte Trouble", "Gemstone Shortage", "Poring Problem", "Hand over the Artifact", "Shining Rocker" ) ) {
+	mes .npcname$;
+	case 1:
+		if ( questprogress(49903) == 2 ) {
+			mes "You already completed this mission";
+			close;
+		}
+		if ( questprogress(49900) == 1 || questprogress(49901) == 1 || questprogress(49902) == 1 ) {
+			mes "You still on the mission";
+			mes "Talk to the <NAVI>Acolyte<INFO>prt_church,102,77,</INFO></NAVI> from the church.";
+			close;
+		}
+		mes "All right.";
+		mes "Talk to the <NAVI>Acolyte<INFO>prt_church,102,77,</INFO></NAVI> from the church.";
+		setquest 49900;
+		close;
+	case 2:
+		if ( questprogress(49906) == 2 ) {
+			mes "You already completed this mission";
+			close;
+		}
+		if ( questprogress(49904) == 1 || questprogress(49905) == 1 ) {
+			mes "You still on the mission";
+			mes "Talk to the <NAVI>Gemstone Seller<INFO>prontera,248,151,</INFO></NAVI>.";
+			close;
+		}
+		mes "All right.";
+		mes "Talk to the <NAVI>Gemstone Seller<INFO>prontera,248,151,</INFO></NAVI>.";
+		setquest 49904;
+		close;
+	case 3:
+		if ( questprogress(49909) == 2 ) {
+			mes "You already completed this mission";
+			close;
+		}
+		if ( questprogress(49907) == 1 || questprogress(49908) == 1 ) {
+			mes "You still on the mission";
+			mes "Talk to <NAVI>the guard<INFO>prontera,147,28,</INFO></NAVI>.";
+			close;
+		}
+		mes "All right.";
+		mes "Talk to the <NAVI>Guard<INFO>prontera,147,28,</INFO></NAVI>.";
+		setquest 49907;
+		close;
+	case 4:
+		if ( questprogress(49913) == 2 ) {
+			mes "You already completed this mission";
+			close;
+		}
+		if ( questprogress(49910) == 1 || questprogress(49911) == 1 || questprogress(49912) == 1 ) {
+			mes "You still on the mission";
+			mes "Talk to the <NAVI>Artifact Collector<INFO>prontera,57,293,</INFO></NAVI>.";
+			close;
+		}
+		mes "All right.";
+		mes "Talk to the <NAVI>Artifact Collector<INFO>prontera,57,293,</INFO></NAVI>.";
+		setquest 49910;
+		close;
+	case 5:
+		if ( questprogress(49916) == 2 ) {
+			mes "You already completed this mission";
+			close;
+		}
+		if ( questprogress(49914) == 1 || questprogress(49915) == 1 ) {
+			mes "You still on the mission";
+			mes "Talk to the <NAVI>Scientist<INFO>prt_in,109,69,</INFO></NAVI>.";
+			close;
+		}
+		mes "All right.";
+		mes "Talk to the <NAVI>Scientist<INFO>prt_in,109,69,</INFO></NAVI>.";
+		setquest 49914;
+		close;
+	}
+	end;
+OnInit:
+	.npcname$ = "["+ strnpcinfo(NPC_NAME_VISIBLE) +"]";
+	questinfo QTYPE_QUEST2, 2;
+	end;
+}
+
+prt_church,102,77,3	script	Acolyte	4_F_SISTER,{
+	mes .npcname$;
+	if ( questprogress(49902) == 1 ) {
+		mes "Thanks! A letter from my mum!";
+		mes "From now on I'll do my best in training!";
+		changequest 49902,49903;
+		close;
+	}
+	if ( questprogress(49901) == 1 ) {
+		mes "Can you please tell <NAVI>my mum<INFO>izlude,88,139,</INFO></NAVI> how much I miss her?";
+		close;
+	}
+	if ( questprogress(49900) == 1 ) {
+		mes "I miss <NAVI>my mum<INFO>izlude,88,139,</INFO></NAVI> day and night ... can you please go to my hometown in izlude and tell her how much I miss her?";
+		changequest 49900,49901;
+		close;
+	}
+	mes "I must focus on my training!";
+	close;
+OnInit:
+	.npcname$ = "["+ strnpcinfo(NPC_NAME_VISIBLE) +"]";
+	questinfo QTYPE_QUEST, 1;
+	setquestinfo QINFO_QUEST, 49900, 1;
+	questinfo QTYPE_QUEST, 1;
+	setquestinfo QINFO_QUEST, 49902, 1;
+	end;
+}
+
+izlude,88,139,5	script	Old Woman	4_F_TWMIDWOMAN,{
+	mes .npcname$;
+	if ( questprogress(49901) == 1 ) {
+		mes "<NAVI>My child<INFO>prt_church,102,77,</INFO></NAVI> ask you to come? that's great! can you deliver this letter to him now?";
+		changequest 49901,49902;
+		close;
+	}
+	mes "I miss my child...";
+	close;
+OnInit:
+	.npcname$ = "["+ strnpcinfo(NPC_NAME_VISIBLE) +"]";
+	questinfo QTYPE_QUEST, 1;
+	setquestinfo QINFO_QUEST, 49901, 1;
+	end;
+}
+
+prontera,248,151,3	script	Gemstone Seller	1_M_MERCHANT,{
+	mes .npcname$;
+	if ( questprogress(49905) == 1 ) {
+		if ( countitem(Yellow_Gemstone) >= 10 && countitem(Red_Gemstone) >= 10 && countitem(Blue_Gemstone) >= 10 ) {
+			mes "You got it! Now we can replenish our stock!";
+			delitem Yellow_Gemstone, 10;
+			delitem Red_Gemstone, 10;
+			delitem Blue_Gemstone, 10;
+			changequest 49905,49906;
+			close;
+		}
+		mes "You still haven't gathered enough gemstones?";
+		close;
+	}
+	if ( questprogress(49904) == 1 ) {
+		mes "Yes, our town need more gemstones. Can you help resupply our shortage of gemstones?";
+		changequest 49904,49905;
+		close;
+	}
+	mes "We need more gem stones!";
+	close;
+OnInit:
+	.npcname$ = "["+ strnpcinfo(NPC_NAME_VISIBLE) +"]";
+	questinfo QTYPE_QUEST, 1;
+	setquestinfo QINFO_QUEST, 49904, 1;
+	questinfo QTYPE_QUEST, 1;
+	setquestinfo QINFO_QUEST, 49905, 1;
+	end;
+}
+
+prontera,147,28,5	script	Guard	8W_SOLDIER,{
+	mes .npcname$;
+	if ( questprogress(49908,HUNTING) == 2 ) {
+		mes "You've kill enough porings! You're our hero";
+		changequest 49908,49909;
+		close;
+	}
+	if ( questprogress(49908) == 1 ) {
+		mes "You haven't done killing enough porings yet.";
+		close;
+	}
+	if ( questprogress(49907) == 1 ) {
+		mes "Yesterday night this town was invaded by porings, can you eliminate them?";
+		changequest 49907,49908;
+		close;
+	}
+	mes "Hi, welcome to prontera town";
+	close;
+OnInit:
+	.npcname$ = "["+ strnpcinfo(NPC_NAME_VISIBLE) +"]";
+	questinfo QTYPE_QUEST, 1;
+	setquestinfo QINFO_QUEST, 49907, 1;
+	questinfo QTYPE_QUEST, 1;
+	setquestinfo QINFO_QUEST, 49908, 1;
+	end;
+}
+
+prontera,57,293,5	script	Artifact Collector	1_M_01,{
+	mes .npcname$;
+	if ( questprogress(49912) == 1 ) {
+		mes "Yes! That's the one! Now you can hand it over to <NAVI>Tavern Master<INFO>prontera,156,180,</INFO></NAVI>";
+		changequest 49912,49913;
+		close;
+	}
+	if ( questprogress(49911) == 1 ) {
+		mes "FAST! She is about to throw it away!";
+		close;
+	}
+	if ( questprogress(49910) == 1 ) {
+		mes "Ahh ... that artifact tavern master requested ...";
+		mes "Wait! I just asked <NAVI>my assistant<INFO>prontera,31,158,</INFO></NAVI> to throw it!";
+		mes "Faster stop her before its too late!";
+		message getcharid(CHAR_ID_ACCOUNT), _("You have 15 seconds to retrieve it");
+		close2;
+		changequest 49910,49911;
+		end;
+	}
+	mes "Today a sunny day...";
+	close;
+OnInit:
+	.npcname$ = "["+ strnpcinfo(NPC_NAME_VISIBLE) +"]";
+	questinfo QTYPE_QUEST, 1;
+	setquestinfo QINFO_QUEST, 49910, 1;
+	questinfo QTYPE_QUEST, 1;
+	setquestinfo QINFO_QUEST, 49912, 1;
+	end;
+}
+
+prontera,31,158,5	script	Assistant	1_F_01,{
+	mes .npcname$;
+	if ( questprogress(49911, PLAYTIME) == 2 ) {
+		mes "Oh no, the rubbish truck just send them away ...";
+		message getcharid(CHAR_ID_ACCOUNT), _("You failed the quest");
+		erasequest 49911;
+		close;
+	}
+	if ( questprogress(49911) == 1 ) {
+		mes "You're just in time! This is the artifact you requested.";
+		mes "But to be sure, double check with <NAVI>my master<INFO>prontera,57,293,</INFO></NAVI>.";
+		changequest 49911,49912;
+		close;
+	}
+	mes "Work~ work~ work~";
+	close;
+OnInit:
+	.npcname$ = "["+ strnpcinfo(NPC_NAME_VISIBLE) +"]";
+	questinfo QTYPE_QUEST, 1;
+	setquestinfo QINFO_QUEST, 49911, 1;
+	end;
+}
+
+prt_in,109,69,5	script	Scientist#Rocker	4_F_SCIENCE,{
+	mes .npcname$;
+	if ( questprogress(49914) == 1 ) {
+		mes "You wont believe it !!";
+		mes "Yesterday while I was strolling at night, I saw a Rocker carrying an Emperium with it !!";
+		mes "Take this metal detector and kill a Rocker right away !!";
+		changequest 49914,49915;
+		close;
+	}
+	if ( questprogress(49915,HUNTING) == 2 ) {
+		mes "Great !! You can keep it, I just can't keep my excitement !!";
+		changequest 49915,49916;
+		close;
+	}
+	if ( questprogress(49915) == 1 ) {
+		mes "GO! Find that Rocker right now !!";
+		close;
+	}
+	mes "E = mc2 ...";
+	mes "For every action, there is an equal and opposite reaction...";
+	close;
+OnInit:
+	.npcname$ = "["+ strnpcinfo(NPC_NAME_VISIBLE) +"]";
+	questinfo QTYPE_QUEST, 1;
+	setquestinfo QINFO_QUEST, 49914, 1;
+	questinfo QTYPE_QUEST, 1;
+	setquestinfo QINFO_QUEST, 49915, 1;
+	end;
+}

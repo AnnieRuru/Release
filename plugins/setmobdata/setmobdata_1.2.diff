@@ -1,0 +1,509 @@
+ doc/mob_db_mode_list.txt |  38 ++++++----
+ doc/script_commands.txt  |  53 ++++++++++++++
+ src/map/battle.c         |   2 +
+ src/map/mob.c            |   9 ++-
+ src/map/mob.h            |   1 +
+ src/map/script.c         | 185 +++++++++++++++++++++++++++++++++++++++++++++++
+ src/map/script.h         |  35 +++++++++
+ src/map/status.c         |   2 +-
+ src/map/status.h         |  39 +++++-----
+ 9 files changed, 325 insertions(+), 39 deletions(-)
+
+diff --git a/doc/mob_db_mode_list.txt b/doc/mob_db_mode_list.txt
+index 08abf80..ae76cbe 100644
+--- a/doc/mob_db_mode_list.txt
++++ b/doc/mob_db_mode_list.txt
+@@ -11,22 +11,24 @@
+ Bit Legend:
+ -------------------------------------------------------------------------------
+ 
+-MD_CANMOVE            | 0x0001 |      1
+-MD_LOOTER             | 0x0002 |      2
+-MD_AGGRESSIVE         | 0x0004 |      4
+-MD_ASSIST             | 0x0008 |      8
+-MD_CASTSENSOR_IDLE    | 0x0010 |     16
+-MD_BOSS               | 0x0020 |     32
+-MD_PLANT              | 0x0040 |     64
+-MD_CANATTACK          | 0x0080 |    128
+-MD_DETECTOR           | 0x0100 |    256
+-MD_CASTSENSOR_CHASE   | 0x0200 |    512
+-MD_CHANGECHASE        | 0x0400 |   1024
+-MD_ANGRY              | 0x0800 |   2048
+-MD_CHANGETARGET_MELEE | 0x1000 |   4096
+-MD_CHANGETARGET_CHASE | 0x2000 |   8192
+-MD_TARGETWEAK         | 0x4000 |  16384
+-MD_RANDOMTARGET       | 0x8000 |  32768 (not implemented)
++MD_CANMOVE            | 0x00001 |      1
++MD_LOOTER             | 0x00002 |      2
++MD_AGGRESSIVE         | 0x00004 |      4
++MD_ASSIST             | 0x00008 |      8
++MD_CASTSENSOR_IDLE    | 0x00010 |     16
++MD_BOSS               | 0x00020 |     32
++MD_PLANT              | 0x00040 |     64
++MD_CANATTACK          | 0x00080 |    128
++MD_DETECTOR           | 0x00100 |    256
++MD_CASTSENSOR_CHASE   | 0x00200 |    512
++MD_CHANGECHASE        | 0x00400 |   1024
++MD_ANGRY              | 0x00800 |   2048
++MD_CHANGETARGET_MELEE | 0x01000 |   4096
++MD_CHANGETARGET_CHASE | 0x02000 |   8192
++MD_TARGETWEAK         | 0x04000 |  16384
++MD_RANDOMTARGET       | 0x08000 |  32768 (not implemented)
++MD_NOCAST_SKILL       | 0x10000 |  65536
++MD_NORANDOM_WALK      | 0x20000 | 131072
+ 
+ Explanation for modes:
+ -------------------------------------------------------------------------------
+@@ -77,6 +79,10 @@ Target Weak: Allows aggressive monsters to only be aggressive against
+ Random Target: Picks a new random target in range on each attack / skill.
+ 	(not implemented)
+ 
++No Cast Skill: Disable the mob from casting spells and using skills.
++
++No Random Walk: Disable the mob from walking randomly.
++
+ Aegis Mob Types:
+ -------------------------------------------------------------------------------
+ 
+diff --git a/doc/script_commands.txt b/doc/script_commands.txt
+index 218bb48..8ef055f 100644
+--- a/doc/script_commands.txt
++++ b/doc/script_commands.txt
+@@ -3575,6 +3575,59 @@ Check sample in doc/sample/getmonsterinfo.txt
+ 
+ ---------------------------------------
+ 
++*setmobdata <GID>, <parameter>, <new value>;
++*getmobdata <GID>, <parameter>;
++
++This command can retrieve or modify the value of the GID monster. The GID of the
++monster can be obtain by set a variable when summoning a monster.
++
++The listed parameter are :-
++	MOBDATA_MOBID         = cannot use with setmobdata, use setmoblook
++	MOBDATA_LEVEL         = (unsigned short)
++	MOBDATA_HP            = (int)
++	MOBDATA_MAXHP         = (int)
++	MOBDATA_ATK           = (unsigned short)
++	MOBDATA_MATK          = (unsigned short)
++	MOBDATA_DEF           = (short)
++	MOBDATA_MDEF          = (short)
++	MOBDATA_HIT           = (short)
++	MOBDATA_FLEE          = (short)
++	MOBDATA_CRITICAL      = (short)
++	MOBDATA_PERFECT_DODGE = (short)
++	MOBDATA_STR           = (unsigned short)
++	MOBDATA_AGI           = (unsigned short)
++	MOBDATA_VIT           = (unsigned short)
++	MOBDATA_INT           = (unsigned short)
++	MOBDATA_DEX           = (unsigned short)
++	MOBDATA_LUK           = (unsigned short)
++	MOBDATA_ATTACK_RANGE  = cap at view range (battle_config.area_size)
++	MOBDATA_RACE          = total (18) type of races
++	MOBDATA_ELEMENT_TYPE  = total (10) type of elements
++	MOBDATA_ELEMENT_LEVEL = (4) level of elements
++	MOBDATA_MODE          = (int) see 'doc/mob_db_mode_list.txt' for explanations
++	MOBDATA_MOVESPEED     = MIN_WALK_SPEED(20) ~ MAX_WALK_SPEED(1000)
++	MOBDATA_ATTACK_DELAY  = (unsigned short)
++	MOBDATA_ATTACK_MOTION = (unsigned short) cannot higher than MOBDATA_ATTACK_DELAY
++	MOBDATA_DAMAGE_MOTION = (unsigned short)
++	MOBDATA_SIZE          = 0 = small, 1 = medium, 2 = big
++	MOBDATA_MAP           = (string) cannot use with setmobdata, use unitwarp
++	MOBDATA_X             = cannot use with setmobdata, use unitwarp
++	MOBDATA_Y             = cannot use with setmobdata, use unitwarp
++	MOBDATA_IMMUNE        = (state)1 or 0
++
++Example 1:
++//	Summon a poring with 10,000,000 hp
++	.@id = monster("this", -1,-1, "--ja--", PORING, 1, "");
++	setmobdata .@id, MOBDATA_MAXHP, 10000000;
++	setmobdata .@id, MOBDATA_HP, 10000000;
++
++Example 2:
++//	Disable the poring from looting
++	.@id = monster("this", -1,-1, "--ja--", PORING, 1, "");
++	setmobdata .@id, MOBDATA_MODE, getmobdata(.@id, MOBDATA_MODE & ~MD_LOOTER);
++
++---------------------------------------
++
+ *addmonsterdrop(<mob id or name>, <item id>, <rate>)
+ 
+ This command will temporarily add a drop to an existing monster. If the
+diff --git a/src/map/battle.c b/src/map/battle.c
+index 1cbc3ba..520eaff 100644
+--- a/src/map/battle.c
++++ b/src/map/battle.c
+@@ -6420,6 +6420,8 @@ int battle_check_target( struct block_list *src, struct block_list *target,int f
+ 		case BL_MOB:
+ 		{
+ 			TBL_MOB *md = BL_CAST(BL_MOB, target);
++			if (md->state.blockimmune)
++				return -1;
+ 			if((
+ 			     (md->special_state.ai == AI_SPHERE || (md->special_state.ai == AI_FLORA && battle_config.summon_flora&1))
+ 			     && s_bl->type == BL_PC && src->type != BL_MOB
+diff --git a/src/map/mob.c b/src/map/mob.c
+index 2b51946..e6daeb5 100644
+--- a/src/map/mob.c
++++ b/src/map/mob.c
+@@ -1328,9 +1328,10 @@ int mob_randomwalk(struct mob_data *md, int64 tick) {
+ 
+ 	nullpo_ret(md);
+ 
+-	if(DIFF_TICK(md->next_walktime,tick)>0 ||
+-	   !unit->can_move(&md->bl) ||
+-	   !(status_get_mode(&md->bl)&MD_CANMOVE))
++	if (DIFF_TICK(md->next_walktime,tick) > 0 ||
++		(status_get_mode(&md->bl) & MD_NORANDOM_WALK) ||
++		!unit->can_move(&md->bl) ||
++		!(status_get_mode(&md->bl) & MD_CANMOVE))
+ 		return 0;
+ 
+ 	d =12-md->move_fail_count;
+@@ -3091,7 +3092,7 @@ int mobskill_use(struct mob_data *md, int64 tick, int event) {
+ 	nullpo_ret(md);
+ 	nullpo_ret(ms = md->db->skill);
+ 
+-	if (!battle_config.mob_skill_rate || md->ud.skilltimer != INVALID_TIMER || !md->db->maxskill)
++	if (!battle_config.mob_skill_rate || md->ud.skilltimer != INVALID_TIMER || !md->db->maxskill || (status_get_mode(&md->bl) & MD_NOCAST_SKILL))
+ 		return 0;
+ 
+ 	if (event == -1 && DIFF_TICK(md->ud.canact_tick, tick) > 0)
+diff --git a/src/map/mob.h b/src/map/mob.h
+index f7e0712..2ebc297 100644
+--- a/src/map/mob.h
++++ b/src/map/mob.h
+@@ -165,6 +165,7 @@ struct mob_data {
+ 		unsigned int npc_killmonster: 1; //for new killmonster behavior
+ 		unsigned int rebirth: 1; // NPC_Rebirth used
+ 		unsigned int boss : 1;
++		unsigned int blockimmune : 1;
+ 		enum MobSkillState skillstate;
+ 		unsigned char steal_flag; //number of steal tries (to prevent steal exploit on mobs with few items) [Lupus]
+ 		unsigned char attacked_count; //For rude attacked.
+diff --git a/src/map/script.c b/src/map/script.c
+index 54d8d33..2294784 100644
+--- a/src/map/script.c
++++ b/src/map/script.c
+@@ -16146,6 +16146,135 @@ BUILDIN(getmonsterinfo)
+ 	return true;
+ }
+ 
++/*==========================================
++ * Modify the value of GID monster
++ * setmobdata <GID>, <parameter>, <new value>;
++ *------------------------------------------*/
++BUILDIN(setmobdata) {
++	int mob_gid = script_getnum(st,2),
++		parameter = script_getnum(st,3),
++		value = script_getnum(st,4);
++	struct block_list *bl = map->id2bl( mob_gid );
++	if ( bl == NULL ) {
++		ShowError( "buildin_setmobdata: Attempted to modify a non-existed GID %d.\n", mob_gid );
++		return false;
++	}
++	if ( bl->type != BL_MOB ) {
++		ShowError( "buildin_setmobdata: Attempted to modify not a monster. GID %d.\n", mob_gid );
++		return false;
++	}
++	{
++		TBL_MOB *md = (TBL_MOB*)bl;
++		switch( parameter ) {
++		case MOBDATA_MOBID:
++			ShowError( "buildin_setmobdata: Attempted to change MobID with parameter MOBDATA_MOBID.\n" );
++			return false;
++		case MOBDATA_LEVEL: md->level = cap_value(value, 1, USHRT_MAX); break;
++		case MOBDATA_HP: md->status.hp = cap_value(value, 1, SINT32_MAX); break;
++		case MOBDATA_MAXHP: md->status.max_hp = cap_value(value, 1, SINT32_MAX); break;
++		case MOBDATA_ATK: md->status.rhw.atk = cap_value(value, 1, UINT16_MAX); break;
++		case MOBDATA_MATK: md->status.rhw.atk2 = cap_value(value, 1, UINT16_MAX); break;
++		case MOBDATA_DEF: md->status.def = cap_value(value, 0, SINT16_MAX); break;
++		case MOBDATA_MDEF: md->status.mdef = cap_value(value, 0, SINT16_MAX); break;
++		case MOBDATA_HIT: md->status.hit = cap_value(value, 0, SINT16_MAX); break;
++		case MOBDATA_FLEE: md->status.flee = cap_value(value, 0, SINT16_MAX); break;
++		case MOBDATA_CRITICAL: md->status.cri = cap_value(value, 0, SINT16_MAX); break;
++		case MOBDATA_PERFECT_DODGE: md->status.flee2 = cap_value(value, 0, SINT16_MAX); break;
++		case MOBDATA_STR: md->status.str = cap_value(value, 1, UINT16_MAX); break;
++		case MOBDATA_AGI: md->status.agi = cap_value(value, 1, UINT16_MAX); break;
++		case MOBDATA_VIT: md->status.vit = cap_value(value, 1, UINT16_MAX); break;
++		case MOBDATA_INT: md->status.int_ = cap_value(value, 1, UINT16_MAX); break;
++		case MOBDATA_DEX: md->status.dex = cap_value(value, 1, UINT16_MAX); break;
++		case MOBDATA_LUK: md->status.luk = cap_value(value, 1, UINT16_MAX); break;
++		case MOBDATA_ATTACK_RANGE: md->status.rhw.range = cap_value(value, 1, battle_config.area_size); break;
++		case MOBDATA_RACE: md->status.race = cap_value(value, 1, RC_MAX - 1); break;
++		case MOBDATA_ELEMENT_TYPE: md->status.def_ele = cap_value(value, 1, ELE_MAX-1); break;
++		case MOBDATA_ELEMENT_LEVEL: md->status.ele_lv = cap_value(value, 1, 4); break;
++		case MOBDATA_MODE: md->status.mode = cap_value(value, 1, SINT32_MAX); break;
++		case MOBDATA_MOVESPEED: md->status.speed = cap_value(value, MIN_WALK_SPEED, MAX_WALK_SPEED); break;
++		case MOBDATA_ATTACK_DELAY: md->status.adelay = cap_value(value, 1, UINT16_MAX); break;
++		case MOBDATA_ATTACK_MOTION:
++			if ( value > md->status.adelay ) {
++				ShowError( "buildin_setmobdata: Attempted to set MOBDATA_ATTACK_MOTION more than adelay.\n" );
++				return false;
++			}
++			md->status.amotion = cap_value(value, 1, UINT16_MAX);
++			break;
++		case MOBDATA_DAMAGE_MOTION: md->status.dmotion = cap_value(value, 1, UINT16_MAX); break;
++		case MOBDATA_SIZE: md->status.size = cap_value(value, SZ_SMALL, SZ_BIG); break;
++		case MOBDATA_MAP:
++		case MOBDATA_X:
++		case MOBDATA_Y:
++			ShowError( "buildin_setmobdata: Attempted to set monster position.\n" );
++			return false;
++		case MOBDATA_IMMUNE: md->state.blockimmune = value > 0; break;
++		default:
++			ShowError( "buildin_setmobdata: Attempted to use non-existing parameter %d.\n", parameter );
++			return false;
++		}
++	}
++	return true;
++}
++
++/*==========================================
++ * Retrieve the value of GID monster
++ * getmobdata <GID>, <parameter>;
++ *------------------------------------------*/
++BUILDIN(getmobdata) {
++	int mob_gid = script_getnum(st,2),
++		parameter = script_getnum(st,3);
++	struct block_list *bl = map->id2bl( mob_gid );
++	if ( bl == NULL ) {
++		ShowError( "buildin_getmobdata: Attempted to retrieve a non-existed GID %d.\n", mob_gid );
++		return false;
++	}
++	if ( bl->type != BL_MOB ) {
++		ShowError( "buildin_getmobdata: Attempted to retrieve not a monster. GID %d.\n", mob_gid );
++		return false;
++	}
++	{
++		TBL_MOB *md = (TBL_MOB*)bl;
++		switch( parameter ) {
++			case MOBDATA_MOBID: script_pushint( st, md->class_ ); break;
++			case MOBDATA_LEVEL: script_pushint( st, md->level ); break;
++			case MOBDATA_HP: script_pushint( st, md->status.hp ); break;
++			case MOBDATA_MAXHP: script_pushint( st, md->status.max_hp ); break;
++			case MOBDATA_ATK: script_pushint( st, md->status.rhw.atk ); break;
++			case MOBDATA_MATK: script_pushint( st, md->status.rhw.atk2 ); break;
++			case MOBDATA_DEF: script_pushint( st, md->status.def ); break;
++			case MOBDATA_MDEF: script_pushint( st, md->status.mdef ); break;
++			case MOBDATA_HIT: script_pushint( st, md->status.hit ); break;
++			case MOBDATA_FLEE: script_pushint( st, md->status.flee ); break;
++			case MOBDATA_CRITICAL: script_pushint( st, md->status.cri ); break;
++			case MOBDATA_PERFECT_DODGE: script_pushint( st, md->status.flee2 ); break;
++			case MOBDATA_STR: script_pushint( st, md->status.str ); break;
++			case MOBDATA_AGI: script_pushint( st, md->status.agi ); break;
++			case MOBDATA_VIT: script_pushint( st, md->status.vit ); break;
++			case MOBDATA_INT: script_pushint( st, md->status.int_ ); break;
++			case MOBDATA_DEX: script_pushint( st, md->status.dex ); break;
++			case MOBDATA_LUK: script_pushint( st, md->status.luk ); break;
++			case MOBDATA_ATTACK_RANGE: script_pushint( st, md->status.rhw.range ); break;
++			case MOBDATA_RACE: script_pushint( st, md->status.race ); break;
++			case MOBDATA_ELEMENT_TYPE: script_pushint( st, md->status.def_ele ); break;
++			case MOBDATA_ELEMENT_LEVEL: script_pushint( st, md->status.ele_lv ); break;
++			case MOBDATA_MODE: script_pushint( st, md->status.mode ); break;
++			case MOBDATA_MOVESPEED: script_pushint( st, md->status.speed ); break;
++			case MOBDATA_ATTACK_DELAY: script_pushint( st, md->status.adelay ); break;
++			case MOBDATA_ATTACK_MOTION: script_pushint( st, md->status.amotion ); break;
++			case MOBDATA_DAMAGE_MOTION: script_pushint( st, md->status.dmotion ); break;
++			case MOBDATA_SIZE: script_pushint( st, md->status.size ); break;
++			case MOBDATA_MAP: script_pushstrcopy( st, mapindex_id2name(map->list[md->bl.m].index) ); break;
++			case MOBDATA_X: script_pushint( st, md->bl.x ); break;
++			case MOBDATA_Y: script_pushint( st, md->bl.y ); break;
++			case MOBDATA_IMMUNE: script_pushint( st, md->state.blockimmune ); break;
++			default :
++				ShowError( "buildin_getmobdata: Attempted to use non-existing parameter %d.\n", parameter );
++				return false;
++		}
++	}
++	return true;
++}
++
+ BUILDIN(checkvending) // check vending [Nab4]
+ {
+ 	TBL_PC *sd = NULL;
+@@ -20221,6 +20350,8 @@ void script_parse_builtin(void) {
+ 		BUILDIN_DEF(disguise,"i"), //disguise player. Lupus
+ 		BUILDIN_DEF(undisguise,""), //undisguise player. Lupus
+ 		BUILDIN_DEF(getmonsterinfo,"ii"), //Lupus
++		BUILDIN_DEF(setmobdata,"iii"),
++		BUILDIN_DEF(getmobdata,"ii"),
+ 		BUILDIN_DEF(addmonsterdrop,"vii"),
+ 		BUILDIN_DEF(delmonsterdrop,"vi"),
+ 		BUILDIN_DEF(axtoi,"s"),
+@@ -20509,6 +20640,60 @@ void script_hardcoded_constants(void) {
+ 	script->set_constant("BG_AREA_WOS",BG_AREA_WOS,false);
+ 	script->set_constant("BG_QUEUE",BG_QUEUE,false);
+ 
++	/* setmobdata */
++	script->set_constant("MOBDATA_MOBID",MOBDATA_MOBID,false);
++	script->set_constant("MOBDATA_LEVEL",MOBDATA_LEVEL,false);
++	script->set_constant("MOBDATA_HP",MOBDATA_HP,false);
++	script->set_constant("MOBDATA_MAXHP",MOBDATA_MAXHP,false);
++	script->set_constant("MOBDATA_ATK",MOBDATA_ATK,false);
++	script->set_constant("MOBDATA_MATK",MOBDATA_MATK,false);
++	script->set_constant("MOBDATA_DEF",MOBDATA_DEF,false);
++	script->set_constant("MOBDATA_MDEF",MOBDATA_MDEF,false);
++	script->set_constant("MOBDATA_HIT",MOBDATA_HIT,false);
++	script->set_constant("MOBDATA_FLEE",MOBDATA_FLEE,false);
++	script->set_constant("MOBDATA_CRITICAL",MOBDATA_CRITICAL,false);
++	script->set_constant("MOBDATA_PERFECT_DODGE",MOBDATA_PERFECT_DODGE,false);
++	script->set_constant("MOBDATA_STR",MOBDATA_STR,false);
++	script->set_constant("MOBDATA_AGI",MOBDATA_AGI,false);
++	script->set_constant("MOBDATA_VIT",MOBDATA_VIT,false);
++	script->set_constant("MOBDATA_INT",MOBDATA_INT,false);
++	script->set_constant("MOBDATA_DEX",MOBDATA_DEX,false);
++	script->set_constant("MOBDATA_LUK",MOBDATA_LUK,false);
++	script->set_constant("MOBDATA_ATTACK_RANGE",MOBDATA_ATTACK_RANGE,false);
++	script->set_constant("MOBDATA_RACE",MOBDATA_RACE,false);
++	script->set_constant("MOBDATA_ELEMENT_TYPE",MOBDATA_ELEMENT_TYPE,false);
++	script->set_constant("MOBDATA_ELEMENT_LEVEL",MOBDATA_ELEMENT_LEVEL,false);
++	script->set_constant("MOBDATA_MODE",MOBDATA_MODE,false);
++	script->set_constant("MOBDATA_MOVESPEED",MOBDATA_MOVESPEED,false);
++	script->set_constant("MOBDATA_ATTACK_DELAY",MOBDATA_ATTACK_DELAY,false);
++	script->set_constant("MOBDATA_ATTACK_MOTION",MOBDATA_ATTACK_MOTION,false);
++	script->set_constant("MOBDATA_DAMAGE_MOTION",MOBDATA_DAMAGE_MOTION,false);
++	script->set_constant("MOBDATA_SIZE",MOBDATA_SIZE,false);
++	script->set_constant("MOBDATA_MAP",MOBDATA_MAP,false);
++	script->set_constant("MOBDATA_X",MOBDATA_X,false);
++	script->set_constant("MOBDATA_Y",MOBDATA_Y,false);
++	script->set_constant("MOBDATA_IMMUNE",MOBDATA_IMMUNE,false);
++
++	/* e_mode */
++	script->set_constant("MD_CANMOVE",MD_CANMOVE,false);
++	script->set_constant("MD_LOOTER",MD_LOOTER,false);
++	script->set_constant("MD_AGGRESSIVE",MD_AGGRESSIVE,false);
++	script->set_constant("MD_ASSIST",MD_ASSIST,false);
++	script->set_constant("MD_CASTSENSOR_IDLE",MD_CASTSENSOR_IDLE,false);
++	script->set_constant("MD_BOSS",MD_BOSS,false);
++	script->set_constant("MD_PLANT",MD_PLANT,false);
++	script->set_constant("MD_CANATTACK",MD_CANATTACK,false);
++	script->set_constant("MD_DETECTOR",MD_DETECTOR,false);
++	script->set_constant("MD_CASTSENSOR_CHASE",MD_CASTSENSOR_CHASE,false);
++	script->set_constant("MD_CHANGECHASE",MD_CHANGECHASE,false);
++	script->set_constant("MD_ANGRY",MD_ANGRY,false);
++	script->set_constant("MD_CHANGETARGET_MELEE",MD_CHANGETARGET_MELEE,false);
++	script->set_constant("MD_CHANGETARGET_CHASE",MD_CHANGETARGET_CHASE,false);
++	script->set_constant("MD_TARGETWEAK",MD_TARGETWEAK,false);
++	script->set_constant("MD_RANDOMTARGET",MD_RANDOMTARGET,false);
++	script->set_constant("MD_NOCAST_SKILL",MD_NOCAST_SKILL,false);
++	script->set_constant("MD_NORANDOM_WALK",MD_NORANDOM_WALK,false);
++
+ 	/* Renewal */
+ #ifdef RENEWAL
+ 	script->set_constant("RENEWAL", 1, false);
+diff --git a/src/map/script.h b/src/map/script.h
+index ff660de..2b5b8c3 100644
+--- a/src/map/script.h
++++ b/src/map/script.h
+@@ -504,6 +504,41 @@ struct string_translation {
+ 	char *buf;
+ };
+ 
++enum mobdata_type {
++	MOBDATA_MOBID = 1,
++	MOBDATA_LEVEL,
++	MOBDATA_HP,
++	MOBDATA_MAXHP,
++	MOBDATA_ATK,
++	MOBDATA_MATK,
++	MOBDATA_DEF,
++	MOBDATA_MDEF,
++	MOBDATA_HIT,
++	MOBDATA_FLEE,
++	MOBDATA_CRITICAL,
++	MOBDATA_PERFECT_DODGE,
++	MOBDATA_STR,
++	MOBDATA_AGI,
++	MOBDATA_VIT,
++	MOBDATA_INT,
++	MOBDATA_DEX,
++	MOBDATA_LUK,
++	MOBDATA_ATTACK_RANGE,
++	MOBDATA_RACE,
++	MOBDATA_ELEMENT_TYPE,
++	MOBDATA_ELEMENT_LEVEL,
++	MOBDATA_MODE,
++	MOBDATA_MOVESPEED,
++	MOBDATA_ATTACK_DELAY,
++	MOBDATA_ATTACK_MOTION,
++	MOBDATA_DAMAGE_MOTION,
++	MOBDATA_SIZE,
++	MOBDATA_MAP,
++	MOBDATA_X,
++	MOBDATA_Y,
++	MOBDATA_IMMUNE
++};
++
+ /**
+  * Interface
+  **/
+diff --git a/src/map/status.c b/src/map/status.c
+index 1a07f74..e706466 100644
+--- a/src/map/status.c
++++ b/src/map/status.c
+@@ -2221,7 +2221,7 @@ int status_calc_pc_(struct map_session_data* sd, enum e_status_calc_opt opt) {
+ 
+ 	//FIXME: Most of these stuff should be calculated once, but how do I fix the memset above to do that? [Skotlex]
+ 	//Give them all modes except these (useful for clones)
+-	bstatus->mode = MD_MASK&~(MD_BOSS|MD_PLANT|MD_DETECTOR|MD_ANGRY|MD_TARGETWEAK);
++	bstatus->mode = MD_MASK&~(MD_BOSS|MD_PLANT|MD_DETECTOR|MD_ANGRY|MD_TARGETWEAK|MD_NOCAST_SKILL|MD_NORANDOM_WALK);
+ 
+ 	bstatus->size = (sd->class_&JOBL_BABY)?SZ_SMALL:SZ_MEDIUM;
+ 	if (battle_config.character_size && (pc_isridingpeco(sd) || pc_isridingdragon(sd))) { //[Lupus]
+diff --git a/src/map/status.h b/src/map/status.h
+index 800e3de..08f56cc 100644
+--- a/src/map/status.h
++++ b/src/map/status.h
+@@ -1691,22 +1691,25 @@ enum e_joint_break
+ //Mode definitions to clear up code reading. [Skotlex]
+ enum e_mode
+ {
+-	MD_CANMOVE            = 0x0001,
+-	MD_LOOTER             = 0x0002,
+-	MD_AGGRESSIVE         = 0x0004,
+-	MD_ASSIST             = 0x0008,
+-	MD_CASTSENSOR_IDLE    = 0x0010,
+-	MD_BOSS               = 0x0020,
+-	MD_PLANT              = 0x0040,
+-	MD_CANATTACK          = 0x0080,
+-	MD_DETECTOR           = 0x0100,
+-	MD_CASTSENSOR_CHASE   = 0x0200,
+-	MD_CHANGECHASE        = 0x0400,
+-	MD_ANGRY              = 0x0800,
+-	MD_CHANGETARGET_MELEE = 0x1000,
+-	MD_CHANGETARGET_CHASE = 0x2000,
+-	MD_TARGETWEAK         = 0x4000,
+-	MD_MASK               = 0xFFFF,
++	MD_CANMOVE            = 0x00001,
++	MD_LOOTER             = 0x00002,
++	MD_AGGRESSIVE         = 0x00004,
++	MD_ASSIST             = 0x00008,
++	MD_CASTSENSOR_IDLE    = 0x00010,
++	MD_BOSS               = 0x00020,
++	MD_PLANT              = 0x00040,
++	MD_CANATTACK          = 0x00080,
++	MD_DETECTOR           = 0x00100,
++	MD_CASTSENSOR_CHASE   = 0x00200,
++	MD_CHANGECHASE        = 0x00400,
++	MD_ANGRY              = 0x00800,
++	MD_CHANGETARGET_MELEE = 0x01000,
++	MD_CHANGETARGET_CHASE = 0x02000,
++	MD_TARGETWEAK         = 0x04000,
++	MD_RANDOMTARGET       = 0x08000,
++	MD_NOCAST_SKILL       = 0x10000,
++	MD_NORANDOM_WALK      = 0x20000,
++	MD_MASK               = 0xFFFFF,
+ };
+ 
+ //Status change option definitions (options are what makes status changes visible to chars
+@@ -1855,8 +1858,8 @@ struct status_data {
+ 		batk,
+ 		matk_min, matk_max,
+ 		speed,
+-		amotion, adelay, dmotion,
+-		mode;
++		amotion, adelay, dmotion;
++	int mode;
+ 	short
+ 		hit, flee, cri, flee2,
+ 		def2, mdef2,

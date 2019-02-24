@@ -1,0 +1,33 @@
+//===== rAthena Patch ========================================
+//= favorite_tab
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: ===================================== 
+//= rAthena 2019-02-15
+//===== Description: =========================================
+//= any blue_gemstone(717) pick up by the player, immediately go to favorite tab
+//===== Topic ================================================
+//= https://rathena.org/board/topic/118227-consumables-in-favorites/?do=findComment&comment=357635
+//===== Additional Comments: =================================
+//=
+//============================================================
+
+ src/map/pc.cpp | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/map/pc.cpp b/src/map/pc.cpp
+index 5aace7ecb..f13aa90c3 100755
+--- a/src/map/pc.cpp
++++ b/src/map/pc.cpp
+@@ -4595,6 +4595,9 @@ char pc_additem(struct map_session_data *sd,struct item *item,int amount,e_log_p
+ 		if (!itemdb_isstackable2(id) || id->flag.guid)
+ 			sd->inventory.u.items_inventory[i].unique_id = item->unique_id ? item->unique_id : pc_generate_unique_id(sd);
+ 
++		if ( item->nameid == 717 )
++			sd->inventory.u.items_inventory[i].favorite = 1;
++
+ 		clif_additem(sd,i,amount,0);
+ 	}
+ 

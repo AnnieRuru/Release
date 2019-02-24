@@ -1,0 +1,262 @@
+//===== eAthena Script =======================================
+//= WoW domination Battleground : Arathi Basin
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.3
+//===== Compatible With: ===================================== 
+//= eAthena 2011-05-19
+//===== Description: =========================================
+//= 1st version
+//===== Topic ================================================
+//= https://www.eathena.ws/board/index.php?s=&showtopic=272293&view=findpost&p=1492870
+//===== Additional Comments: =================================  
+//= Thanks to Eradicate, for the respawn formula ;-)
+//============================================================
+
+-	script	wow_domi#controller	-1,{
+OnInit:
+	set .scoretowin, 100;
+	set .time2capture, 3;
+	set .distance, 3;
+	set .respawntimer, 20;
+
+	set .tick[1], 12000;
+	set .tick[2], 9000;
+	set .tick[3], 6000;
+	set .tick[4], 3000;
+	set .tick[5], 1000;
+
+	set .point[1], 1;
+	set .point[2], 1;
+	set .point[3], 1;
+	set .point[4], 1;
+	set .point[5], 3;
+
+	setarray .homerespawn1, 46,93, 53,88;
+	setarray .homerespawn2, 46,11, 53,6;
+	setarray .respawn1, 46,72, 53,66;
+	setarray .respawn2, 68,53, 73,46;
+	setarray .respawn3, 46,53, 53,46;
+	setarray .respawn4, 22,53, 30,46;
+	setarray .respawn5, 46,32, 53,26;
+
+	setarray .eventendrespawn$, "prontera", "156", "181";
+
+	setmapflagnosave "guild_vs2", .eventendrespawn$, atoi(.eventendrespawn$[1]), atoi(.eventendrespawn$[2]);
+	set .tick[0], 2000000000;
+	bg_updatescore "guild_vs2", 0, 0;
+	end;
+
+Onstart:
+	if ( getwaitingroomstate( 0, "Alliance" ) != 1 || getwaitingroomstate( 0, "Horde" ) != 1 ) end;
+	set .team1, waitingroom2bg("guild_vs2",49,91,"wow_domi#controller::OnAllianceQuit","wow_domi#controller::OnAllianceDie", "Alliance");
+	set .team2, waitingroom2bg("guild_vs2",49,8,"wow_domi#controller::OnHordeQuit","wow_domi#controller::OnHordeDie", "Horde");
+	bg_warp .team1, "guild_vs2", 50,92;
+	bg_warp .team2, "guild_vs2", 50,7;
+	donpcevent "wow_domi_score_team#1::Onstart";
+	donpcevent "wow_domi_score_team#2::Onstart";
+	donpcevent "wow_domi_respawn_timer::Onstart";
+	delwaitingroom "Alliance";
+	delwaitingroom "Horde";
+	disablenpc "Alliance";
+	disablenpc "Horde";
+	end;
+
+OnAllianceDie:
+	getmapxy .@map$, @x, @y, 0;
+	addtimer 1250, "wow_domi#controller::OnAllianceDie2";
+	end;
+OnAllianceDie2:
+	callsub L_respawn, 1;
+OnHordeDie:
+	getmapxy .@map$, @x, @y, 0;
+	addtimer 1250, "wow_domi#controller::OnHordeDie2";
+	end;
+OnHordeDie2:
+	callsub L_respawn, 2;
+L_respawn:
+	percentheal 100, 100;
+	if ( .stop ) end;
+	set .@ff, callsub( L_respawn2, getarg(0) );
+	pcblockmove getcharid(3), 1;
+	setoption 0x40, 1;
+	sleep2 2000000000;
+	getmapxy .@map$, @x, @y, 0;
+	callsub L_respawn2, getarg(0), .@ff;
+	specialeffect2 140;
+	pcblockmove getcharid(3), 0;
+	setoption 0x40, 0;
+	end;
+L_respawn2:
+	set .@dist, distance( @x, @y, .homex[ getarg(0) ], .homey[ getarg(0) ] );
+	for ( set .@i, 1; .@i <= 5; set .@i, .@i +1 ) {
+		if ( set( .@dist[.@i], distance( @x, @y, .flagx[.@i], .flagy[.@i] ) ) < .@dist && getarg(0) == .flag[.@i] ) {
+			set .@f, .@i;
+			set .@dist, .@dist[.@i];
+		}
+	}
+	if ( .@f == getarg(1, -1) )
+		return .@f;
+	else if ( .@f )
+		warp "guild_vs2", rand( getd(".respawn"+ .@f +"[0]"), getd(".respawn"+ .@f +"[2]") ), rand( getd(".respawn"+ .@f +"[1]"), getd(".respawn"+ .@f +"[3]") ) ;
+	else
+		warp "guild_vs2", rand( getd(".homerespawn"+ getarg(0) +"[0]"), getd(".homerespawn"+ getarg(0) +"[2]") ), rand( getd(".homerespawn"+ getarg(0) +"[1]"), getd(".homerespawn"+ getarg(0) +"[3]") );
+	return .@f;
+
+OnAllianceQuit:
+	bg_leave;
+	if ( bg_get_data( .team1, 0 ) ) end;
+	announce "Horde won !", 1;
+	goto Onreset;
+OnHordeQuit:
+	bg_leave;
+	if ( bg_get_data( .team2, 0 ) ) end;
+	announce "Alliance won !", 1;
+Onreset:
+	set .stop, 1;
+	for ( set .@i, 1; .@i <= 5; set .@i, .@i +1 )
+		set .flag[.@i], 0;
+	setnpcdisplay "Stable#1", 722;
+	setnpcdisplay "Gold Mine#2", 722;
+	setnpcdisplay "Blacksmith#3", 722;
+	setnpcdisplay "Lumber Mill#4", 722;
+	setnpcdisplay "Farm#5", 722;
+	set .score[1], 0;
+	set .score[2], 0;
+	enablenpc "Alliance";
+	enablenpc "Horde";
+	donpcevent "Alliance::OnInit";
+	donpcevent "Horde::OnInit";
+	awake "wow_domi_score_team#1";
+	awake "wow_domi_score_team#2";
+	awake "wow_domi#controller";
+	sleep 3000;
+	awake "wow_domi#controller";
+	bg_warp .team1, .eventendrespawn$, atoi( .eventendrespawn$[1] ), atoi( .eventendrespawn$[2] );
+	bg_warp .team2, .eventendrespawn$, atoi( .eventendrespawn$[1] ), atoi( .eventendrespawn$[2] );
+	bg_destroy .team1;
+	bg_destroy .team2;
+	set .team1, 0;
+	set .team2, 0;
+	bg_updatescore "guild_vs2", 0, 0;
+	end;
+}
+-	script	wow_domi_respawn_timer	-1,{
+Onstart:
+	while ( getvariableofnpc( .stop, "wow_domi#controller" ) == 0 ) {
+		awake "wow_domi#controller";
+		sleep getvariableofnpc( .respawntimer, "wow_domi#controller" ) * 1000;
+	}
+	end;
+}
+prontera,151,193,5	script	Alliance	100,{
+	end;
+OnInit:
+	waitingroom "Alliance",1,"wow_domi#controller::Onstart",1;
+	end;
+}
+prontera,160,193,5	script	Horde	100,{
+	end;
+OnInit:
+	waitingroom "Horde",1,"wow_domi#controller::Onstart",1;
+	end;
+}
+-	script	Flag#0::wow_domi_flag	-1,{
+	if ( getcharid(4) != getvariableofnpc( .team1, "wow_domi#controller" ) && getcharid(4) != getvariableofnpc( .team2, "wow_domi#controller" ) || getcharid(4) == 0 ) {
+		dispbottom "out of the way";
+		end;
+	}
+	if ( getcharid(4) == getvariableofnpc( .team1, "wow_domi#controller" ) && getvariableofnpc( .flag[ atoi( strnpcinfo(2) ) ], "wow_domi#controller" ) == 1 || getcharid(4) == getvariableofnpc( .team2, "wow_domi#controller" ) && getvariableofnpc( .flag[ atoi( strnpcinfo(2) ) ], "wow_domi#controller" ) == 2 ) {
+		dispbottom "your team already capture this point";
+		end;
+	}
+	getmapxy .@map$, .@x, .@y, 0;
+	getmapxy .@map$, .@x1, .@y1, 1;
+	if ( distance( .@x, .@y, .@x1, .@y1 ) > getvariableofnpc( .distance, "wow_domi#controller" ) ) {
+		dispbottom "too far";
+		end;
+	}
+	else if ( checkoption(0x4046) ) {
+		dispbottom "you can't capture a flag while cloaking or hiding";
+		end;
+	}
+	progressbar "0x0000FF", getvariableofnpc( .time2capture, "wow_domi#controller" );
+	if ( getcharid(4) == getvariableofnpc( .team1, "wow_domi#controller" ) && getvariableofnpc( .flag[ atoi( strnpcinfo(2) ) ], "wow_domi#controller" ) == 1 || getcharid(4) == getvariableofnpc( .team2, "wow_domi#controller" ) && getvariableofnpc( .flag[ atoi( strnpcinfo(2) ) ], "wow_domi#controller" ) == 2 ) {
+		dispbottom "your team already capture this point";
+		end;
+	}
+	if ( getcharid(4) == getvariableofnpc( .team1, "wow_domi#controller" ) )
+		set .@team, 1;
+	else
+		set .@team, 2;
+	set getvariableofnpc( .flag[ atoi( strnpcinfo(2) ) ], "wow_domi#controller" ), .@team;
+	setnpcdisplay strnpcinfo(0), ( .@team == 1 )? 973 : 974;
+	announce ( ( .@team == 1 )?"Alliance":"Horde" )+" has captured "+ strnpcinfo(1), 1;
+	awake "wow_domi_score_team#"+ .@team;
+	end;
+OnInit:
+	getmapxy .@map$, getvariableofnpc( .flagx[ atoi( strnpcinfo(2) ) ], "wow_domi#controller" ), getvariableofnpc( .flagy[ atoi( strnpcinfo(2) ) ], "wow_domi#controller" ), 1;
+	end;
+}
+guild_vs2,49,69,4	duplicate(wow_domi_flag)	Stable#1	722
+guild_vs2,72,50,4	duplicate(wow_domi_flag)	Gold Mine#2	722
+guild_vs2,49,49,4	duplicate(wow_domi_flag)	Blacksmith#3	722
+guild_vs2,26,49,4	duplicate(wow_domi_flag)	Lumber Mill#4	722
+guild_vs2,49,28,4	duplicate(wow_domi_flag)	Farm#5	722
+
+-	script	wow_domi_score_team	-1,{
+Onstart:
+	set .@t, strnpcinfo(2);
+	while ( getvariableofnpc( .stop, "wow_domi#controller" ) == 0 ) {
+		set .@catched, 0;
+		for ( set .@i, 1; .@i <= 5; set .@i, .@i +1 )
+			if ( getvariableofnpc( .flag[.@i], "wow_domi#controller" ) == .@t )
+				set .@catched, .@catched +1;
+		set .@tick, getvariableofnpc( .tick[ .@catched ], "wow_domi#controller" );
+		set getvariableofnpc( .score[.@t], "wow_domi#controller" ), getvariableofnpc( .score[.@t], "wow_domi#controller" ) + getvariableofnpc( .point[ .@catched ], "wow_domi#controller" );
+		if ( getvariableofnpc( .score[.@t], "wow_domi#controller" ) >= getvariableofnpc( .scoretowin, "wow_domi#controller" ) ) {
+			set getvariableofnpc( .stop, "wow_domi#controller" ), 1;
+			announce ( ( .@t == 1 )?"Alliance":"Horde" )+" won!", 0;
+			donpcevent "wow_domi#controller::Onreset";
+			break;
+		}
+		if ( .@score != getvariableofnpc( .score[.@t], "wow_domi#controller" ) )
+			bg_updatescore "guild_vs2", getvariableofnpc( .score[1], "wow_domi#controller" ), getvariableofnpc( .score[2], "wow_domi#controller" );
+		set .@score, getvariableofnpc( .score[.@t], "wow_domi#controller" );
+		sleep .@tick;
+	}
+	end;
+}
+-	duplicate(wow_domi_score_team)	wow_domi_score_team#1	-1
+-	duplicate(wow_domi_score_team)	wow_domi_score_team#2	-1
+
+-	script	wow_domi_home_base	-1,{
+OnInit:
+	getmapxy .@map$, getvariableofnpc( .homex[ atoi( strnpcinfo(2) ) ], "wow_domi#controller" ), getvariableofnpc( .homey[ atoi( strnpcinfo(2) ) ], "wow_domi#controller" ), 1;
+}
+
+guild_vs2,50,92,5	duplicate(wow_domi_home_base)	Alliance Flag#1	973
+guild_vs2,50,7,5	duplicate(wow_domi_home_base)	Horde Flag#2	974
+
+guild_vs2	mapflag	battleground	2
+guild_vs2	mapflag	nowarp
+guild_vs2	mapflag	nowarpto
+guild_vs2	mapflag	nomemo
+guild_vs2	mapflag	noteleport
+
+
+//	Debug only
+-	script	asdf	-1,{
+OnWhisperGlobal:
+	dispbottom "Alliance : "+ bg_get_data( getvariableofnpc( .team1, "wow_domi#controller" ), 0 );
+	dispbottom "Horde : "+ bg_get_data( getvariableofnpc( .team2, "wow_domi#controller" ), 0 );
+	end;
+OnInit:
+	for ( set .@i, 2000000; .@i <= 2000010; set .@i, .@i +1 ) {
+		if ( !attachrid(.@i) ) continue;
+		warp "prontera",156,191;
+		bg_leave;
+	}
+	end;
+}

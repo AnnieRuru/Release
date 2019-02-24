@@ -1,0 +1,86 @@
+//===== Hercules Script ====================================
+//= Hangman
+//===== By: ================================================
+//= Annieruru
+//===== Current Version: ===================================
+//= 0.1
+//===== Compatible With: ===================================
+//= Hercules 2019-02-19
+//===== Description: =======================================
+//= Guess the word <-- sound familiar ?
+//===== Topic ==============================================
+//= 
+//===== Additional Comments: ===============================
+//= just a rewrite from Keyworld's hangman script,
+//= although I start to think its capable to turn into automated event
+//==========================================================
+
+prontera,155,185,5	script	Hangman	1_F_MARIA,{
+	if ( .start ) goto L_start;
+	mes "input a word between 4~12 characters.";
+	next;
+	if ( input( .@input$, 4,99 ) ) {
+		mes "please only input a word between 4~12 characters";
+		close;
+	}
+	.@length = getstrlen( .@input$ );
+	for ( .@i = 0; .@i < .@length; ++.@i ) {
+		if ( charisalpha( .@input$, .@i ) == false ) {
+			mes "Please only use alphabet characters A-Z";
+			close;
+		}
+		.@char$ = strtoupper( charat( .@input$, .@i ) );
+		if ( !getd( ".@"+ .@char$ ) ) {
+			.@character$[.@size++] = .@char$;
+			setd ".@"+ .@char$, true;
+		}
+		.@tmp$ += "_";
+		.@word$ += .@char$;
+	}
+	mesf "Are you sure want to use the word %s ?", .@word$;
+	next;
+	if ( select ( "Yes", "No" ) == 2 ) close;
+	if ( .start ) {
+		mes "A word has been generated";
+		close;
+	}
+	announce "Guess this word", bc_npc|bc_area, C_WHITE;
+	.word$ = .@word$;
+	.tmp$ = .@tmp$;
+	copyarray .character$, .@character$, .@size;
+	.size = .@size;
+	.length = .@length;
+	.start = true;
+	waitingroom .@tmp$, 0;
+	close;
+L_start:
+	if ( input( .@guess$, 1,1 ) ) {
+		mes "please only input 1 character";
+		close;
+	}
+	.@guess$ = strtoupper(.@guess$);
+	while ( .@i < .size && .@guess$ != .character$[.@i] ) ++.@i;
+	if ( .@i == .size ) {
+		mes "wrong guess";
+		close;
+	}
+	for ( .@j = 0; .@j < .length; ++.@j )
+		if ( .@guess$ == charat( .word$, .@j ) )
+			.tmp$ = setchar( .tmp$, .@guess$, .@j );
+	delwaitingroom;
+	deletearray .character$[.@i], 1;
+	--.size;
+	getitem Apple, 1;
+	if ( .size ) {
+		waitingroom .tmp$, 0;
+		close;
+	}
+	announce "All correct !! The word is "+ .word$, bc_npc|bc_area, C_WHITE;
+	.start = false;
+	.word$ = "";
+	.tmp$ = "";
+	.size = 0;
+	.length = 0;
+	deletearray .character$;
+	close;
+}

@@ -1,0 +1,94 @@
+// http://www.forsaken-ro.net/forum/topic/24246-onos-event-suggestions/
+
+Hey guys,
+
+here I want to suggest some Events which you might like to see in future. I think it's the right timing for it.
+Some of the Events might be already known, others are made by me.
+
+(Smart 16 year old Hito, thank you for writing down the old events in a word-file lol)
+
+Some Events might be already available on Forsaken Ro because I missed them in game.
+Also, there are two rubrics of Events which performance is differented by the influence of the usage of scripts or not.
+
+Non-Script Events
+
+1. ForsakenRO's Miss beauty or clown
+(Not my favorite Event, but I can mentioning it.)
+This Event is about making the most funny or beautiful character which will be decided by the jury(GM's).
+Most funny or beautiful character wins.
+
+2. Search the GM
+Requirements: @broadcast
+A pretty simple Event which is about finding the GameMaster on a map, which he/she describes hint by hint.
+First player who finds the GM, wins.
+
+3. GM in Poring Crowd (Though, here is a script available)
+Requirements: @disguise
+On a choosen map, Porings are beeing spamed in which the GM hides him-self as Poring(with the disguise command). The GameMaster is allowed to move thorugh the map as the Porings do.
+First player who finds the GM, wins.
+
+4. Simple Dice forget it lol
+
+5. Quiz Event
+Requirements: Brain :D
+It is not about guessing Monsters. This event requiers knowledge about Ragnarok Online or even the Norse mythology it self. The variation of questions is big. It can start from questions like "Name the Capital of ,,Republic of Schwarzwald"" up to "Which 'creature' collects the souls of fallen warrious and where can you find it?".
+The player with the highest amount of right answered questions, wins.
+
+6. Color Combo Event
+Requirements: Different Potions(heal items).
+This Event is found by me and is about following the GMs commands which are given by the effect of pots he/she is using. If the GM activates a Blue Potion the players follow this command. If the GM is activating a Green Potion, the player do the same.
+Every round the usage number of potions rises up, which makes remembering the pattern of them, round by round harder. If someone miss the pattern, this person is out.
+The last player wins the event.
+
+7. Novice vs. Novice
+Requirements: Level 1/1 Novice, diverse commands for checking EQ and Level of the novices(a script is even better and easier way of having a control), @warp bat_a02 / b02
+Well, in short form: It is an Event about novices who fight in PVP.
+Last standing novice wins the event.
+
+7.1 Novice Group fight
+Same as above, but as Team.
+If needed, the Team can be splitted once again into two teams!
+
+7.2 Last Novice Standing (available on this server)
+It is available, but I would suggest to use a smaller room, like for example the prisons from @go 16 with only one monster in it, instead of spaming on a bigger fild many more.
+Rising the amount of monster is in a small room more interesting in my opinion.
+
+
+8. The fight for Geffen Tower
+Requirements: The Geffen Tower itself (@go 2)
+This event is about "conquering" the tower, by climbing up to the last level of it. But it isn't as easy as it seems to be. PvP is turned on and the goal is to survive for two minutes or more on the top of the tower(If hiding skills should be alowed or not is the GM's decison).
+
+- Start: @warp geffen 120 110
+- <7 levels>
+- End: @warp gef_tower 109 29 (The player who survived here for 2 minutes wins the event)
+
+
+Server / Script Influenced Events
+
+9. Hard MvP (Invasion?)
+Requirements: Town, Monsters, decent script, new points system
+This event is simple as well and could be made as Invasion.
+A number of monsters attacks a city which needs to be saved by the players. Every killed monster gives an amount of points which the player receives and can use for useful items or equipment. After one "monster-wave" has been destroyed, another one is coming with stronger monsters and at the end, the MvP appears. But this MvP should be made pretty strong, so that not just one guy is able to kill it(thought, even the monster could be made strongers so people see what a real invasion is lol).
+
+10. Race
+(One of my favorite Events)
+Requirements: @warp turbo_e_16, script for mines which kill players
+In this event you have to win a race, which map is divided to different regions. In all of these regions are mines hided that will kill a player after steping on it. The mine dosen't disqualify you from the event, but you will have to run from the beginning of the map.
+
+- Start: @warp turbo_e_16 59 364
+- End: @warp turbo_e_16 367 47 (First player who is in the goal wins the event. 3th and 2nd place is also possible)
+
+11. Poringball
+It is similiar to football, but I think this video describes it pretty well:
+
+
+So yeah, these are my Event suggestions. All of these event has been used before in the time when I was an Event GM as well. So I can ensure you that all of the evetns are mostly save and easy to manage.
+I hope you can find something you are interested into! :)
+- I could suggest even more, but for that it requiers mapping-skills in Ragnarok lol
+- The hopping/jumoing event is already available on this server, right?
+
+Also, I have one last thing to suggest about the Event GM job:
+I'm not sure, but there is none from European available right? Maybe I had bad luck or so, but I really rarely see any events which is maybe due to the different times? Just wanted to mentione it and ask about this case, because else I would suggest to have someone from this continent(if there is someone who applies for this job o.o).
+
+Sorry for misatkes or typos, need to go to school soon, so I'm a bit in a hurry. lol
+Comment on this or ask whatever you want! :3 

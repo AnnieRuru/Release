@@ -1,0 +1,110 @@
+//===== eAthena Script =====================================
+//= Player Promoter
+//===== By: ================================================
+//= Annieruru
+//===== Current Version: ===================================
+//= 0.1
+//===== Compatible With: ===================================
+//= eAthena 2008
+//===== Description: =======================================
+//= If the player own a Player Promoter card, they can come to this npc for a limited time Super Player
+//===== Topic ==============================================
+//= https://www.eathena.ws/board/index.php?s=&showtopic=236859&view=findpost&p=1291466
+//===== Additional Comments: ===============================
+//= This script was made for ComelRO
+//==========================================================
+
+airport,187,42,5	script	Player Promoter	947,{
+
+	set .@gm01item, 15627;
+	set .@gm10item, 15628;
+	set .@gm20item, 15629;
+
+	set .@gm01$, "Super Player";
+	set .@gm10$, "Hyper Player";
+	set .@gm20$, "Ultra Player";
+	
+	mes "[Player Promoter]";
+	if ( getgmlevel() <= 20 ) {
+		if ( getgmlevel() > 0 ) {
+			set .@left, #pp_accupgrade - gettimetick(2);
+			set .@day,  .@left / (24*60*60);
+			set .@hour, .@left % (24*60*60) / (60*60);
+			set .@min,  .@left % (24*60*60) % (60*60) / (60);
+			set .@sec,  .@left % (24*60*60) % (60*60) % (60);
+			mes "Your account is currently a "+ getd(".@gm"+ getgmlevel() +"$") +". You still have "+ .@day +" days, "+ .@hour +" hours "+ .@min +" min "+ .@sec +" seconds left to become back to normal player.";
+			if ( getgmlevel() == 1 && ( countitem(.@gm10item) || countitem(.@gm20item) ) ||
+				getgmlevel() == 10 && countitem(.@gm20item) )
+					next;
+			else
+				close;
+		}
+		if ( countitem(.@gm01item) || countitem(.@gm10item) || countitem(.@gm20item) ) {
+			mes "Do you want to upgrade your account ?";
+			next;
+			set .@menu$, ( ( getgmlevel() < 1 && countitem(.@gm01item) )?"upgrade to "+ .@gm01$:"" )+":"+( ( getgmlevel() < 10 && countitem(.@gm10item) )?"upgrade to "+ .@gm10$:"" )+":"+( ( getgmlevel() < 20 && countitem(.@gm20item) )?"upgrade to "+ .@gm20$:"" );
+			switch ( select ( .@menu$, "No, maybe later" ) ) {
+				mes "[Player Promoter]";
+				case 1:
+					set .@gmlevel, 1;
+					break;
+				case 2:
+					set .@gmlevel, 10;
+					break;
+				case 3:
+					set .@gmlevel, 20;
+					break;
+				case 4:
+					mes "Ok, come back anytime you need me.";
+					close;
+			}
+			set #pp_accupgrade, gettimetick(2) + 5184000;
+			set #pp_accupgradetype, .@gmlevel;
+			atcommand "@adjgmlvl "+ .@gmlevel +" "+ strcharinfo(0);
+			delitem getd(".@gm"+ .@gmlevel +"item"), 1;
+			mes "account upgrade to "+ getd(".@gm"+ .@gmlevel +"$") +" is completed.";
+			close;
+		}
+		else {
+			mes "Donate xxxxxRO GM Card or win player promoter items from GMs and you can upgrade your account to become Super Players, Hyper Player and Ultra Player ^^";
+			close;
+		}
+	}
+	else if ( getgmlevel() < 99 ) {
+		mes "Only Admin can use me.";
+		close;
+	}
+	else {
+		mes "Hi Admin want to distribute xxxxxRO cards with your name on it ?";
+		next;
+		if ( select ( "Distribute GM01 card", "Distribute GM10 card", "Distribute GM20 card","No") == 4 ) close;
+		switch ( @menu ) {
+			case 1: set .@itemid, .@gm01item; break;
+			case 2: set .@itemid, .@gm10item; break;
+			case 3: set .@itemid, .@gm20item;
+		}
+		getitem2 .@itemid,1,1,0,0,254,0, getcharid(0)%pow(2,16), getcharid(0)/pow(2,16);
+		close;
+	}
+}
+-	script	player_demoter	-1,{
+OnPCLoginEvent:
+	if ( getgmlevel() > 20 ) {
+		set #pp_accupgrade, 0;
+		set #pp_accupgradetype, 0;
+	}
+	if ( #pp_accupgrade == 0 ) end;
+	set .@left, #pp_accupgrade - gettimetick(2);
+	if ( .@left > 0 ) {
+		atcommand "@adjgmlvl "+ #pp_accupgradetype +" "+ strcharinfo(0);
+		if ( .@left >= 2147483 ) end;
+		addtimer .@left *1000, "player_demoter::Ondemote";
+		end;
+	}
+Ondemote:
+	if ( getgmlevel() >= 1 && getgmlevel() <= 20 )
+		atcommand "@adjgmlvl 0 "+ strcharinfo(0);
+	message strcharinfo(0), "Your account has demoted to normal player";
+	set #pp_accupgrade, 0;
+	set #pp_accupgradetype, 0;
+}

@@ -1,0 +1,87 @@
+ src/custom/script.inc     | 64 +++++++++++++++++++++++++++++++++++++++++++++++
+ src/custom/script_def.inc |  3 +++
+ 2 files changed, 67 insertions(+)
+
+diff --git a/src/custom/script.inc b/src/custom/script.inc
+index 1e01c88..79856cb 100644
+--- a/src/custom/script.inc
++++ b/src/custom/script.inc
+@@ -17,3 +17,67 @@
+ //	script_pushint(st,1);
+ //	return 0;
+ //}
++
++//	createbgid <respawn map>, <respawn x>, <respawn y>, <On Quit event>, <On Death event>;
++BUILDIN_FUNC(createbgid) {
++	unsigned int bg_id;
++	if ( ( bg_id = bg_create( mapindex_name2id( script_getstr(st,2) ), script_getnum(st,3), script_getnum(st,4), script_getstr(st,5), script_getstr(st,6) ) ) > 0 )
++		script_pushint( st, bg_id );
++	else
++		script_pushint( st, 0 );
++	return SCRIPT_CMD_SUCCESS;
++}
++
++//	setbgid <battleground ID> {, <player name> };
++//	setbgid <battleground ID> {, <player account ID> };
++BUILDIN_FUNC(setbgid) {
++	unsigned int bg_id = script_getnum(st,2);
++	struct battleground_data *bg = bg_team_search( bg_id );
++	struct map_session_data *sd;
++	if ( script_hasdata( st, 3 ) ) {
++		if ( data_isstring( script_getdata(st,3) ) )
++			sd = map_nick2sd( script_getstr(st,3) );
++		else
++			sd = map_id2sd( script_getnum(st,3) );
++	} else
++		sd = script_rid2sd(st);
++	if ( !sd ) {
++		script_pushint( st, -3 ); // player no attach
++		return SCRIPT_CMD_SUCCESS;
++	}
++	if ( !bg && bg_id > 0 ) {
++		script_pushint( st, -1 ); // battleground team haven't created
++		return SCRIPT_CMD_SUCCESS;
++	}
++	if ( bg_id && sd->bg_id == bg_id ) {
++		script_pushint( st, -5 ); // the player has already join this battleground team
++		return SCRIPT_CMD_SUCCESS;
++	}
++	if ( sd->bg_id )
++		bg_team_leave( sd, 0 );
++	if ( bg_id == 0 ) {
++		script_pushint( st, 0 );
++		return SCRIPT_CMD_SUCCESS;
++	}
++	if ( !bg_team_join( bg_id, sd ) )
++		script_pushint( st, -2 ); // cannot join anymore, because has reached MAX_BG_MEMBERS
++	else
++		script_pushint( st, bg_id );
++	return SCRIPT_CMD_SUCCESS;
++}
++
++//	getbgusers <battleground ID>;
++BUILDIN_FUNC(getbgusers) {
++	struct battleground_data *bg = bg_team_search( script_getnum(st,2) );
++	int i, j = 0;
++	if ( !bg ) {
++		script_pushint( st, -1 );
++		return SCRIPT_CMD_SUCCESS;
++	}
++	for ( i = 0; i < MAX_BG_MEMBERS; ++i )
++		if ( bg->members[i].sd )
++			mapreg_setreg( reference_uid( add_str("$@arenamembers"), j++ ), bg->members[i].sd->bl.id );
++	mapreg_setreg( add_str("$@arenamembersnum"), j );
++	script_pushint( st, j );
++	return SCRIPT_CMD_SUCCESS;
++}
+diff --git a/src/custom/script_def.inc b/src/custom/script_def.inc
+index 3319eea..600a0ac 100644
+--- a/src/custom/script_def.inc
++++ b/src/custom/script_def.inc
+@@ -9,3 +9,6 @@
+  **/
+ 
+ //BUILDIN_DEF(example,""),
++	BUILDIN_DEF(createbgid,"siiss"),
++	BUILDIN_DEF(setbgid,"i?"),
++	BUILDIN_DEF(getbgusers,"i"),

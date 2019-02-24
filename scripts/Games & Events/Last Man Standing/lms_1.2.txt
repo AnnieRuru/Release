@@ -1,0 +1,115 @@
+//===== Hercules Script =====================================
+//= Last Man Standing
+//===== By: ================================================
+//= AnnieRuru
+//===== Current Version: ===================================
+//= 1.2
+//===== Compatible With: ===================================
+//= Hercules 2015-12-21
+//= DO NOT USE THIS SCRIPT IF YOUR HERCULES COMPILE BEFORE THIS DATE
+//===== Description: =======================================
+//= Stay Alive and Kill Everyone Else !!!
+//===== Topic ==============================================
+//= http://herc.ws/board/topic/11185-last-man-standing-using-queue-iterator-script-commands/
+//===== Additional Comments: ===============================
+//= Add the new UNITTYPE_NPC and C_RED constant, just commit today
+//==========================================================
+
+prontera,154,187,5	script	Last Man Standing	1_F_MARIA,{
+	if ( .start == false ) {
+		mes "Registration closed. Please come again.";
+		close;
+	}
+	if ( getgmlevel() >= 99 ) { // gm level to bypass the registration
+		warp .eventmap$, 0,0;
+		end;
+	}
+	if ( queuesize(.qid) >= .register_limit ) {
+		mes "this event has reach the maximum player participations.";
+		close;
+	}
+	warp .eventmap$, 0,0;
+	queueadd .qid, getcharid(3);
+	percentheal 100, 100;
+	end;
+OnStart:
+OnMinute00:
+//OnClock0000: // put all your start timer here
+	.start = true;
+	.qid = queue();
+	queueopt .qid, QUEUEOPT_DEATH, strnpcinfo(0)+"::OnDeath";
+	queueopt .qid, QUEUEOPT_LOGOUT, strnpcinfo(0)+"::OnQuit";
+	queueopt .qid, QUEUEOPT_MAPCHANGE, strnpcinfo(0)+"::OnMapChange";
+	announce "LMS event will start in "+ .register_timer +" min.", bc_all;
+	sleep .register_timer * 60000;
+	announce "LMS event registration close.", bc_all;
+	if ( queuesize(.qid) < .register_min ) {
+		announce "LMS: Not enough players for LMS event", bc_all;
+		queuedel .qid;
+		mapwarp .eventmap$, .map$, .x, .y;
+		.start = false;
+		end;
+	}
+	.start = false;
+	sleep 3000; // waiting timer here
+//	.@it = queueiterator(.qid);
+//	for ( .@aid = qiget(.@it); qicheck(.@it); .@aid = qiget(.@it) )
+//		debugmes ( ++.@i )+". "+ rid2name(.@aid);
+//	qiclear .@it;
+	mapannounce .eventmap$, "THIS   IS   SPARTA !!!!!", bc_all, C_RED, FW_BOLD, 50;
+	pvpon .eventmap$;
+	end;
+OnDeath:
+	if ( isloggedin( killerrid ) )
+		announce "LMS: "+ strcharinfo(0) +" was killed by "+ rid2name( killerrid ), bc_map;
+	else
+		announce "LMS: "+ strcharinfo(0) +" was killed by a monster", bc_map;
+	queueremove .qid, getcharid(3);
+	warp "Save", 0,0;
+	if ( queuesize(.qid) == 1 ) goto L_end;
+	end;
+OnMapChange:
+	if ( @Queue_Destination_Map$ == .eventmap$ ) end;
+OnQuit:
+	announce "LMS: "+ strcharinfo(0) +" has Quit!", bc_map;
+	queueremove .qid, getcharid(3);
+	if ( queuesize(.qid) == 1 ) goto L_end;
+	end;
+L_end:
+	.@it = queueiterator(.qid); // call the 1st member of the queue ID
+	.@aid = qiget(.@it); // get the 1st index of the queue
+	qiclear .@it; // remove the called memory
+	attachrid .@aid;
+	announce "LMS: Congratulations ~ The winner of LMS event is "+ strcharinfo(0), bc_all;
+	getitem Poring_Coin, 10;
+	killmonsterall .eventmap$;
+	pvpoff .eventmap$;
+	queuedel .qid; // event ends, delete the queue from server
+	sleep2 5000;
+	warp "Save", 0,0;
+	end;
+OnInit:
+	if ( C_RED != 0xFF0000 ) end; // the even simpler way to stop this script from loading, it will print 'Fatal Error ! No Player attached !'
+
+	.eventmap$ = "guild_vs5";
+	.register_min = 2; // minimum amount of players to start this event, or else it auto-abort
+	.register_limit = 100; // maximum amount of players able to participate in this event
+	.register_timer = 5; // how many minutes for player to register this event ?
+
+	bindatcmd "lms", strnpcinfo(0)+"::OnStart", 99,100;
+	getmapxy .map$, .x, .y, UNITTYPE_NPC;
+	setarray .@mapflag,
+		mf_nosave,
+		mf_nowarp,
+		mf_nowarpto,
+		mf_nomemo,
+		mf_nopenalty,
+	//	mf_nobranch, // as far as I recall, some server allow players to use dead branch to make LMS more exciting
+		mf_noicewall,
+		mf_pvp_noparty,
+		mf_pvp_noguild;
+	.@mapflagsize = getarraysize( .@mapflag );
+	for ( .@i = 0; .@i < .@mapflagsize; ++.@i )
+		setmapflag .eventmap$, .@mapflag[.@i];
+	end;
+}

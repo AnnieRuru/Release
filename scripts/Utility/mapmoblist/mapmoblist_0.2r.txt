@@ -1,0 +1,51 @@
+// https://rathena.org/board/topic/117852-i-got-error-when-applying-custom-commands/?page=0#comment-355703
+
+// pre-re/mobs/fields/prontera.txt
+//==================================================
+// prt_fild07 - Prontera Field 
+//==================================================
+prt_fild07,0,0	monster	Rocker	1052,80
+prt_fild07,0,0	monster	Poporing	1031,30
+prt_fild07,0,0	monster	Vocal	1088,1,1800000,1200000
+prt_fild07,225,110,5,5	monster	Black Mushroom	1084,3,360000,180000
+
+-	script	sdjflsdf	-1,{
+OnInit:
+	bindatcmd "mapmoblist", strnpcinfo(0)+"::Onaaa";
+	end;
+Onaaa:
+	if ( .@atcmd_numparameters ) {
+		if ( getmapusers(.@atcmd_parameters$) == -1 ) {
+			dispbottom "Map not exist";
+			end;
+		}
+		.@map$ = .@atcmd_parameters$;
+	}
+	else
+		.@map$ = strcharinfo(3);
+	.@size = getmapunits( BL_MOB, .@map$, .@bl );
+	freeloop true;
+	for ( .@i = 0; .@i < .@size; ++.@i ) {
+		.@string$ = rid2name(.@bl[.@i]);
+		if ( !getd(".@"+ .@string$) ) {
+			.@mobname$[.@c] = .@string$;
+			getunitdata .@bl[.@i], .@unitdata;
+			.@mobx[.@c] = .@unitdata[UMOB_X];
+			.@moby[.@c] = .@unitdata[UMOB_Y];
+			.@mobhp[.@c] = .@unitdata[UMOB_HP];
+			.@mobmaxhp[.@c] = .@unitdata[UMOB_MAXHP];
+			++.@c;
+		}
+		setd ".@"+ .@string$, getd(".@"+ .@string$) +1;
+	}
+	dispbottom " === These are monsters in "+ .@map$ +" ===";
+	for ( .@i = 0; .@i < .@c; ++.@i )
+		if ( getd(".@"+ .@mobname$[.@i]) > 1 || .@mobhp[.@i] )
+			dispbottom ( ++.@j )+". "+ .@mobname$[.@i] +" : "+ getd(".@"+ .@mobname$[.@i])+"x";
+	if ( getgmlevel() < 99 ) end; // admin only access, lucky you mention it so I make extra checks
+	dispbottom " === Location of unique monsters === ";
+	for ( .@i = 0; .@i < .@c; ++.@i )
+		if ( getd(".@"+ .@mobname$[.@i]) == 1 && .@mobhp[.@i] )
+			dispbottom .@mobname$[.@i] +" --> X = "+ .@mobx[.@i] +" Y = "+ .@moby[.@i] +" | Hp left = "+ .@mobhp[.@i] +"/"+ .@mobmaxhp[.@i];
+	end;
+}﻿

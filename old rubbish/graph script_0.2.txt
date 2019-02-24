@@ -1,0 +1,50 @@
+//===== Hercules Script =====================================
+//= Graph Script
+//===== By: ================================================
+//= Annieruru
+//===== Current Version: ===================================
+//= 0.2
+//===== Compatible With: ===================================
+//= Hercules 2015-12-23
+//===== Description: =======================================
+//= display a set of data in graph format
+//===== Topic ==============================================
+//= <none>
+//===== Additional Comments: ===============================
+//= I just rewrite in hercules language, nothing else.
+//= But it still fun to see algorithm script again xD
+//==========================================================
+
+prontera,157,187,5	script	kjsdfhksdjf	1_F_MARIA,{
+//	for ( .@i = 0; .@i < 20; ++.@i )
+//		.@string$ += .points[.@i] +",";
+//	mes .@string$;
+	for ( .@j = 30; .@j >= -30; .@j -= 10 ) {
+		.@string$ = callfunc( "F_MesColor", C_BLACK ) +( ( .@j <= 0 )?( .@j == 0 )?"   ":"" :" " )+ .@j +"|";
+		for ( .@i = 0; .@i < 20; ++.@i )
+			.@string$ += ( ( .points[.@i] > .@j-5 && .points[.@i] <= .@j+5 )? callfunc( "F_MesColor", C_BLACK ) : callfunc( "F_MesColor", C_WHITE ) )+"\x07";
+		mes .@string$;
+	}
+	mes callfunc( "F_MesColor", C_BLACK ) +"the last point was "+ .points[19];
+	close;
+OnInit:
+	while(true) {
+		deletearray .points[0], 1;
+		if ( .points[18] > 27 ) // 28~30
+			.points[19] = .points[18] + rand(-10,0);
+		else if ( .points[18] >= 20 ) // 20~27
+			.points[19] = .points[18] + rand(-7,3);
+		else if ( .points[18] > 10 ) // 11~19
+			.points[19] = .points[18] + rand(-6,4);
+		else if ( .points[18] >= -10 ) // -10~10
+			.points[19] = .points[18] + rand(-5,5);
+		else if ( .points[18] > -20 ) // -11~-19
+			.points[19] = .points[18] + rand(-4,6);
+		else if ( .points[18] >= -27 ) // -20~-27
+			.points[19] = .points[18] + rand(-3,7);
+		else // -28~-30
+			.points[19] = .points[18] + rand(0,10);
+		sleep 100;
+	}
+	end; // no use
+}

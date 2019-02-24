@@ -1,0 +1,70 @@
+//===== Hercules Script ======================================
+//= Card Collector Event
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.0a
+//===== Compatible With: ===================================== 
+//= Hercules 2015-12-05
+//===== Description: =========================================
+//= Every hour, the npc ask for a random card.
+//= If the player has the card and give to this npc, will get rewards
+//===== Topic ================================================
+//= http://herc.ws/board/topic/11367-card-collector/
+//===== Additional Comments: =================================
+//= found this in rathena script request, dump in hercules script release
+//============================================================
+
+prontera,155,185,5	script	Card collector	1_F_MARIA,{
+	mes "["+ strnpcinfo(0) +"]";
+	if ( !.start ) {
+		mes "I'm not looking for any card right now.";
+		close;
+	}
+	mes "Hi, I'm looking for "+ getitemname(.look4card) +", do you have it ?";
+	next;
+	.@count = countitem(.look4card);
+	if ( !.@count ) {
+		mes "["+ strnpcinfo(0) +"]";
+		mes "Unfortunately you don't have the card I'm looking for";
+		close;
+	}
+	input .@give, 0, .@count;
+	mes "["+ strnpcinfo(0) +"]";
+	if ( !.@give ) {
+		mes "You are not giving me ? ... sob..";
+		close;
+	}
+	mes "Thank You !!";
+	delitem .look4card, .@give;
+	if ( .checkboss == 0 ) getitem Poring_Coin, 5 * .@give; // 5 poring coins given for every normal card
+	if ( .checkboss == 1 ) getitem Poring_Coin, 10 * .@give; // 10 poring coins given for every miniboss card
+	if ( .checkboss == 2 ) getitem Poring_Coin, 20 * .@give; // 20 poring coins given for every MVP card
+	close;
+OnStart:
+OnMinute00: // Put all your start timer here
+	.look4card = .allcardid[ rand( .allcards ) ];
+	announce "["+ strnpcinfo(0) +"] I'm looking for "+ getitemname( .look4card ) +" !!!", bc_all;
+	.checkboss = 0;
+	while ( .bosscardid[.@i] != .look4card && .@i < .bosscards ) .@i++;
+	if ( .@i < .bosscards ) {
+		while ( .mvpcardid[.@j] != .look4card && .@j < .mvpcards ) .@j++;
+		.checkboss = ( .@j < .mvpcards )? 2 : 1;
+	}
+	.start = true;
+	sleep 30000; // last 30 seconds
+	.start = false;
+	announce "["+ strnpcinfo(0) +"] Thank you everyone for the participation.", bc_all;
+	end;
+OnInit:
+	.allcards = query_sql("select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where type = 6 group by name_japanese", .allcardid);
+	.mvpcards = query_sql("select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where mexp > 0 and type = 6 group by name_japanese;", .mvpcardid);
+	.bosscards = query_sql("select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where mode & 32 and type = 6 group by name_japanese;", .bosscardid);
+//	bindatcmd "test", strnpcinfo(0)+"::OnStart", 99, 100;
+//	bindatcmd "look", strnpcinfo(0)+"::OnValue", 99, 100;
+	end;
+OnValue:
+	if ( .start )
+		dispbottom "looking for ID "+ .look4card +" type "+ .checkboss;
+	end;
+}

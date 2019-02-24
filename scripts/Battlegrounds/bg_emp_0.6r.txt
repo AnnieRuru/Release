@@ -1,0 +1,133 @@
+prontera,158,176,3	script	MVP Ladder	1_F_MARIA,{
+	mes "[MVP Ladder]";
+	mes "Hello!";
+	mes "What are you doing here?";
+	next;
+	switch( select("Check rankings.:My stats.:Previous Week ranking"+( ( getgmlevel() >= 99 )? ":^ff0000Admin^000000 - Remove a player from ladder (BUG?)": "" ) ) ) {
+	case 1:
+		mes "[MVP Ladder]";
+		mes "Rankings :->";
+		.@size = getarraysize( $mvp_ladder_points );
+		if ( .@size ) {
+			for ( .@i = 0; .@i < .@size; .@i++ )
+				mes ( .@i +1 )+". "+ $mvp_ladder_name$[.@i] +" -> "+ $mvp_ladder_points[.@i] +" points.";
+		}
+		else
+			mes "no entry";
+		close;
+	case 2:
+		mes "[MVP Ladder]";
+		if ( strcmp( mvp_ladder_last_given$, $mvp_ladder_last_given$ ) ) {
+			mvp_ladder_points = 0;
+			mvp_ladder_last_given$ = $mvp_ladder_last_given$;
+		}
+		mes "You have killed "+ mvp_ladder_points +" MVPs";
+		close;
+	case 3:
+		mes "[MVP Ladder]";
+		mes "Previous week ranking :->";
+		.@size = getarraysize( $last_mvp_ladder_points );
+		if ( .@size ) {
+			for ( .@i = 0; .@i < .@size; .@i++ )
+				mes ( .@i +1 )+". "+ $last_mvp_ladder_name$[.@i] +" -> "+ $last_mvp_ladder_points[.@i] +" points.";
+		}
+		else
+			mes "no entry";
+		close;
+	case 4:
+		.@size = getarraysize( $mvp_ladder_points );
+		if ( .@size ) {
+			for ( .@i = 0; .@i < .@size; .@i++ )
+				mes ( .@i +1 )+". "+ $mvp_ladder_name$[.@i] +" -> "+ $mvp_ladder_points[.@i] +" points.";
+		}
+		else {
+			mes "ladder is still empty";
+			close;
+		}
+		mes " ";
+		mes "input the position number to remove it";
+		next;
+		if ( input( .@pos, 1, .ladderlength ) ) {
+			mes "invalid input";
+			close;
+		}
+		mes "^FF0000Admin option^000000";
+		mes " ";
+		.@pos--; // according to array index
+		mes "confirm remove :-";
+		mes ( .@pos +1 )+". "+ $mvp_ladder_name$[.@pos] +" -> "+ $mvp_ladder_points[.@pos];
+		next;
+		if ( select( "No:Yes" ) == 1 ) close;
+		mes "^FF0000Admin option^000000";
+		mes " ";
+		mes "Remove successfully";
+		deletearray $mvp_ladder_cid[.@pos], 1;
+		deletearray $mvp_ladder_name$[.@pos], 1;
+		deletearray $mvp_ladder_points[.@pos], 1;
+	}
+	close;
+OnInit:
+	.ladderlength = 5; // how many entry shown on the ranking board ?
+	if ( !strcmp( $mvp_ladder_last_given$, gettime(7) + gettimestr("%U",3) ) ) end;
+	goto L_give;
+OnClock0000:
+	if ( gettime(4) ) end;
+L_give:
+	setarray .@reward, 501, 501, 501, 501, 501; // <1st place>, <2nd place>, <3rd place> ...
+	setarray .@amount, 5, 4, 3, 2, 1;
+	.@size = getarraysize( $mvp_ladder_cid );
+	for ( .@i = 0; .@i < .@size; .@i++ )
+		query_sql "insert into mail ( send_name, dest_id, title, message, nameid, amount, identify, zeny, time ) values ( '"+ escape_sql( $mvp_ladder_name$[.@i] ) +"', "+ $mvp_ladder_cid[.@i] +", '[MVP RANK]', 'Congratulations for earning No. "+( .@i +1 )+" position in killing Custom MVPs. Here is your reward.', "+ .@reward[.@i] +", "+ .@amount[.@i] +", 1, 0, unix_timestamp( now() ) )";
+	$mvp_ladder_last_given$ = gettime(7) + gettimestr("%U",3);
+	deletearray $last_mvp_ladder_cid;
+	deletearray $last_mvp_ladder_name$;
+	deletearray $last_mvp_ladder_points;
+	copyarray $last_mvp_ladder_cid, $mvp_ladder_cid, .@size;
+	copyarray $last_mvp_ladder_name$, $mvp_ladder_name$, .@size;
+	copyarray $last_mvp_ladder_points, $mvp_ladder_points, .@size;
+	deletearray $mvp_ladder_cid;
+	deletearray $mvp_ladder_name$;
+	deletearray $mvp_ladder_points;
+	end;
+OnNPCKillEvent:
+	if ( killedrid != PORING ) end; // PORING ~ change this to your mvp
+	if ( strcmp( mvp_ladder_last_given$, $mvp_ladder_last_given$ ) ) {
+		mvp_ladder_points = 0;
+		mvp_ladder_last_given$ = $mvp_ladder_last_given$;
+	}
+	mvp_ladder_points++;
+	while ( .@i < .ladderlength ) {
+		if ( mvp_ladder_points > $mvp_ladder_points[.@i] ) { // if found
+			if ( $mvp_ladder_cid[.@i] == getcharid(0) ) { // update your own points
+				$mvp_ladder_points[.@i] = mvp_ladder_points;
+				break;
+			}
+			if ( .@i == .ladderlength -1 ) { // last position of the ladder, just overwrite the value
+				$mvp_ladder_points[.@i] = mvp_ladder_points;
+				$mvp_ladder_name$[.@i] = strcharinfo(0);
+				$mvp_ladder_cid[.@i] = getcharid(0);
+				break;
+			}
+			// if more points, but somehow its not your own name
+			.@j = .@i +1 ; // save the index
+			while ( .@j < .ladderlength ) {
+				if ( $mvp_ladder_name$[.@j] == strcharinfo(0) ) { // found your name
+					.@moveamount = .@j - .@i; // save amount to move
+					break;
+				}
+				.@j++;
+			}
+			if ( !.@moveamount ) // if not found ...
+				.@moveamount = .ladderlength - 1 - .@i; // means move the whole ladder from the last index
+			copyarray $mvp_ladder_points[.@i +1], $mvp_ladder_points[.@i], .@moveamount;
+			copyarray $mvp_ladder_name$[.@i +1], $mvp_ladder_name$[.@i], .@moveamount;
+			copyarray $mvp_ladder_cid[.@i +1], $mvp_ladder_cid[.@i], .@moveamount;
+			$mvp_ladder_points[.@i] = mvp_ladder_points;
+			$mvp_ladder_name$[.@i] = strcharinfo(0);
+			$mvp_ladder_cid[.@i] = getcharid(0);
+			break;
+		}
+		.@i++;
+	}
+	end;
+}

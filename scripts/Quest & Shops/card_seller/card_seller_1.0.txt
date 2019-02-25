@@ -1,0 +1,146 @@
+//===== Hercules Script ======================================
+//= Card Seller A-Z
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.0
+//===== Compatible With: ===================================== 
+//= Hercules 2019-02-25
+//===== Description: =========================================
+//= Sells all cards dropped by mobs, grouped alphabetically.
+//===== Topic ================================================
+//= http://herc.ws/board/topic/16519-qsql-query-md_boss/?do=findComment&comment=90264
+//===== Additional Comments: =================================
+//= Use Hercules NPC Trader
+//= for some reason duplicate doesn't work ...
+//= ... All A-Y shows only A cards, Z shows properly because having its own npc
+//============================================================
+
+prontera,155,177,5	script	Card Seller	1_F_MARIA,{
+	mes "Welcome to card seller ... meh lazy to say";
+	next;
+	if ( select ( "Normal Cards", "Mini-boss Cards", "MVP Cards" ) == 1 ) {
+		.@s = select( .alphabet_menu$ ) -1;
+		close2;
+		openshop "card_mob#"+ .alphabet$[.@s];
+		dispbottom "card_mob#"+ .alphabet$[.@s];
+		dispbottom sprintf( _$( "You currently have %d %s." ), countitem( Monster_Ticket_ ), getitemname( Monster_Ticket_ ) );
+		end;
+	}
+	close2;
+	if ( @menu == 2 ) {
+		openshop "card_mob#miniboss";
+		dispbottom sprintf( _$( "You currently have %d %s." ), countitem( Mini_Boss_Ticket ), getitemname( Mini_Boss_Ticket ) );
+	}
+	else {
+		openshop "card_mob#MVP";
+		dispbottom sprintf( _$( "You currently have %d %s." ), countitem( MVP_Ticket ), getitemname( MVP_Ticket ) );
+	}
+	end;
+OnInit:
+	.@total = query_sql("select distinct left( name_japanese, 1 ) as aaa from item_db right join mob_db on item_db.id = mob_db.dropcardid where ~mode & 32 and type = 6 group by name_japanese order by aaa", .alphabet$ );
+	for ( .@i = 0; .@i < .@total; ++.@i )
+		.alphabet_menu$ += .alphabet$[.@i] +" Cards:";
+	end;
+}
+
+-	trader	card_mob	FAKE_NPC,{
+	end;
+OnInit:
+	if ( !getstrlen( strnpcinfo(NPC_NAME_HIDDEN) ) ) end;
+	announce strnpcinfo(NPC_NAME_HIDDEN), 0;
+	tradertype NST_CUSTOM;
+	.@nb = query_sql( "select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where ~mode & 32 and type = 6 and left( name_japanese, 1 ) = '"+ strnpcinfo(NPC_NAME_HIDDEN) +"' group by name_japanese order by name_japanese", .@id );
+	for ( .@i = 0; .@i < .@nb; ++.@i )
+		sellitem .@id[.@i], 1;
+	end;
+OnCountFunds:
+	setcurrency 0, Monster_Ticket_;
+	end;
+OnPayFunds:
+    if ( countitem( Monster_Ticket_ ) < @price )
+        end;
+    delitem Monster_Ticket_, @price;
+    purchaseok();
+    end;
+}
+-	duplicate(card_mob)	card_mob#A	FAKE_NPC
+-	duplicate(card_mob)	card_mob#B	FAKE_NPC
+-	duplicate(card_mob)	card_mob#C	FAKE_NPC
+-	duplicate(card_mob)	card_mob#D	FAKE_NPC
+-	duplicate(card_mob)	card_mob#E	FAKE_NPC
+-	duplicate(card_mob)	card_mob#F	FAKE_NPC
+-	duplicate(card_mob)	card_mob#G	FAKE_NPC
+-	duplicate(card_mob)	card_mob#H	FAKE_NPC
+-	duplicate(card_mob)	card_mob#I	FAKE_NPC
+-	duplicate(card_mob)	card_mob#J	FAKE_NPC
+-	duplicate(card_mob)	card_mob#K	FAKE_NPC
+-	duplicate(card_mob)	card_mob#L	FAKE_NPC
+-	duplicate(card_mob)	card_mob#M	FAKE_NPC
+-	duplicate(card_mob)	card_mob#N	FAKE_NPC
+-	duplicate(card_mob)	card_mob#O	FAKE_NPC
+-	duplicate(card_mob)	card_mob#P	FAKE_NPC
+-	duplicate(card_mob)	card_mob#Q	FAKE_NPC
+-	duplicate(card_mob)	card_mob#R	FAKE_NPC
+-	duplicate(card_mob)	card_mob#S	FAKE_NPC
+-	duplicate(card_mob)	card_mob#T	FAKE_NPC
+-	duplicate(card_mob)	card_mob#U	FAKE_NPC
+-	duplicate(card_mob)	card_mob#V	FAKE_NPC
+-	duplicate(card_mob)	card_mob#W	FAKE_NPC
+-	duplicate(card_mob)	card_mob#X	FAKE_NPC
+-	duplicate(card_mob)	card_mob#Y	FAKE_NPC
+//-	duplicate(card_mob)	card_mob#Z	FAKE_NPC
+-	trader	card_mob#Z	FAKE_NPC,{
+	end;
+OnInit:
+	tradertype NST_CUSTOM;
+	.@nb = query_sql( "select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where ~mode & 32 and type = 6 and left( name_japanese, 1 ) = '"+ strnpcinfo(NPC_NAME_HIDDEN) +"' group by name_japanese order by name_japanese", .@id );
+	for ( .@i = 0; .@i < .@nb; ++.@i )
+		sellitem .@id[.@i], 1;
+	end;
+OnCountFunds:
+	setcurrency 0, Monster_Ticket_;
+	end;
+OnPayFunds:
+    if ( countitem( Monster_Ticket_ ) < @price )
+        end;
+    delitem Monster_Ticket_, @price;
+    purchaseok();
+    end;
+}
+
+-	trader	card_mob#miniboss	FAKE_NPC,{
+OnInit:
+	tradertype NST_CUSTOM;
+	.@nb = query_sql( "select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where mode & 32 and type = 6 and mexp = 0 and item_db.id not in ( select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where ~mode & 32 and type = 6 ) and item_db.id not in ( select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where mode & 32 and type = 6 and mexp != 0 ) group by item_db.id order by name_japanese", .@id );
+	for ( .@i = 0; .@i < .@nb; ++.@i )
+		sellitem .@id[.@i], 1;
+	end;
+OnCountFunds:
+	setcurrency 0, Mini_Boss_Ticket;
+	end;
+OnPayFunds:
+    if ( countitem( Mini_Boss_Ticket ) < @price )
+        end;
+    delitem Mini_Boss_Ticket, @price;
+    purchaseok();
+    end;
+}
+
+-	trader	card_mob#MVP	FAKE_NPC,{
+OnInit:
+	tradertype NST_CUSTOM;
+	.@nb = query_sql( "select item_db.id from mob_db right join item_db on item_db.id = mob_db.dropcardid where mode & 32 and type = 6 and mexp != 0 and item_db.id not in ( select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where ~mode & 32 and type = 6 ) group by item_db.id order by name_japanese", .@id );
+	for ( .@i = 0; .@i < .@nb; ++.@i )
+		sellitem .@id[.@i], 1;
+	end;
+OnCountFunds:
+	setcurrency 0, MVP_Ticket;
+	end;
+OnPayFunds:
+    if ( countitem( MVP_Ticket ) < @price )
+        end;
+    delitem MVP_Ticket, @price;
+    purchaseok();
+    end;
+}

@@ -1,0 +1,76 @@
+//===== Hercules Script ======================================
+//= Card Seller A-Z
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.3a
+//===== Compatible With: ===================================== 
+//= Hercules 2019-01-24
+//===== Description: =========================================
+//= Sells all cards dropped by mobs, grouped alphabetically.
+//===== Topic ================================================
+//= http://herc.ws/board/topic/16519-qsql-query-md_boss/?do=findComment&comment=90264
+//===== Additional Comments: =================================
+//= Fix Baphomet not showing up in MVP tab
+//============================================================
+
+prontera,155,177,5	script	Card Seller	1_F_MARIA,{
+	mes "Welcome to card seller ... meh lazy to say";
+	next;
+	if ( select ( "Normal Cards", "Mini-boss Cards", "MVP Cards" ) == 1 ) {
+		.@s = select( .alphabet_menu$ ) -1;
+		close2;
+		callshop "card_mob#"+ .alphabet$[.@s], 1;
+		end;
+	}
+	close2;
+	callshop "card_mob#"+( ( @menu == 2 )? "miniboss":"MVP" ), 1;
+	end;
+OnInit:
+	freeloop true;
+	.@total = query_sql("select distinct left( name_japanese, 1 ) as aaa from item_db right join mob_db on item_db.id = mob_db.dropcardid where ~mode & 32 and type = 6 group by name_japanese order by aaa", .alphabet$ );
+	for ( .@i = 0; .@i < .@total; ++.@i ) {
+		.alphabet_menu$ = .alphabet_menu$ + .alphabet$[.@i] +" Cards:";
+		.@nb = query_sql( "select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where ~mode & 32 and type = 6 and left( name_japanese, 1 ) = '"+ .alphabet$[.@i] +"' group by name_japanese order by name_japanese", .@id );
+		npcshopdelitem "card_mob#"+ .alphabet$[.@i], 501;
+		for ( .@j = 0; .@j < .@nb; ++.@j )
+			npcshopadditem "card_mob#"+ .alphabet$[.@i], .@id[.@j], 1000000;
+	}
+	.@nb = query_sql( "select item_db.id from mob_db right join item_db on item_db.id = mob_db.dropcardid where mode & 32 and type = 6 and mexp != 0 and item_db.id not in ( select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where ~mode & 32 and type = 6 ) group by item_db.id order by name_japanese", .@id );
+	npcshopdelitem "card_mob#MVP", 501;
+	for ( .@i = 0; .@i < .@nb; ++.@i )
+		npcshopadditem "card_mob#MVP", .@id[.@i], 1000000;
+	.@nb = query_sql( "select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where mode & 32 and type = 6 and mexp = 0 and item_db.id not in ( select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where ~mode & 32 and type = 6 ) and item_db.id not in ( select item_db.id from item_db right join mob_db on item_db.id = mob_db.dropcardid where mode & 32 and type = 6 and mexp != 0 ) group by item_db.id order by name_japanese", .@id );
+	npcshopdelitem "card_mob#miniboss", 501;
+	for ( .@i = 0; .@i < .@nb; ++.@i )
+		npcshopadditem "card_mob#miniboss", .@id[.@i], 1000000;	
+	end;
+}
+-	shop	card_mob#A	-1,501:1000
+-	shop	card_mob#B	-1,501:1000
+-	shop	card_mob#C	-1,501:1000
+-	shop	card_mob#D	-1,501:1000
+-	shop	card_mob#E	-1,501:1000
+-	shop	card_mob#F	-1,501:1000
+-	shop	card_mob#G	-1,501:1000
+-	shop	card_mob#H	-1,501:1000
+-	shop	card_mob#I	-1,501:1000
+-	shop	card_mob#J	-1,501:1000
+-	shop	card_mob#K	-1,501:1000
+-	shop	card_mob#L	-1,501:1000
+-	shop	card_mob#M	-1,501:1000
+-	shop	card_mob#N	-1,501:1000
+-	shop	card_mob#O	-1,501:1000
+-	shop	card_mob#P	-1,501:1000
+-	shop	card_mob#Q	-1,501:1000
+-	shop	card_mob#R	-1,501:1000
+-	shop	card_mob#S	-1,501:1000
+-	shop	card_mob#T	-1,501:1000
+-	shop	card_mob#U	-1,501:1000
+-	shop	card_mob#V	-1,501:1000
+-	shop	card_mob#W	-1,501:1000
+-	shop	card_mob#X	-1,501:1000
+-	shop	card_mob#Y	-1,501:1000
+-	shop	card_mob#Z	-1,501:1000
+-	shop	card_mob#miniboss	-1,501:1000
+-	shop	card_mob#MVP	-1,501:1000

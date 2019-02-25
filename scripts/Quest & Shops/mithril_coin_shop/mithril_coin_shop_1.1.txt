@@ -1,0 +1,83 @@
+//===== Hercules Script ======================================
+//= Mithril Coin Shop
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.1
+//===== Compatible With: ===================================== 
+//= Hercules 2019-02-25
+//===== Description: =========================================
+//= mithril coin shop
+//===== Topic ================================================
+//= <none>
+//===== Additional Comments: =================================
+//= dynamic shop, can sell items back to gain back currency item
+//============================================================
+
+-	shop	market2#hidden	-1,501:1000
+prontera,156,182,5	script	market	1_F_MARIA,{
+	dispbottom "You currently have "+ countitem(.currency) +" "+ getitemname(.currency);
+	callshop .shopname$, 1;
+	end;
+OnInit:
+	function	addshopitem	{
+		npcshopdelitem .shopname$, 501;
+		.@count = getargcount();
+		for ( .@i = 0; .@i < .@count; .@i++ ) {
+			if ( .@i % 2 == 0 )
+				.itemid[.@i /2] = getarg(.@i);
+			else {
+				.itemcost[.@i /2] = getarg(.@i);
+				npcshopadditem .shopname$, .itemid[.@i /2], getarg(.@i);
+			}
+		}
+	}
+	//	----- Configuration ------
+	.shopname$ = "market2#hidden";
+	// shop name that match the 1st line in this script
+	.currency = 674; // item used for currency
+	addshopitem // adds shop items here
+		512,10,
+		513,20,
+		514,30,
+		515,40,
+		516,50,
+		607,1;
+	//	-------------------------
+	.itemsize = getarraysize( .itemid );
+	for ( .@i = 0; .@i < .itemsize; .@i++ )
+		setd ".item"+ .itemid[.@i] +"cost", .itemcost[.@i];	npcshopattach .shopname$;
+	end;
+OnBuyItem:
+	if ( !@bought_quantity ) end;
+	.@size = getarraysize( @bought_nameid );
+	for ( .@i = 0; .@i < .@size; .@i++ )
+		.@itemcost = .@itemcost + getd( ".item"+ @bought_nameid[.@i] +"cost" ) * @bought_quantity[.@i];
+	if ( .@itemcost > countitem(.currency) ) {
+		mes "you don't have enough "+ getitemname(.currency);
+		close;
+	}
+	if ( !checkweight2( @bought_nameid, @bought_quantity ) ) {
+		mes "you can't carry all these items !";
+		close;
+	}
+	delitem .currency, .@itemcost;
+	for ( .@i = 0; .@i < .@size; .@i++ )
+		getitem @bought_nameid[.@i], @bought_quantity[.@i];
+	end;
+OnSellItem:
+	if ( !@sold_quantity ) end;
+	.@size = getarraysize( @sold_nameid );
+	for ( .@i = 0; .@i < .@size; .@i++ )
+		.@itemgain = .@itemgain + getd( ".item"+ @sold_nameid[.@i] +"cost" ) * @sold_quantity[.@i];
+	if ( !.@itemgain ) end;
+	if ( !checkweight( .currency, .@itemgain ) ) {
+		mes "you can't carry all these items !";
+		close;
+	}
+	for ( .@i = 0; .@i < .@size; .@i++ )
+		if ( getd( ".item"+ @sold_nameid[.@i] +"cost" ) )
+			delitem @sold_nameid[.@i], @sold_quantity[.@i];
+	getitem .currency, .@itemgain;
+	end;
+}

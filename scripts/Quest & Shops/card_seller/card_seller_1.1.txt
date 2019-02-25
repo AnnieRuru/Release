@@ -9,7 +9,7 @@
 //===== Description: =========================================
 //= Sells all cards dropped by mobs, grouped alphabetically.
 //===== Topic ================================================
-//= http://herc.ws/board/topic/16519-qsql-query-md_boss/?do=findComment&comment=90264
+//= http://herc.ws/board/topic/16586-card-seller-a-z/
 //===== Additional Comments: =================================
 //= Use Hercules NPC Trader, with functions
 //============================================================

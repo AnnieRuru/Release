@@ -1,0 +1,49 @@
+//===== Hercules Script ======================================
+//= Looting Event
+//===== By: ==================================================
+//= No idea who made it
+//= Fix by AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: ===================================== 
+//= Hercules 2019-02-28
+//===== Description: =========================================
+//= spawn rubbish on the side walk ...
+//===== Topic ================================================
+//= solved in discord
+//===== Additional Comments: =================================  
+//= too simple
+//============================================================
+
+-	script	Looting_Event	-1,{
+OnInit:
+	bindatcmd "loot", strnpcinfo(NPC_NAME)+"::OnClock0500", 99, 100;
+	.flooritem_lifetime = getbattleflag("flooritem_lifetime");
+	end;
+OnClock0500:
+	mapannounce "prontera", "Let's do our part in cleaning the environment of Prontera.", bc_map;
+	sleep 5000;
+	mapannounce "prontera", "Pick up the trash that you will see around your surroundings. Thank you.", bc_map;
+	sleep 5000;
+	while ( ++.@round <= 5 ) {
+		freeloop true;
+//		mapannounce "prontera", "round "+ .@round, bc_map;
+		mapannounce "prontera", "Seem like alot rubbish appeared around Prontera's road. Clear all of them!", bc_map;
+		for ( .@i = 0; .@i < 50; ++.@i ) { // amount of rubbish spawned
+			if ( rand(2) )
+				while ( checkcell( "prontera", .@x = rand(23,123), .@y = rand(198,209), cell_chknopass ) );
+			else
+				while ( checkcell( "prontera", .@x = rand(187,281), .@y = rand(198,209), cell_chknopass ) );
+			makeitem Crushed_Can, 1, "prontera", .@x, .@y;
+			if ( rand(2) )
+				while ( checkcell( "prontera", .@x = rand(148,163), .@y = rand(232,305), cell_chknopass ) );
+			else
+				while ( checkcell( "prontera", .@x = rand(148,163), .@y = rand(75,155), cell_chknopass ) );
+			makeitem Old_Magazine, 1, "prontera", .@x, .@y;
+		}
+		sleep .flooritem_lifetime;
+	}
+	cleanmap "prontera";
+	mapannounce "prontera", "Thank you for cleaning the environment of Prontera!", bc_map;
+	end;
+}

@@ -1,0 +1,220 @@
+//===== Hercules Script ======================================
+//= Reset Castle + Spawn Guardian
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.2
+//===== Compatible With: ===================================== 
+//= Hercules 2019-02-27
+//===== Description: ========================================= 
+//= Turn all woe:fe & woe:se castles into your own castles
+//= Also spawn guardians for it
+//===== Topic ================================================
+// http://herc.ws/board/topic/16582-donpcevent-and-slaveclone-trouble/?do=findComment&comment=90630
+//===== Additional Comments: =================================
+//= add spawn guardians and warping points
+//============================================================
+
+-	script	asdasd	FAKE_NPC,{
+	end;
+OnInit:
+	bindatcmd "warpemp", strnpcinfo(0)+"::OnDebug", 99, 100;
+	bindatcmd "spawnguardian", strnpcinfo(0)+"::OnGuardianSpawn", 99, 100;
+	bindatcmd "killguardian", strnpcinfo(0)+"::OnGuardianRemove", 99, 100;
+	bindatcmd "resetcastle", strnpcinfo(0)+"::OnResetCastle", 99, 99;
+	setarray .castle$[0],
+		"aldeg_cas01","aldeg_cas02","aldeg_cas03","aldeg_cas04","aldeg_cas05",
+		"gefg_cas01","gefg_cas02","gefg_cas03","gefg_cas04","gefg_cas05",
+		"payg_cas01","payg_cas02","payg_cas03","payg_cas04","payg_cas05",
+		"prtg_cas01","prtg_cas02","prtg_cas03","prtg_cas04","prtg_cas05",
+		"arug_cas01","arug_cas02","arug_cas03","arug_cas04","arug_cas05",
+		"schg_cas01","schg_cas02","schg_cas03","schg_cas04","schg_cas05";
+	end;
+OnGuardianRemove:
+	for ( .@i = 0; .@i < 20; ++.@i )
+		killmonster .castle$[.@i], "Guardian#"+.castle$[.@i]+"::OnGuardianDied";
+	for ( .@i = 20; .@i < 30; ++.@i ) {
+		killmonster .castle$[.@i], "gard1#"+ .castle$[.@i] +"::OnGuardianDied";
+		killmonster .castle$[.@i], "gard2#"+ .castle$[.@i] +"::OnGuardianDied";
+	}
+	end;
+OnResetCastle:
+	for ( .@i = 0; .@i < 20; ++.@i ) {
+		killmonster .castle$[.@i], "Agit#"+ .@castle$[.@i] +"::OnAgitBreak";
+		addtimer 1, "Agit#"+ .castle$[.@i] +"::OnAgitBreak";
+	}
+	for ( .@i = 20; .@i < 30; ++.@i ) {
+		.@str$ = substr( .castle$[.@i], 0, 1 ) + substr( .castle$[.@i], 8, 9 );
+		killmonster .castle$[.@i], "Steward#"+ .@str$ +"::OnStartArena";
+		addtimer 1, "Steward#"+ .@str$ +"::OnStartArena";
+		sleep2 1;
+	}
+	end;
+OnGuardianSpawn:
+	freeloop true;
+	for ( .@i = 0; .@i < 20; ++.@i ) {
+		if ( getcastledata( .castle$[.@i], 1 ) ) {
+			if (.castle$[.@i] == "aldeg_cas01") {
+				setarray .@guardiantype[0],1,2,2,2,2,3,3,3;
+				setarray .@guardianposx[0],17,39,38,45,21,218,213,73;
+				setarray .@guardianposy[0],218,208,196,228,194,24,24,70;
+			}
+			else if (.castle$[.@i] == "aldeg_cas02") {
+				setarray .@guardiantype[0],3,3,3,1,1,2,2,2;
+				setarray .@guardianposx[0],27,88,117,60,51,21,36,210;
+				setarray .@guardianposy[0],184,43,46,202,183,177,183,7;
+			}
+			else if (.castle$[.@i] == "aldeg_cas03") {
+				setarray .@guardiantype[0],3,3,1,1,1,2,2,2;
+				setarray .@guardianposx[0],90,116,86,116,64,212,195,110;
+				setarray .@guardianposy[0],112,112,120,76,103,160,151,217;
+			}
+			else if (.castle$[.@i] == "aldeg_cas04") {
+				setarray .@guardiantype[0],2,2,2,1,1,1,3,3;
+				setarray .@guardianposx[0],187,192,148,145,169,198,48,55;
+				setarray .@guardianposy[0],100,42,88,209,53,77,72,88;
+			}
+			else if (.castle$[.@i] == "aldeg_cas05") {
+				setarray .@guardiantype[0],2,2,1,1,3,3,3,3;
+				setarray .@guardianposx[0],51,188,157,157,27,145,156,41;
+				setarray .@guardianposy[0],202,79,192,74,221,78,73,112;
+			}
+			// Geffen (Britoniah) Castles
+			else if (.castle$[.@i] == "gefg_cas01") {
+				setarray .@guardiantype[0],1,1,1,2,2,3,3,3;
+				setarray .@guardianposx[0],67,184,62,36,50,50,189,200;
+				setarray .@guardianposy[0],179,20,41,186,186,67,41,167;
+			}
+			else if (.castle$[.@i] == "gefg_cas02") {
+				setarray .@guardiantype[0],1,1,1,2,2,3,3,3;
+				setarray .@guardianposx[0],64,56,166,35,20,19,166,159;
+				setarray .@guardianposy[0],168,41,25,148,150,41,42,188;
+			}
+			else if (.castle$[.@i] == "gefg_cas03") {
+				setarray .@guardiantype[0],2,2,1,1,1,3,3,3;
+				setarray .@guardianposx[0],48,113,48,157,243,157,234,238;
+				setarray .@guardianposy[0],176,214,207,62,41,45,25,160;
+			}
+			else if (.castle$[.@i] == "gefg_cas04") {
+				setarray .@guardiantype[0],2,2,1,1,1,3,3,3;
+				setarray .@guardianposx[0],53,31,49,29,147,57,160,148;
+				setarray .@guardianposy[0],191,178,220,46,65,46,50,189;
+			}
+			else if (.castle$[.@i] == "gefg_cas05") {
+				setarray .@guardiantype[0],2,2,1,1,1,3,3,3;
+				setarray .@guardianposx[0],45,71,72,66,177,66,177,193;
+				setarray .@guardianposy[0],149,163,142,47,50,17,35,166;
+			}
+			// Payon (Baulder) Castles
+			else if (.castle$[.@i] == "payg_cas01") {
+				setarray .@guardiantype[0],2,2,2,2,2,2,2,3;
+				setarray .@guardianposx[0],229,225,222,99,65,36,51,138;
+				setarray .@guardianposy[0],92,80,111,45,31,127,144,133;
+			}
+			else if (.castle$[.@i] == "payg_cas02") {
+				setarray .@guardiantype[0],2,2,2,2,2,2,2,3;
+				setarray .@guardianposx[0],237,228,210,57,42,287,264,27;
+				setarray .@guardianposy[0],54,72,41,241,241,257,272,20;
+			}
+			else if (.castle$[.@i] == "payg_cas03") {
+				setarray .@guardiantype[0],2,2,2,2,2,2,2,3;
+				setarray .@guardianposx[0],245,269,36,41,39,19,37,268;
+				setarray .@guardianposy[0],37,51,39,39,65,276,277,244;
+			}
+			else if (.castle$[.@i] == "payg_cas04") {
+				setarray .@guardiantype[0],2,2,2,2,2,2,2,3;
+				setarray .@guardianposx[0],251,232,231,32,32,35,36,270;
+				setarray .@guardianposy[0],212,212,175,287,232,45,17,41;
+			}
+			else if (.castle$[.@i] == "payg_cas05") {
+				setarray .@guardiantype[0],2,2,2,2,2,2,2,3;
+				setarray .@guardianposx[0],19,33,266,266,263,263,250,36;
+				setarray .@guardianposy[0],279,260,234,279,37,21,22,36;
+			}
+			// Prontera (Valkyrie Realms) Castles
+			else if (.castle$[.@i] == "prtg_cas01") {
+				setarray .@guardiantype[0],1,1,1,2,2,3,3,3;
+				setarray .@guardianposx[0],182,182,153,59,50,184,196,107;
+				setarray .@guardianposy[0],62,116,86,28,36,183,189,179;
+			}
+			else if (.castle$[.@i] == "prtg_cas02") {
+				setarray .@guardiantype[0],3,3,3,1,1,2,2,2;
+				setarray .@guardianposx[0],161,153,178,71,49,64,7,75;
+				setarray .@guardianposy[0],161,161,44,75,28,186,196,175;
+			}
+			else if (.castle$[.@i] == "prtg_cas03") {
+				setarray .@guardiantype[0],3,3,3,1,1,2,2,2;
+				setarray .@guardianposx[0],191,137,45,50,41,191,179,191;
+				setarray .@guardianposy[0],190,190,99,87,87,42,43,72;
+			}
+			else if (.castle$[.@i] == "prtg_cas04") {
+				setarray .@guardiantype[0],3,3,3,1,1,1,2,2;
+				setarray .@guardianposx[0],276,274,246,38,29,33,78,36;
+				setarray .@guardianposy[0],14,35,246,240,240,258,48,61;
+			}
+			else if (.castle$[.@i] == "prtg_cas05") {
+				setarray .@guardiantype[0],3,3,3,1,1,1,2,2;
+				setarray .@guardianposx[0],266,287,245,236,251,278,32,44;
+				setarray .@guardianposy[0],262,280,250,63,63,253,253,248;
+			}
+			for (.@j = 0; .@j <= 7; ++.@j) {
+				.@UseGID = .@j + 10;
+				if (.@guardiantype[.@j] == 1) { .@type = 1287; }
+				else if (.@guardiantype[.@j] == 2) { .@type = 1285; }
+				else { .@type = 1286; }
+				if ( !guardianinfo( .castle$[.@i], .@j, 0 ) ) {
+					setcastledata( .castle$[.@i], .@UseGID, 1 );
+					guardian .castle$[.@i],.@guardianposx[.@j],.@guardianposy[.@j],strmobinfo(2,.@type),.@type,"Guardian#"+.castle$[.@i]+"::OnGuardianDied",.@j;
+				}
+			}
+		}
+	}
+	for ( .@i = 20; .@i < 30; ++.@i ) {
+		donpcevent "gard1#"+ .castle$[.@i] +"::OnReset";
+		donpcevent "gard1#"+ .castle$[.@i] +"::OnReset";
+		donpcevent "gard1#"+ .castle$[.@i] +"::OnEnable";
+		donpcevent "gard2#"+ .castle$[.@i] +"::OnEnable";
+	}
+	end;
+OnDebug:
+	for ( .@i = 0; .@i < 30; ++.@i ) {
+		if ( .@atcmd_parameters$ == .castle$[.@i] ) {
+			.@atcmd_parameters$ = .@i;
+			break;
+		}
+	}
+	switch ( atoi( .@atcmd_parameters$ ) ) {
+	case 0: warp "aldeg_cas01",216,23; end;
+	case 1: warp "aldeg_cas02",213,23; end;
+	case 2: warp "aldeg_cas03",205,31; end;
+	case 3: warp "aldeg_cas04",36,217; end;
+	case 4: warp "aldeg_cas05",27,101; end;
+	case 5: warp "gefg_cas01",197,181; end;
+	case 6: warp "gefg_cas02",176,178; end;
+	case 7: warp "gefg_cas03",244,166; end;
+	case 8: warp "gefg_cas04",174,177; end;
+	case 9: warp "gefg_cas05",194,184; end;
+	case 10: warp "payg_cas01",139,139; end;
+	case 11: warp "payg_cas02",38,25;   end;
+	case 12: warp "payg_cas03",269,265; end;
+	case 13: warp "payg_cas04",270,28;  end;
+	case 14: warp "payg_cas05",30,30;   end;
+	case 15: warp "prtg_cas01",197,197; end;
+	case 16: warp "prtg_cas02",157,174; end;
+	case 17: warp "prtg_cas03",16,220;  end;
+	case 18: warp "prtg_cas04",291,14;  end;
+	case 19: warp "prtg_cas05",266,266; end;
+	case 20: warp "arug_cas01",87,219; end;
+	case 21: warp "arug_cas02",89,256; end;
+	case 22: warp "arug_cas03",141,293; end;
+	case 23: warp "arug_cas04",141,293; end;
+	case 24: warp "arug_cas05",141,293; end;
+	case 25: warp "schg_cas01",120,272; end;
+	case 26: warp "schg_cas02",162,193; end;
+	case 27: warp "schg_cas03",338,202; end;
+	case 28: warp "schg_cas04",120,272; end;
+	case 29: warp "schg_cas05",120,272; end;
+	default:
+	}
+	end;
+}

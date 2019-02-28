@@ -1,4 +1,18 @@
+//===== Hercules Script ======================================
+//= Reset Castle
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: ===================================== 
+//= Hercules 2014-03-12
+//===== Description: ========================================= 
+//= Turn all woe:fe & woe:se castles into your own castles
+//===== Topic ================================================
 // http://herc.ws/board/topic/4848-woe-castle-auto-assign-on-guild/
+//===== Additional Comments: =================================
+//= when redirect all castle to you, has to remove the emperium spawn
+//============================================================
 
 -	script	ksjfsdkjfsdk	FAKE_NPC,{
 OnInit:

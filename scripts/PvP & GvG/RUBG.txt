@@ -1,0 +1,3384 @@
+//===== rAthena Script ============================================
+//= Ragnarok Unknown BattleGround
+//===== By: =======================================================
+//= Created by Mr.Kanin Temsrisuk ( Nickname : Start ( a.k.a. TARTs ) )
+//===== Current Version: ==========================================
+//= Unknown
+//===== Compatible With: ==========================================
+//= didn't test
+//===== Description: ==============================================
+//= found this on rathena forum, made by someone else
+//===== Topic =====================================================
+//= https://rathena.org/board/topic/113969-battle-royale-like-pubg/?do=findComment&comment=358391
+//===== Additional Comments: ======================================
+//= สร้างโดย นายคณิน เต็มศรีสุข ( สต๊าท นามแฝง ถาด ) ???
+//=================================================================
+
+ein_fild04	mapflag	pvp
+harboro1	mapflag	pvp
+verus03	mapflag	pvp
+ma_fild01	mapflag	pvp
+dew_fild01	mapflag	pvp
+gef_fild00	mapflag	pvp
+pay_fild01	mapflag	pvp
+prt_fild02	mapflag	pvp
+yuno_fild02	mapflag	pvp
+ayo_fild02	mapflag	pvp
+
+-	script	RUBGController	-1,{
+OnInit:
+	disablenpc "อาณาเขตรอบที่ 1#BG1";
+	disablenpc "อาณาเขตรอบที่ 2#BG1";
+	disablenpc "อาณาเขตรอบที่ 3#BG1";
+	disablenpc "อาณาเขตรอบที่ 1#BG2";
+	disablenpc "อาณาเขตรอบที่ 2#BG2";
+	disablenpc "อาณาเขตรอบที่ 3#BG2";
+	disablenpc "อาณาเขตรอบที่ 1#BG3";
+	disablenpc "อาณาเขตรอบที่ 2#BG3";
+	disablenpc "อาณาเขตรอบที่ 3#BG3";
+	disablenpc "อาณาเขตรอบที่ 1#BG4";
+	disablenpc "อาณาเขตรอบที่ 2#BG4";
+	disablenpc "อาณาเขตรอบที่ 3#BG4";
+	disablenpc "อาณาเขตรอบที่ 1#BG5";
+	disablenpc "อาณาเขตรอบที่ 2#BG5";
+	disablenpc "อาณาเขตรอบที่ 3#BG5";
+	disablenpc "อาณาเขตรอบที่ 1#BG6";
+	disablenpc "อาณาเขตรอบที่ 2#BG6";
+	disablenpc "อาณาเขตรอบที่ 3#BG6";
+	disablenpc "อาณาเขตรอบที่ 1#BG7";
+	disablenpc "อาณาเขตรอบที่ 2#BG7";
+	disablenpc "อาณาเขตรอบที่ 3#BG7";
+	disablenpc "อาณาเขตรอบที่ 1#BG8";
+	disablenpc "อาณาเขตรอบที่ 2#BG8";
+	disablenpc "อาณาเขตรอบที่ 3#BG8";
+	disablenpc "อาณาเขตรอบที่ 1#BG9";
+	disablenpc "อาณาเขตรอบที่ 2#BG9";
+	disablenpc "อาณาเขตรอบที่ 3#BG9";
+	disablenpc "อาณาเขตรอบที่ 1#BG10";
+	disablenpc "อาณาเขตรอบที่ 2#BG10";
+	disablenpc "อาณาเขตรอบที่ 3#BG10";
+	$town$ = "prontera";
+	$battleGround01$ = "ein_fild04";
+	$battleGround02$ = "harboro1";
+	$battleGround03$ = "verus03";
+	$battleGround04$ = "ma_fild01";
+	$battleGround05$ = "dew_fild01";
+	$battleGround06$ = "gef_fild00";
+	$battleGround07$ = "pay_fild01";
+	$battleGround08$ = "prt_fild02";
+	$battleGround09$ = "yuno_fild02";
+	$battleGround10$ = "ayo_fild02";
+	$waitingGround01$ = "int_land";
+	$waitingGround02$ = "int_land01";
+	$waitingGround03$ = "int_land02";
+	$waitingGround04$ = "int_land03";
+	$waitingGround05$ = "int_land04";
+	$currentGround01$ = "";
+	$currentGround02$ = "";
+	$currentGround03$ = "";
+	$currentGround04$ = "";
+	$currentGround05$ = "";
+	$isGround01Playing = 0;
+	$isGround02Playing = 0;
+	$isGround03Playing = 0;
+	$isGround04Playing = 0;
+	$isGround05Playing = 0;
+	$currentPlayerGround01 = 0;
+	$currentPlayerGround02 = 0;
+	$currentPlayerGround03 = 0;
+	$currentPlayerGround04 = 0;
+	$currentPlayerGround05 = 0;
+	$sumTime1=0;
+	$sumTime2=0;
+	$sumTime3=0;
+	$sumTime4=0;
+	$sumTime5=0;
+	$winnerChickenDinnerReward = 517;
+	$healItemSmall = 605;
+	$healItemMedium = 545;
+	$armorEquipment01 = 2328;
+	$armorEquipment02 = 2312;
+	$armorEquipment03 = 2316;
+	$headArmorEquipment01 = 5015;
+	$headArmorEquipment02 = 5009;
+	$headArmorEquipment03 = 2228;
+	$explosionBullet = 6145;
+	$explosionGrenade = 7664;
+	$handGun = 13114;
+	$sniperRifle = 13151;
+	$shotgun = 13155;
+	$grenadeLauncher = 13161;
+	setarray $sumBattleMap$[0],$battleGround01$,$battleGround02$,$battleGround03$,$battleGround04$,$battleGround05$,$battleGround06$,$battleGround07$,$battleGround08$,$battleGround09$,$battleGround10$;
+	setarray $sumWaitingMap[0],$waitingGround01$,$waitingGround02$,$waitingGround03$,$waitingGround04$,$waitingGround05$;
+	setarray $sumItem[0],$healItemSmall,$healItemMedium,$armorEquipment01,$armorEquipment02,$armorEquipment03,$headArmorEquipment01,$headArmorEquipment02,$headArmorEquipment03,$explosionBullet,$explosionGrenade,$handGun,$sniperRifle,$shotgun,$grenadeLauncher;
+	end;
+	
+OnPCLoginEvent:
+	if(isCharacterInit==0){
+		jobchange JOB_REBELLION;
+		BaseLevel = 1;
+		JobLevel = 1;
+		StatusPoint = 0;
+		SkillPoint = 0;
+		delitem 1201,1;
+		delitem 2301,1;
+		percentheal 100,100;
+		skill "KO_BAKURETSU",1,SKILL_PERM;
+		skill "KO_BAKURETSU2",1,SKILL_PERM;
+		skill "KO_BAKURETSU3",1,SKILL_PERM;
+		skill "KO_HUUMARANKA",1,SKILL_PERM;
+		isCharacterInit = 1;
+	}
+	else{
+		skill "KO_BAKURETSU2",0,SKILL_PERM;
+		skill "KO_BAKURETSU3",0,SKILL_PERM;
+		skill "KO_BAKURETSU2",1,SKILL_PERM;
+		skill "KO_BAKURETSU3",1,SKILL_PERM;
+	}
+	end;
+
+OnPCLogoutEvent:
+	if(strcharinfo(3)==$waitingGround01$&& $isGround01Playing == 0){
+		$currentPlayerGround01--;
+		if($sumTime1>=0&&$currentPlayerGround01<=1){
+			$sumTime1 = 0;
+			if($currentGround01$!=""){
+				cleanmap $currentGround01$;
+				mapwarp $currentGround01$,$town$,156,191,0;
+			}
+			$currentGround01$ = "";
+			$isGround01Playing = 0;
+			mapwarp $waitingGround01$,$town$,156,191,0;
+			$currentPlayerGround01 = 0;
+		}
+		end;
+	}else if(strcharinfo(3)==$waitingGround02$&& $isGround02Playing == 0){
+		$currentPlayerGround02--;
+		if($sumTime2>=0&&$currentPlayerGround02<=1){
+			$sumTime2 = 0;
+			if($currentGround02$!=""){
+				cleanmap $currentGround02$;
+				mapwarp $currentGround02$,$town$,156,191,0;
+			}
+			$currentGround02$ = "";
+			$isGround02Playing = 0;
+		}
+		end;
+	}else if(strcharinfo(3)==$waitingGround03$&& $isGround03Playing == 0){
+		$currentPlayerGround03--;
+		if($sumTime3>=0&&$currentPlayerGround03<=1){
+			$sumTime3 = 0;
+			if($currentGround03$!=""){
+				cleanmap $currentGround03$;
+				mapwarp $currentGround03$,$town$,156,191,0;
+			}
+			$currentGround03$ = "";
+			$isGround01Playing = 0;
+		}
+		end;
+	}else if(strcharinfo(3)==$waitingGround04$&& $isGround04Playing == 0){
+		$currentPlayerGround04--;
+		if($sumTime4>=0&&$currentPlayerGround04<=1){
+			$sumTime4 = 0;
+			if($currentGround04$!=""){
+				cleanmap $currentGround04$;
+				mapwarp $currentGround04$,$town$,156,191,0;
+			}
+			$currentGround04$ = "";
+			$isGround04Playing = 0;
+		}
+		end;
+	}else if(strcharinfo(3)==$waitingGround05$&& $isGround05Playing == 0){
+		$currentPlayerGround05--;
+		if($sumTime5>=0&&$currentPlayerGround05<=1){
+			$sumTime5 = 0;
+			if($currentGround05$!=""){
+				cleanmap $currentGround05$;
+				mapwarp $currentGround05$,$town$,156,191,0;
+			}
+			$currentGround05$ = "";
+			$isGround05Playing = 0;
+		}
+		end;
+	}
+	if(strcharinfo(3)==$currentGround01$ && $isGround01Playing == 1){
+		$currentPlayerGround01--;
+		if($currentPlayerGround01<=1){
+			getmapxy(.@map$,.@x,.@y,UNITTYPE_PC);
+			makeitem $winnerChickenDinnerReward,1,.@map$,.@x,.@y;
+			cleanmap $currentGround01$;
+			mapwarp $currentGround01$,$town$,156,191,0;
+			$isGround01Playing = 0;
+			$currentPlayerGround01 = 0;
+			if($currentGround01$==$sumBattleMap$[0]){
+				disablenpc "อาณาเขตรอบที่ 1#BG1";
+				disablenpc "อาณาเขตรอบที่ 2#BG1";
+				disablenpc "อาณาเขตรอบที่ 3#BG1";
+			}
+			else if($currentGround01$==$sumBattleMap$[1]){
+				disablenpc "อาณาเขตรอบที่ 1#BG2";
+				disablenpc "อาณาเขตรอบที่ 2#BG2";
+				disablenpc "อาณาเขตรอบที่ 3#BG2";
+			}
+			else if($currentGround01$==$sumBattleMap$[2]){
+				disablenpc "อาณาเขตรอบที่ 1#BG3";
+				disablenpc "อาณาเขตรอบที่ 2#BG3";
+				disablenpc "อาณาเขตรอบที่ 3#BG3";
+			}
+			else if($currentGround01$==$sumBattleMap$[3]){
+				disablenpc "อาณาเขตรอบที่ 1#BG4";
+				disablenpc "อาณาเขตรอบที่ 2#BG4";
+				disablenpc "อาณาเขตรอบที่ 3#BG4";
+			}
+			else if($currentGround01$==$sumBattleMap$[4]){
+				disablenpc "อาณาเขตรอบที่ 1#BG5";
+				disablenpc "อาณาเขตรอบที่ 2#BG5";
+				disablenpc "อาณาเขตรอบที่ 3#BG5";
+			}
+			else if($currentGround01$==$sumBattleMap$[5]){
+				disablenpc "อาณาเขตรอบที่ 1#BG6";
+				disablenpc "อาณาเขตรอบที่ 2#BG6";
+				disablenpc "อาณาเขตรอบที่ 3#BG6";
+			}
+			else if($currentGround01$==$sumBattleMap$[6]){
+				disablenpc "อาณาเขตรอบที่ 1#BG7";
+				disablenpc "อาณาเขตรอบที่ 2#BG7";
+				disablenpc "อาณาเขตรอบที่ 3#BG7";
+			}
+			else if($currentGround01$==$sumBattleMap$[7]){
+				disablenpc "อาณาเขตรอบที่ 1#BG8";
+				disablenpc "อาณาเขตรอบที่ 2#BG8";
+				disablenpc "อาณาเขตรอบที่ 3#BG8";
+			}
+			else if($currentGround01$==$sumBattleMap$[8]){
+				disablenpc "อาณาเขตรอบที่ 1#BG9";
+				disablenpc "อาณาเขตรอบที่ 2#BG9";
+				disablenpc "อาณาเขตรอบที่ 3#BG9";
+			}
+			else if($currentGround01$==$sumBattleMap$[9]){
+				disablenpc "อาณาเขตรอบที่ 1#BG10";
+				disablenpc "อาณาเขตรอบที่ 2#BG10";
+				disablenpc "อาณาเขตรอบที่ 3#BG10";
+			}
+			$currentGround01$ = "";
+		}
+		end;
+	}else if(strcharinfo(3)==$currentGround02$ && $isGround02Playing == 1){
+		$currentPlayerGround02--;
+		if($currentPlayerGround02<=1){
+			getmapxy(.@map$,.@x,.@y,UNITTYPE_PC);
+			makeitem $winnerChickenDinnerReward,1,.@map$,.@x,.@y;
+			cleanmap $currentGround02$;
+			mapwarp $currentGround02$,$town$,156,191,0;
+			$isGround02Playing = 0;
+			$currentPlayerGround02 = 0;
+			if($currentGround02$==$sumBattleMap$[0]){
+				disablenpc "อาณาเขตรอบที่ 1#BG1";
+				disablenpc "อาณาเขตรอบที่ 2#BG1";
+				disablenpc "อาณาเขตรอบที่ 3#BG1";
+			}
+			else if($currentGround02$==$sumBattleMap$[1]){
+				disablenpc "อาณาเขตรอบที่ 1#BG2";
+				disablenpc "อาณาเขตรอบที่ 2#BG2";
+				disablenpc "อาณาเขตรอบที่ 3#BG2";
+			}
+			else if($currentGround02$==$sumBattleMap$[2]){
+				disablenpc "อาณาเขตรอบที่ 1#BG3";
+				disablenpc "อาณาเขตรอบที่ 2#BG3";
+				disablenpc "อาณาเขตรอบที่ 3#BG3";
+			}
+			else if($currentGround02$==$sumBattleMap$[3]){
+				disablenpc "อาณาเขตรอบที่ 1#BG4";
+				disablenpc "อาณาเขตรอบที่ 2#BG4";
+				disablenpc "อาณาเขตรอบที่ 3#BG4";
+			}
+			else if($currentGround02$==$sumBattleMap$[4]){
+				disablenpc "อาณาเขตรอบที่ 1#BG5";
+				disablenpc "อาณาเขตรอบที่ 2#BG5";
+				disablenpc "อาณาเขตรอบที่ 3#BG5";
+			}
+			else if($currentGround02$==$sumBattleMap$[5]){
+				disablenpc "อาณาเขตรอบที่ 1#BG6";
+				disablenpc "อาณาเขตรอบที่ 2#BG6";
+				disablenpc "อาณาเขตรอบที่ 3#BG6";
+			}
+			else if($currentGround02$==$sumBattleMap$[6]){
+				disablenpc "อาณาเขตรอบที่ 1#BG7";
+				disablenpc "อาณาเขตรอบที่ 2#BG7";
+				disablenpc "อาณาเขตรอบที่ 3#BG7";
+			}
+			else if($currentGround02$==$sumBattleMap$[7]){
+				disablenpc "อาณาเขตรอบที่ 1#BG8";
+				disablenpc "อาณาเขตรอบที่ 2#BG8";
+				disablenpc "อาณาเขตรอบที่ 3#BG8";
+			}
+			else if($currentGround02$==$sumBattleMap$[8]){
+				disablenpc "อาณาเขตรอบที่ 1#BG9";
+				disablenpc "อาณาเขตรอบที่ 2#BG9";
+				disablenpc "อาณาเขตรอบที่ 3#BG9";
+			}
+			else if($currentGround02$==$sumBattleMap$[9]){
+				disablenpc "อาณาเขตรอบที่ 1#BG10";
+				disablenpc "อาณาเขตรอบที่ 2#BG10";
+				disablenpc "อาณาเขตรอบที่ 3#BG10";
+			}
+			$currentGround02$ = "";
+		}
+		end;
+	}else if(strcharinfo(3)==$currentGround03$ && $isGround03Playing == 1){
+		$currentPlayerGround03--;
+		if($currentPlayerGround03<=1){
+			getmapxy(.@map$,.@x,.@y,UNITTYPE_PC);
+			makeitem $winnerChickenDinnerReward,1,.@map$,.@x,.@y;
+			cleanmap $currentGround03$;
+			mapwarp $currentGround03$,$town$,156,191,0;
+			$isGround03Playing = 0;
+			$currentPlayerGround03 = 0;
+			if($currentGround03$==$sumBattleMap$[0]){
+				disablenpc "อาณาเขตรอบที่ 1#BG1";
+				disablenpc "อาณาเขตรอบที่ 2#BG1";
+				disablenpc "อาณาเขตรอบที่ 3#BG1";
+			}
+			else if($currentGround03$==$sumBattleMap$[1]){
+				disablenpc "อาณาเขตรอบที่ 1#BG2";
+				disablenpc "อาณาเขตรอบที่ 2#BG2";
+				disablenpc "อาณาเขตรอบที่ 3#BG2";
+			}
+			else if($currentGround03$==$sumBattleMap$[2]){
+				disablenpc "อาณาเขตรอบที่ 1#BG3";
+				disablenpc "อาณาเขตรอบที่ 2#BG3";
+				disablenpc "อาณาเขตรอบที่ 3#BG3";
+			}
+			else if($currentGround03$==$sumBattleMap$[3]){
+				disablenpc "อาณาเขตรอบที่ 1#BG4";
+				disablenpc "อาณาเขตรอบที่ 2#BG4";
+				disablenpc "อาณาเขตรอบที่ 3#BG4";
+			}
+			else if($currentGround03$==$sumBattleMap$[4]){
+				disablenpc "อาณาเขตรอบที่ 1#BG5";
+				disablenpc "อาณาเขตรอบที่ 2#BG5";
+				disablenpc "อาณาเขตรอบที่ 3#BG5";
+			}
+			else if($currentGround03$==$sumBattleMap$[5]){
+				disablenpc "อาณาเขตรอบที่ 1#BG6";
+				disablenpc "อาณาเขตรอบที่ 2#BG6";
+				disablenpc "อาณาเขตรอบที่ 3#BG6";
+			}
+			else if($currentGround03$==$sumBattleMap$[6]){
+				disablenpc "อาณาเขตรอบที่ 1#BG7";
+				disablenpc "อาณาเขตรอบที่ 2#BG7";
+				disablenpc "อาณาเขตรอบที่ 3#BG7";
+			}
+			else if($currentGround03$==$sumBattleMap$[7]){
+				disablenpc "อาณาเขตรอบที่ 1#BG8";
+				disablenpc "อาณาเขตรอบที่ 2#BG8";
+				disablenpc "อาณาเขตรอบที่ 3#BG8";
+			}
+			else if($currentGround03$==$sumBattleMap$[8]){
+				disablenpc "อาณาเขตรอบที่ 1#BG9";
+				disablenpc "อาณาเขตรอบที่ 2#BG9";
+				disablenpc "อาณาเขตรอบที่ 3#BG9";
+			}
+			else if($currentGround03$==$sumBattleMap$[9]){
+				disablenpc "อาณาเขตรอบที่ 1#BG10";
+				disablenpc "อาณาเขตรอบที่ 2#BG10";
+				disablenpc "อาณาเขตรอบที่ 3#BG10";
+			}
+			$currentGround03$ = "";
+		}
+		end;
+	}else if(strcharinfo(3)==$currentGround04$ && $isGround04Playing == 1){
+		$currentPlayerGround04--;
+		if($currentPlayerGround04<=1){
+			getmapxy(.@map$,.@x,.@y,UNITTYPE_PC);
+			makeitem $winnerChickenDinnerReward,1,.@map$,.@x,.@y;
+			cleanmap $currentGround04$;
+			mapwarp $currentGround04$,$town$,156,191,0;
+			$isGround04Playing = 0;
+			$currentPlayerGround04 = 0;
+			if($currentGround04$==$sumBattleMap$[0]){
+				disablenpc "อาณาเขตรอบที่ 1#BG1";
+				disablenpc "อาณาเขตรอบที่ 2#BG1";
+				disablenpc "อาณาเขตรอบที่ 3#BG1";
+			}
+			else if($currentGround04$==$sumBattleMap$[1]){
+				disablenpc "อาณาเขตรอบที่ 1#BG2";
+				disablenpc "อาณาเขตรอบที่ 2#BG2";
+				disablenpc "อาณาเขตรอบที่ 3#BG2";
+			}
+			else if($currentGround04$==$sumBattleMap$[2]){
+				disablenpc "อาณาเขตรอบที่ 1#BG3";
+				disablenpc "อาณาเขตรอบที่ 2#BG3";
+				disablenpc "อาณาเขตรอบที่ 3#BG3";
+			}
+			else if($currentGround04$==$sumBattleMap$[3]){
+				disablenpc "อาณาเขตรอบที่ 1#BG4";
+				disablenpc "อาณาเขตรอบที่ 2#BG4";
+				disablenpc "อาณาเขตรอบที่ 3#BG4";
+			}
+			else if($currentGround04$==$sumBattleMap$[4]){
+				disablenpc "อาณาเขตรอบที่ 1#BG5";
+				disablenpc "อาณาเขตรอบที่ 2#BG5";
+				disablenpc "อาณาเขตรอบที่ 3#BG5";
+			}
+			else if($currentGround04$==$sumBattleMap$[5]){
+				disablenpc "อาณาเขตรอบที่ 1#BG6";
+				disablenpc "อาณาเขตรอบที่ 2#BG6";
+				disablenpc "อาณาเขตรอบที่ 3#BG6";
+			}
+			else if($currentGround04$==$sumBattleMap$[6]){
+				disablenpc "อาณาเขตรอบที่ 1#BG7";
+				disablenpc "อาณาเขตรอบที่ 2#BG7";
+				disablenpc "อาณาเขตรอบที่ 3#BG7";
+			}
+			else if($currentGround04$==$sumBattleMap$[7]){
+				disablenpc "อาณาเขตรอบที่ 1#BG8";
+				disablenpc "อาณาเขตรอบที่ 2#BG8";
+				disablenpc "อาณาเขตรอบที่ 3#BG8";
+			}
+			else if($currentGround04$==$sumBattleMap$[8]){
+				disablenpc "อาณาเขตรอบที่ 1#BG9";
+				disablenpc "อาณาเขตรอบที่ 2#BG9";
+				disablenpc "อาณาเขตรอบที่ 3#BG9";
+			}
+			else if($currentGround04$==$sumBattleMap$[9]){
+				disablenpc "อาณาเขตรอบที่ 1#BG10";
+				disablenpc "อาณาเขตรอบที่ 2#BG10";
+				disablenpc "อาณาเขตรอบที่ 3#BG10";
+			}
+			$currentGround04$ = "";
+		}
+		end;
+	}else if(strcharinfo(3)==$currentGround05$ && $isGround05Playing == 1){
+		$currentPlayerGround05--;
+		if($currentPlayerGround05<=1){
+			getmapxy(.@map$,.@x,.@y,UNITTYPE_PC);
+			makeitem $winnerChickenDinnerReward,1,.@map$,.@x,.@y;
+			cleanmap $currentGround05$;
+			mapwarp $currentGround05$,$town$,156,191,0;
+			$isGround05Playing = 0;
+			$currentPlayerGround05 = 0;
+			if($currentGround05$==$sumBattleMap$[0]){
+				disablenpc "อาณาเขตรอบที่ 1#BG1";
+				disablenpc "อาณาเขตรอบที่ 2#BG1";
+				disablenpc "อาณาเขตรอบที่ 3#BG1";
+			}
+			else if($currentGround05$==$sumBattleMap$[1]){
+				disablenpc "อาณาเขตรอบที่ 1#BG2";
+				disablenpc "อาณาเขตรอบที่ 2#BG2";
+				disablenpc "อาณาเขตรอบที่ 3#BG2";
+			}
+			else if($currentGround05$==$sumBattleMap$[2]){
+				disablenpc "อาณาเขตรอบที่ 1#BG3";
+				disablenpc "อาณาเขตรอบที่ 2#BG3";
+				disablenpc "อาณาเขตรอบที่ 3#BG3";
+			}
+			else if($currentGround05$==$sumBattleMap$[3]){
+				disablenpc "อาณาเขตรอบที่ 1#BG4";
+				disablenpc "อาณาเขตรอบที่ 2#BG4";
+				disablenpc "อาณาเขตรอบที่ 3#BG4";
+			}
+			else if($currentGround05$==$sumBattleMap$[4]){
+				disablenpc "อาณาเขตรอบที่ 1#BG5";
+				disablenpc "อาณาเขตรอบที่ 2#BG5";
+				disablenpc "อาณาเขตรอบที่ 3#BG5";
+			}
+			else if($currentGround05$==$sumBattleMap$[5]){
+				disablenpc "อาณาเขตรอบที่ 1#BG6";
+				disablenpc "อาณาเขตรอบที่ 2#BG6";
+				disablenpc "อาณาเขตรอบที่ 3#BG6";
+			}
+			else if($currentGround05$==$sumBattleMap$[6]){
+				disablenpc "อาณาเขตรอบที่ 1#BG7";
+				disablenpc "อาณาเขตรอบที่ 2#BG7";
+				disablenpc "อาณาเขตรอบที่ 3#BG7";
+			}
+			else if($currentGround05$==$sumBattleMap$[7]){
+				disablenpc "อาณาเขตรอบที่ 1#BG8";
+				disablenpc "อาณาเขตรอบที่ 2#BG8";
+				disablenpc "อาณาเขตรอบที่ 3#BG8";
+			}
+			else if($currentGround05$==$sumBattleMap$[8]){
+				disablenpc "อาณาเขตรอบที่ 1#BG9";
+				disablenpc "อาณาเขตรอบที่ 2#BG9";
+				disablenpc "อาณาเขตรอบที่ 3#BG9";
+			}
+			else if($currentGround05$==$sumBattleMap$[9]){
+				disablenpc "อาณาเขตรอบที่ 1#BG10";
+				disablenpc "อาณาเขตรอบที่ 2#BG10";
+				disablenpc "อาณาเขตรอบที่ 3#BG10";
+			}
+			$currentGround05$ = "";
+		}
+		end;
+	}
+	end;
+	
+OnPCDieEvent:
+	dieCount++;
+	callfunc("F_PlayerDead");
+	end;
+}
+
+prontera,162,193,4	script	เพิ่มพลังชีวิต	10192,{
+	specialeffect2 EF_HEAL2;
+	percentheal 100,100;
+	end;
+	
+OnInit:
+	waitingroom "เพิ่มพลังชีวิต",0;
+	end;
+}
+
+prontera,164,169,3	script	เปลี่ยนชุด	10148 ,{
+	if(class==JOB_GUNSLINGER){
+		jobchange JOB_REBELLION;
+		BaseLevel = 1;
+		JobLevel = 1;
+		StatusPoint = 0;
+		SkillPoint = 0;
+		percentheal 100,100;
+		atcommand "@skillall";
+		skill "KO_BAKURETSU2",0,SKILL_PERM;
+		skill "KO_BAKURETSU3",0,SKILL_PERM;
+		skill "KO_BAKURETSU2",1,SKILL_PERM;
+		skill "KO_BAKURETSU3",1,SKILL_PERM;
+	}
+	else{
+		jobchange JOB_GUNSLINGER;
+		BaseLevel = 1;
+		JobLevel = 1;
+		StatusPoint = 0;
+		SkillPoint = 0;
+		percentheal 100,100;
+		atcommand "@skillall";
+		skill "KO_BAKURETSU2",0,SKILL_PERM;
+		skill "KO_BAKURETSU3",0,SKILL_PERM;
+		skill "KO_BAKURETSU2",1,SKILL_PERM;
+		skill "KO_BAKURETSU3",1,SKILL_PERM;
+	}
+	end;
+	
+OnInit:
+	waitingroom "เปลี่ยนชุด",0;
+	end;
+}
+
+prontera,164,174,3	script	แต่งตัว	10173,{
+	setarray .@Styles[1],
+	getbattleflag("max_cloth_color"),
+	getbattleflag("max_hair_style"),
+	getbattleflag("max_hair_color");
+	setarray .@Look[1],
+	LOOK_CLOTHES_COLOR,
+	LOOK_HAIR,
+	LOOK_HAIR_COLOR;
+	set .@s, select(" ~ สีเสื้อ: ~ ทรงผม: ~ สีผม");
+	set .@Revert, getlook(.@Look[.@s]);
+	set .@Style,1;
+	while(1) {
+		setlook .@Look[.@s], .@Style;
+		message strcharinfo(0),"นี่คือแบบที่ #"+.@Style+"";
+		set .@menu$, " ~ ต่อไป (^0055FF"+((.@Style!=.@Styles[.@s])?.@Style+1:1)+"^000000): ~ ก่อนหน้า (^0055FF"+((.@Style!=1)?.@Style-1:.@Styles[.@s])+"^000000): ~ ข้ามไปยัง...: ~ กลับสู่แบบเดิม (^0055FF"+.@Revert+"^000000)";
+		switch(select(.@menu$)) {
+		case 1:
+			set .@Style, ((.@Style != .@Styles[.@s]) ? .@Style+1 : 1);
+			break;
+		case 2:
+			set .@Style, ((.@Style != 1) ? .@Style-1 : .@Styles[.@s]);
+			break;
+		case 3:
+			message strcharinfo(0),"เลือกแบบที่ 1 - "+.@Styles[.@s]+"";
+			input .@Style,0,.@Styles[.@s];
+			if (!.@Style)
+			set .@Style, rand(1,.@Styles[.@s]);
+			break;
+		case 4:
+			set .@Style, .@Revert;
+			setlook .@Look[.@s], .@Revert;
+			break;
+		}
+	}
+	
+OnInit:
+	waitingroom "แต่งตัว",0;
+	end;
+}
+
+prontera,147,174,6	script	ทดลองของและเตรียมปุ่ม	10123,{
+	clearitem getcharid(0);
+	for( .@i = 0; .@i < 14; .@i++ )
+	getitem $sumItem[.@i],1;
+	getitem $explosionBullet,999;
+	getitem $explosionGrenade,999;
+	skill "KO_BAKURETSU2",0,SKILL_PERM;
+	skill "KO_BAKURETSU3",0,SKILL_PERM;
+	skill "KO_BAKURETSU2",1,SKILL_PERM;
+	skill "KO_BAKURETSU3",1,SKILL_PERM;
+	end;
+	
+OnInit:
+	waitingroom "ทดลองของและเตรียมปุ่ม",0;
+	end;
+}
+
+prontera,156,175,4	script	สนามรบที่ 1	10201,{
+	if($isGround01Playing==0 && $currentPlayerGround01 <100){
+		mes "จำนวนผู้เล่นที่รออยู่ "+$currentPlayerGround01+"/100";
+		next;
+		menu "เข้าสู่ห้องเตรียมพร้อมรบที่ 1",L_1,"ยังไม่พร้อม",L_2;
+	}else{
+		mes "ไม่สามารถเข้าห้องนี้ได้ในขณะนี้";
+		mes "จำนวนผู้เล่นที่อยู่ในสนามรบที่ 1 "+$currentPlayerGround01+"/100";
+		close;
+	}
+	L_1:
+	mes "ขอให้โชคดี";
+	close2;
+	$currentPlayerGround01++;
+	clearitem getcharid(0);
+	skill "KO_BAKURETSU2",0,SKILL_PERM;
+	skill "KO_BAKURETSU3",0,SKILL_PERM;
+	skill "KO_BAKURETSU2",1,SKILL_PERM;
+	skill "KO_BAKURETSU3",1,SKILL_PERM;
+	mapannounce "prontera","ผู้เล่น "+strcharinfo(0)+" ได้เข้าสู่สนามรบที่ 1 จำนวนผู้เล่นขณะนี้ "+$currentPlayerGround01+" / 100",bc_map;
+	warp $waitingGround01$,0,0;
+	callfunc("waitingRoom1");
+	end;
+	
+	L_2:
+	mes "ดีแล้วล่ะ";
+	mes "เจ้าควรเตรียมตัวเสียก่อน";
+	close;
+
+OnInit:
+	waitingroom "สนามรบที่ 1",0;
+	end;
+}
+
+-	script	waitingRoom1Timer	-1,{
+	end;
+	
+OnTimerCount:
+	if($currentPlayerGround01<=1){
+		end;
+	}
+	if($sumTime1<=0){
+		$isGround01Playing = 1;
+		.@sumMapNameToGo$ = $sumBattleMap$[rand(0,10)];
+		while(.@sumMapNameToGo$==$currentGround01$||.@sumMapNameToGo$==$currentGround02$||.@sumMapNameToGo$==$currentGround03$||.@sumMapNameToGo$==$currentGround04$||.@sumMapNameToGo$==$currentGround05$)
+		.@sumMapNameToGo$ = $sumBattleMap$[rand(0,10)];
+		$currentGround01$ = .@sumMapNameToGo$;
+		mapwarp $waitingGround01$,$currentGround01$,0,0,0;
+		$sumTime1=0;
+		if($currentGround01$==$sumBattleMap$[0])
+		enablenpc "อาณาเขตรอบที่ 1#BG1";
+		else if($currentGround01$==$sumBattleMap$[1])
+		enablenpc "อาณาเขตรอบที่ 1#BG2";
+		else if($currentGround01$==$sumBattleMap$[2])
+		enablenpc "อาณาเขตรอบที่ 1#BG3";
+		else if($currentGround01$==$sumBattleMap$[3])
+		enablenpc "อาณาเขตรอบที่ 1#BG4";
+		else if($currentGround01$==$sumBattleMap$[4])
+		enablenpc "อาณาเขตรอบที่ 1#BG5";
+		else if($currentGround01$==$sumBattleMap$[5])
+		enablenpc "อาณาเขตรอบที่ 1#BG6";
+		else if($currentGround01$==$sumBattleMap$[6])
+		enablenpc "อาณาเขตรอบที่ 1#BG7";
+		else if($currentGround01$==$sumBattleMap$[7])
+		enablenpc "อาณาเขตรอบที่ 1#BG8";
+		else if($currentGround01$==$sumBattleMap$[8])
+		enablenpc "อาณาเขตรอบที่ 1#BG9";
+		else if($currentGround01$==$sumBattleMap$[9])
+		enablenpc "อาณาเขตรอบที่ 1#BG10";
+		addtimer 180000, "waitingRoom1Timer::OnTimerCount2";
+		addtimer 10000, "waitingRoom1Timer::OnTimerCountHint";
+		callfunc("SpawnItemGround1");
+		end;
+	}else{
+		$sumTime1 -= 5;
+		mapannounce $waitingGround01$,"อีก "+$sumTime1+" วินาทีจะวาร์ปผู้เล่นทุกคนไปยังสนามรบที่ 1",bc_map;
+		addtimer 5000, "waitingRoom1Timer::OnTimerCount";
+		end;
+	}
+	end;
+	
+OnTimerCountHint:
+	if($isGround01Playing == 0)
+	end;
+	mapannounce $currentGround01$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 150 ช่อง",bc_map;
+	callfunc("F_ViewPointRestart",$currentGround01$);
+	end;
+
+OnTimerCount2:
+	if($isGround01Playing == 0)
+	end;
+	mapannounce $currentGround01$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 100 ช่อง",bc_map;
+	if($currentGround01$==$sumBattleMap$[0]){
+		donpcevent "อาณาเขตรอบที่ 1#BG1::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG1";
+		disablenpc "อาณาเขตรอบที่ 1#BG1";
+	}
+	else if($currentGround01$==$sumBattleMap$[1]){
+		donpcevent "อาณาเขตรอบที่ 1#BG2::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG2";
+		disablenpc "อาณาเขตรอบที่ 1#BG2";
+	}
+	else if($currentGround01$==$sumBattleMap$[2]){
+		donpcevent "อาณาเขตรอบที่ 1#BG3::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG3";
+		disablenpc "อาณาเขตรอบที่ 1#BG3";
+	}
+	else if($currentGround01$==$sumBattleMap$[3]){
+		donpcevent "อาณาเขตรอบที่ 1#BG4::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG4";
+		disablenpc "อาณาเขตรอบที่ 1#BG4";
+	}
+	else if($currentGround01$==$sumBattleMap$[4]){
+		donpcevent "อาณาเขตรอบที่ 1#BG5::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG5";
+		disablenpc "อาณาเขตรอบที่ 1#BG5";
+	}
+	else if($currentGround01$==$sumBattleMap$[5]){
+		donpcevent "อาณาเขตรอบที่ 1#BG6::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG6";
+		disablenpc "อาณาเขตรอบที่ 1#BG6";
+	}
+	else if($currentGround01$==$sumBattleMap$[6]){
+		donpcevent "อาณาเขตรอบที่ 1#BG7::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG7";
+		disablenpc "อาณาเขตรอบที่ 1#BG7";
+	}
+	else if($currentGround01$==$sumBattleMap$[7]){
+		donpcevent "อาณาเขตรอบที่ 1#BG8::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG8";
+		disablenpc "อาณาเขตรอบที่ 1#BG8";
+	}
+	else if($currentGround01$==$sumBattleMap$[8]){
+		donpcevent "อาณาเขตรอบที่ 1#BG9::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG9";
+		disablenpc "อาณาเขตรอบที่ 1#BG9";
+	}
+	else if($currentGround01$==$sumBattleMap$[9]){
+		donpcevent "อาณาเขตรอบที่ 1#BG10::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG10";
+		disablenpc "อาณาเขตรอบที่ 1#BG10";
+	}
+	if($currentPlayerGround01>1)
+	addtimer 180000, "waitingRoom1Timer::OnTimerCount3";
+	end;
+	
+OnTimerCount3:
+	if($isGround01Playing == 0)
+	end;
+	mapannounce $currentGround01$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 50 ช่อง",bc_map;
+	if($currentGround01$==$sumBattleMap$[0]){
+		donpcevent "อาณาเขตรอบที่ 2#BG1::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG1";
+		disablenpc "อาณาเขตรอบที่ 2#BG1";
+	}
+	else if($currentGround01$==$sumBattleMap$[1]){
+		donpcevent "อาณาเขตรอบที่ 2#BG2::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG2";
+		disablenpc "อาณาเขตรอบที่ 2#BG2";
+	}
+	else if($currentGround01$==$sumBattleMap$[2]){
+		donpcevent "อาณาเขตรอบที่ 2#BG3::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG3";
+		disablenpc "อาณาเขตรอบที่ 2#BG3";
+	}
+	else if($currentGround01$==$sumBattleMap$[3]){
+		donpcevent "อาณาเขตรอบที่ 2#BG4::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG4";
+		disablenpc "อาณาเขตรอบที่ 2#BG4";
+	}
+	else if($currentGround01$==$sumBattleMap$[4]){
+		donpcevent "อาณาเขตรอบที่ 2#BG5::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG5";
+		disablenpc "อาณาเขตรอบที่ 2#BG5";
+	}
+	else if($currentGround01$==$sumBattleMap$[5]){
+		donpcevent "อาณาเขตรอบที่ 2#BG6::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG6";
+		disablenpc "อาณาเขตรอบที่ 2#BG6";
+	}
+	else if($currentGround01$==$sumBattleMap$[6]){
+		donpcevent "อาณาเขตรอบที่ 2#BG7::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG7";
+		disablenpc "อาณาเขตรอบที่ 2#BG7";
+	}
+	else if($currentGround01$==$sumBattleMap$[7]){
+		donpcevent "อาณาเขตรอบที่ 2#BG8::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG8";
+		disablenpc "อาณาเขตรอบที่ 2#BG8";
+	}
+	else if($currentGround01$==$sumBattleMap$[8]){
+		donpcevent "อาณาเขตรอบที่ 2#BG9::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG9";
+		disablenpc "อาณาเขตรอบที่ 2#BG9";
+	}
+	else if($currentGround01$==$sumBattleMap$[9]){
+		donpcevent "อาณาเขตรอบที่ 2#BG10::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG10";
+		disablenpc "อาณาเขตรอบที่ 2#BG10";
+	}
+	if($currentPlayerGround01>1)
+	addtimer 180000, "waitingRoom1Timer::OnTimerCount4";
+	end;
+	
+OnTimerCount4:
+	if($isGround01Playing == 0)
+	end;
+	mapannounce $currentGround01$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 50 ช่อง",bc_map;
+	if($currentGround01$==$sumBattleMap$[0])
+	donpcevent "อาณาเขตรอบที่ 3#BG1::OnDoDamage";
+	else if($currentGround01$==$sumBattleMap$[1])
+	donpcevent "อาณาเขตรอบที่ 3#BG2::OnDoDamage";
+	else if($currentGround01$==$sumBattleMap$[2])
+	donpcevent "อาณาเขตรอบที่ 3#BG3::OnDoDamage";
+	else if($currentGround01$==$sumBattleMap$[3])
+	donpcevent "อาณาเขตรอบที่ 3#BG4::OnDoDamage";
+	else if($currentGround01$==$sumBattleMap$[4])
+	donpcevent "อาณาเขตรอบที่ 3#BG5::OnDoDamage";
+	else if($currentGround01$==$sumBattleMap$[5])
+	donpcevent "อาณาเขตรอบที่ 3#BG6::OnDoDamage";
+	else if($currentGround01$==$sumBattleMap$[6])
+	donpcevent "อาณาเขตรอบที่ 3#BG7::OnDoDamage";
+	else if($currentGround01$==$sumBattleMap$[7])
+	donpcevent "อาณาเขตรอบที่ 3#BG8::OnDoDamage";
+	else if($currentGround01$==$sumBattleMap$[8])
+	donpcevent "อาณาเขตรอบที่ 3#BG9::OnDoDamage";
+	else if($currentGround01$==$sumBattleMap$[9])
+	donpcevent "อาณาเขตรอบที่ 3#BG10::OnDoDamage";
+	if($currentPlayerGround01>1)
+	addtimer 180000, "waitingRoom1Timer::OnTimerCount4";
+	end;
+}
+
+function	script	waitingRoom1	{
+	if($currentPlayerGround01>=2 && $sumTime1==0){
+		$sumTime1 = 60;
+		if($sumTime1==60){
+			mapannounce $waitingGround01$,"อีก "+$sumTime1+" วินาทีจะวาร์ปผู้เล่นทุกคนไปยังสนามรบที่ 1",bc_map;
+			addtimer 5000, "waitingRoom1Timer::OnTimerCount";
+			end;
+		}
+		end;
+	}
+	end;
+}
+
+prontera,153,177,4	script	สนามรบที่ 2	10203,{
+	if($isGround01Playing==0){
+		mes "เข้าห้องแรก ๆ ให้เต็มก่อนนะ";
+		close;
+	}
+	if($isGround02Playing==0&& $currentPlayerGround02 <100){
+		mes "จำนวนผู้เล่นที่รออยู่ "+$currentPlayerGround02+"/100";
+		next;
+		menu "เข้าสู่ห้องเตรียมพร้อมรบที่ 2",L_1,"ยังไม่พร้อม",L_2;
+	}else{
+		mes "ไม่สามารถเข้าห้องนี้ได้ในขณะนี้";
+		mes "จำนวนผู้เล่นที่อยู่ในสนามรบที่ 2 "+$currentPlayerGround02+"/100";
+		close;
+	}
+	L_1:
+	mes "ขอให้โชคดี";
+	close2;
+	$currentPlayerGround02++;
+	clearitem getcharid(0);
+	skill "KO_BAKURETSU2",0,SKILL_PERM;
+	skill "KO_BAKURETSU3",0,SKILL_PERM;
+	skill "KO_BAKURETSU2",1,SKILL_PERM;
+	skill "KO_BAKURETSU3",1,SKILL_PERM;
+	mapannounce "prontera","ผู้เล่น "+strcharinfo(0)+" ได้เข้าสู่สนามรบที่ 2 จำนวนผู้เล่นขณะนี้ "+$currentPlayerGround02+" / 100",bc_map;
+	warp $waitingGround02$,0,0;
+	callfunc("waitingRoom2");
+	end;
+	
+	L_2:
+	mes "ดีแล้วล่ะ";
+	mes "เจ้าควรเตรียมตัวเสียก่อน";
+	close;
+
+OnInit:
+	waitingroom "สนามรบที่ 2",0;
+	end;
+}
+
+-	script	waitingRoom2Timer	-1,{
+	end;
+
+OnTimerCount:
+	if($currentPlayerGround02<=1){
+		end;
+	}
+	if($sumTime2<=0){
+		$isGround02Playing = 1;
+		.@sumMapNameToGo$ = $sumBattleMap$[rand(0,10)];
+		while(.@sumMapNameToGo$==$currentGround02$||.@sumMapNameToGo$==$currentGround02$||.@sumMapNameToGo$==$currentGround03$||.@sumMapNameToGo$==$currentGround04$||.@sumMapNameToGo$==$currentGround05$)
+		.@sumMapNameToGo$ = $sumBattleMap$[rand(0,10)];
+		$currentGround02$ = .@sumMapNameToGo$;
+		mapwarp $waitingGround02$,$currentGround02$,0,0,0;
+		$sumTime2=0;
+		if($currentGround02$==$sumBattleMap$[0])
+		enablenpc "อาณาเขตรอบที่ 1#BG1";
+		else if($currentGround02$==$sumBattleMap$[1])
+		enablenpc "อาณาเขตรอบที่ 1#BG2";
+		else if($currentGround02$==$sumBattleMap$[2])
+		enablenpc "อาณาเขตรอบที่ 1#BG3";
+		else if($currentGround02$==$sumBattleMap$[3])
+		enablenpc "อาณาเขตรอบที่ 1#BG4";
+		else if($currentGround02$==$sumBattleMap$[4])
+		enablenpc "อาณาเขตรอบที่ 1#BG5";
+		else if($currentGround02$==$sumBattleMap$[5])
+		enablenpc "อาณาเขตรอบที่ 1#BG6";
+		else if($currentGround02$==$sumBattleMap$[6])
+		enablenpc "อาณาเขตรอบที่ 1#BG7";
+		else if($currentGround02$==$sumBattleMap$[7])
+		enablenpc "อาณาเขตรอบที่ 1#BG8";
+		else if($currentGround02$==$sumBattleMap$[8])
+		enablenpc "อาณาเขตรอบที่ 1#BG9";
+		else if($currentGround02$==$sumBattleMap$[9])
+		enablenpc "อาณาเขตรอบที่ 1#BG10";
+		addtimer 180000, "waitingRoom2Timer::OnTimerCount2";
+		addtimer 10000, "waitingRoom2Timer::OnTimerCountHint";
+		callfunc("SpawnItemGround2");
+		end;
+	}else{
+		$sumTime2 -= 5;
+		mapannounce $waitingGround02$,"อีก "+$sumTime2+" วินาทีจะวาร์ปผู้เล่นทุกคนไปยังสนามรบที่ 2",bc_map;
+		addtimer 5000, "waitingRoom2Timer::OnTimerCount";
+		end;
+	}
+	end;
+	
+OnTimerCountHint:
+	if($isGround02Playing == 0)
+	end;
+	mapannounce $currentGround02$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 150 ช่อง",bc_map;
+	callfunc("F_ViewPointRestart",$currentGround02$);
+	end;
+
+OnTimerCount2:
+	if($isGround02Playing == 0)
+	end;
+	mapannounce $currentGround02$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 100 ช่อง",bc_map;
+	if($currentGround02$==$sumBattleMap$[0]){
+		donpcevent "อาณาเขตรอบที่ 1#BG1::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG1";
+		disablenpc "อาณาเขตรอบที่ 1#BG1";
+	}
+	else if($currentGround02$==$sumBattleMap$[1]){
+		donpcevent "อาณาเขตรอบที่ 1#BG2::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG2";
+		disablenpc "อาณาเขตรอบที่ 1#BG2";
+	}
+	else if($currentGround02$==$sumBattleMap$[2]){
+		donpcevent "อาณาเขตรอบที่ 1#BG3::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG3";
+		disablenpc "อาณาเขตรอบที่ 1#BG3";
+	}
+	else if($currentGround02$==$sumBattleMap$[3]){
+		donpcevent "อาณาเขตรอบที่ 1#BG4::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG4";
+		disablenpc "อาณาเขตรอบที่ 1#BG4";
+	}
+	else if($currentGround02$==$sumBattleMap$[4]){
+		donpcevent "อาณาเขตรอบที่ 1#BG5::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG5";
+		disablenpc "อาณาเขตรอบที่ 1#BG5";
+	}
+	else if($currentGround02$==$sumBattleMap$[5]){
+		donpcevent "อาณาเขตรอบที่ 1#BG6::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG6";
+		disablenpc "อาณาเขตรอบที่ 1#BG6";
+	}
+	else if($currentGround02$==$sumBattleMap$[6]){
+		donpcevent "อาณาเขตรอบที่ 1#BG7::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG7";
+		disablenpc "อาณาเขตรอบที่ 1#BG7";
+	}
+	else if($currentGround02$==$sumBattleMap$[7]){
+		donpcevent "อาณาเขตรอบที่ 1#BG8::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG8";
+		disablenpc "อาณาเขตรอบที่ 1#BG8";
+	}
+	else if($currentGround02$==$sumBattleMap$[8]){
+		donpcevent "อาณาเขตรอบที่ 1#BG9::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG9";
+		disablenpc "อาณาเขตรอบที่ 1#BG9";
+	}
+	else if($currentGround02$==$sumBattleMap$[9]){
+		donpcevent "อาณาเขตรอบที่ 1#BG10::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG10";
+		disablenpc "อาณาเขตรอบที่ 1#BG10";
+	}
+	if($currentPlayerGround01>1)
+	addtimer 180000, "waitingRoom2Timer::OnTimerCount3";
+	end;
+	
+OnTimerCount3:
+	if($isGround02Playing == 0)
+	end;
+	mapannounce $currentGround02$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 50 ช่อง",bc_map;
+	if($currentGround02$==$sumBattleMap$[0]){
+		donpcevent "อาณาเขตรอบที่ 2#BG1::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG1";
+		disablenpc "อาณาเขตรอบที่ 2#BG1";
+	}
+	else if($currentGround02$==$sumBattleMap$[1]){
+		donpcevent "อาณาเขตรอบที่ 2#BG2::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG2";
+		disablenpc "อาณาเขตรอบที่ 2#BG2";
+	}
+	else if($currentGround02$==$sumBattleMap$[2]){
+		donpcevent "อาณาเขตรอบที่ 2#BG3::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG3";
+		disablenpc "อาณาเขตรอบที่ 2#BG3";
+	}
+	else if($currentGround02$==$sumBattleMap$[3]){
+		donpcevent "อาณาเขตรอบที่ 2#BG4::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG4";
+		disablenpc "อาณาเขตรอบที่ 2#BG4";
+	}
+	else if($currentGround02$==$sumBattleMap$[4]){
+		donpcevent "อาณาเขตรอบที่ 2#BG5::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG5";
+		disablenpc "อาณาเขตรอบที่ 2#BG5";
+	}
+	else if($currentGround02$==$sumBattleMap$[5]){
+		donpcevent "อาณาเขตรอบที่ 2#BG6::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG6";
+		disablenpc "อาณาเขตรอบที่ 2#BG6";
+	}
+	else if($currentGround02$==$sumBattleMap$[6]){
+		donpcevent "อาณาเขตรอบที่ 2#BG7::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG7";
+		disablenpc "อาณาเขตรอบที่ 2#BG7";
+	}
+	else if($currentGround02$==$sumBattleMap$[7]){
+		donpcevent "อาณาเขตรอบที่ 2#BG8::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG8";
+		disablenpc "อาณาเขตรอบที่ 2#BG8";
+	}
+	else if($currentGround02$==$sumBattleMap$[8]){
+		donpcevent "อาณาเขตรอบที่ 2#BG9::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG9";
+		disablenpc "อาณาเขตรอบที่ 2#BG9";
+	}
+	else if($currentGround02$==$sumBattleMap$[9]){
+		donpcevent "อาณาเขตรอบที่ 2#BG10::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG10";
+		disablenpc "อาณาเขตรอบที่ 2#BG10";
+	}
+	if($currentPlayerGround01>1)
+	addtimer 180000, "waitingRoom2Timer::OnTimerCount4";
+	end;
+	
+OnTimerCount4:
+	if($isGround02Playing == 0)
+	end;
+	mapannounce $currentGround02$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 50 ช่อง",bc_map;
+	if($currentGround02$==$sumBattleMap$[0])
+	donpcevent "อาณาเขตรอบที่ 3#BG1::OnDoDamage";
+	else if($currentGround02$==$sumBattleMap$[1])
+	donpcevent "อาณาเขตรอบที่ 3#BG2::OnDoDamage";
+	else if($currentGround02$==$sumBattleMap$[2])
+	donpcevent "อาณาเขตรอบที่ 3#BG3::OnDoDamage";
+	else if($currentGround02$==$sumBattleMap$[3])
+	donpcevent "อาณาเขตรอบที่ 3#BG4::OnDoDamage";
+	else if($currentGround02$==$sumBattleMap$[4])
+	donpcevent "อาณาเขตรอบที่ 3#BG5::OnDoDamage";
+	else if($currentGround02$==$sumBattleMap$[5])
+	donpcevent "อาณาเขตรอบที่ 3#BG6::OnDoDamage";
+	else if($currentGround02$==$sumBattleMap$[6])
+	donpcevent "อาณาเขตรอบที่ 3#BG7::OnDoDamage";
+	else if($currentGround02$==$sumBattleMap$[7])
+	donpcevent "อาณาเขตรอบที่ 3#BG8::OnDoDamage";
+	else if($currentGround02$==$sumBattleMap$[8])
+	donpcevent "อาณาเขตรอบที่ 3#BG9::OnDoDamage";
+	else if($currentGround02$==$sumBattleMap$[9])
+	donpcevent "อาณาเขตรอบที่ 3#BG10::OnDoDamage";
+	if($currentPlayerGround02>1)
+	addtimer 180000, "waitingRoom2Timer::OnTimerCount4";
+	end;
+}
+
+function	script	waitingRoom2	{
+	if($currentPlayerGround02>=2 && $sumTime2==0){
+		$sumTime2 = 60;
+		if($sumTime2==60){
+			mapannounce $waitingGround02$,"อีก "+$sumTime2+" วินาทีจะวาร์ปผู้เล่นทุกคนไปยังสนามรบที่ 2",bc_map;
+			addtimer 5000, "waitingRoom2Timer::OnTimerCount";
+			end;
+		}
+		end;
+	}
+	end;
+}
+
+prontera,159,177,4	script	สนามรบที่ 3	10199,{
+	if($isGround02Playing==0){
+		mes "เข้าห้องแรก ๆ ให้เต็มก่อนนะ";
+		close;
+	}
+	if($isGround03Playing==0&& $currentPlayerGround03 <100){
+		mes "จำนวนผู้เล่นที่รออยู่ "+$currentPlayerGround03+"/100";
+		next;
+		menu "เข้าสู่ห้องเตรียมพร้อมรบที่ 3",L_1,"ยังไม่พร้อม",L_2;
+	}else{
+		mes "ไม่สามารถเข้าห้องนี้ได้ในขณะนี้";
+		mes "จำนวนผู้เล่นที่อยู่ในสนามรบที่ 3 "+$currentPlayerGround03+"/100";
+		close;
+	}
+	L_1:
+	mes "ขอให้โชคดี";
+	close2;
+	$currentPlayerGround03++;
+	clearitem getcharid(0);
+	skill "KO_BAKURETSU2",0,SKILL_PERM;
+	skill "KO_BAKURETSU3",0,SKILL_PERM;
+	skill "KO_BAKURETSU2",1,SKILL_PERM;
+	skill "KO_BAKURETSU3",1,SKILL_PERM;
+	mapannounce "prontera","ผู้เล่น "+strcharinfo(0)+" ได้เข้าสู่สนามรบที่ 3 จำนวนผู้เล่นขณะนี้ "+$currentPlayerGround03+" / 100",bc_map;
+	warp $waitingGround03$,0,0;
+	callfunc("waitingRoom3");
+	end;
+	
+	L_2:
+	mes "ดีแล้วล่ะ";
+	mes "เจ้าควรเตรียมตัวเสียก่อน";
+	close;
+
+OnInit:
+	waitingroom "สนามรบที่ 3",0;
+	end;
+}
+
+-	script	waitingRoom3Timer	-1,{
+	end;
+
+OnTimerCount:
+	if($currentPlayerGround03<=1){
+		end;
+	}
+	if($sumTime3<=0){
+		$isGround03Playing = 1;
+		.@sumMapNameToGo$ = $sumBattleMap$[rand(0,10)];
+		while(.@sumMapNameToGo$==$currentGround03$||.@sumMapNameToGo$==$currentGround03$||.@sumMapNameToGo$==$currentGround03$||.@sumMapNameToGo$==$currentGround04$||.@sumMapNameToGo$==$currentGround05$)
+		.@sumMapNameToGo$ = $sumBattleMap$[rand(0,10)];
+		$currentGround03$ = .@sumMapNameToGo$;
+		mapwarp $waitingGround03$,$currentGround03$,0,0,0;
+		$sumTime3=0;
+		if($currentGround03$==$sumBattleMap$[0])
+		enablenpc "อาณาเขตรอบที่ 1#BG1";
+		else if($currentGround03$==$sumBattleMap$[1])
+		enablenpc "อาณาเขตรอบที่ 1#BG2";
+		else if($currentGround03$==$sumBattleMap$[2])
+		enablenpc "อาณาเขตรอบที่ 1#BG3";
+		else if($currentGround03$==$sumBattleMap$[3])
+		enablenpc "อาณาเขตรอบที่ 1#BG4";
+		else if($currentGround03$==$sumBattleMap$[4])
+		enablenpc "อาณาเขตรอบที่ 1#BG5";
+		else if($currentGround03$==$sumBattleMap$[5])
+		enablenpc "อาณาเขตรอบที่ 1#BG6";
+		else if($currentGround03$==$sumBattleMap$[6])
+		enablenpc "อาณาเขตรอบที่ 1#BG7";
+		else if($currentGround03$==$sumBattleMap$[7])
+		enablenpc "อาณาเขตรอบที่ 1#BG8";
+		else if($currentGround03$==$sumBattleMap$[8])
+		enablenpc "อาณาเขตรอบที่ 1#BG9";
+		else if($currentGround03$==$sumBattleMap$[9])
+		enablenpc "อาณาเขตรอบที่ 1#BG10";
+		addtimer 180000, "waitingRoom3Timer::OnTimerCount2";
+		addtimer 10000, "waitingRoom3Timer::OnTimerCountHint";
+		callfunc("SpawnItemGround3");
+		end;
+	}else{
+		$sumTime3 -= 5;
+		mapannounce $waitingGround03$,"อีก "+$sumTime3+" วินาทีจะวาร์ปผู้เล่นทุกคนไปยังสนามรบที่ 3",bc_map;
+		addtimer 5000, "waitingRoom3Timer::OnTimerCount";
+		end;
+	}
+	end;
+	
+OnTimerCountHint:
+	if($isGround03Playing == 0)
+	end;
+	mapannounce $currentGround03$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 150 ช่อง",bc_map;
+	callfunc("F_ViewPointRestart",$currentGround03$);
+	end;
+
+OnTimerCount2:
+	mapannounce $currentGround03$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 100 ช่อง",bc_map;
+	if($currentGround03$==$sumBattleMap$[0]){
+		donpcevent "อาณาเขตรอบที่ 1#BG1::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG1";
+		disablenpc "อาณาเขตรอบที่ 1#BG1";
+	}
+	else if($currentGround03$==$sumBattleMap$[1]){
+		donpcevent "อาณาเขตรอบที่ 1#BG2::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG2";
+		disablenpc "อาณาเขตรอบที่ 1#BG2";
+	}
+	else if($currentGround03$==$sumBattleMap$[2]){
+		donpcevent "อาณาเขตรอบที่ 1#BG3::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG3";
+		disablenpc "อาณาเขตรอบที่ 1#BG3";
+	}
+	else if($currentGround03$==$sumBattleMap$[3]){
+		donpcevent "อาณาเขตรอบที่ 1#BG4::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG4";
+		disablenpc "อาณาเขตรอบที่ 1#BG4";
+	}
+	else if($currentGround03$==$sumBattleMap$[4]){
+		donpcevent "อาณาเขตรอบที่ 1#BG5::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG5";
+		disablenpc "อาณาเขตรอบที่ 1#BG5";
+	}
+	else if($currentGround03$==$sumBattleMap$[5]){
+		donpcevent "อาณาเขตรอบที่ 1#BG6::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG6";
+		disablenpc "อาณาเขตรอบที่ 1#BG6";
+	}
+	else if($currentGround03$==$sumBattleMap$[6]){
+		donpcevent "อาณาเขตรอบที่ 1#BG7::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG7";
+		disablenpc "อาณาเขตรอบที่ 1#BG7";
+	}
+	else if($currentGround03$==$sumBattleMap$[7]){
+		donpcevent "อาณาเขตรอบที่ 1#BG8::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG8";
+		disablenpc "อาณาเขตรอบที่ 1#BG8";
+	}
+	else if($currentGround03$==$sumBattleMap$[8]){
+		donpcevent "อาณาเขตรอบที่ 1#BG9::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG9";
+		disablenpc "อาณาเขตรอบที่ 1#BG9";
+	}
+	else if($currentGround03$==$sumBattleMap$[9]){
+		donpcevent "อาณาเขตรอบที่ 1#BG10::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG10";
+		disablenpc "อาณาเขตรอบที่ 1#BG10";
+	}
+	if($currentPlayerGround03>1)
+	addtimer 180000, "waitingRoom3Timer::OnTimerCount3";
+	end;
+	
+OnTimerCount3:
+	if($isGround03Playing == 0)
+	end;
+	mapannounce $currentGround03$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 50 ช่อง",bc_map;
+	if($currentGround03$==$sumBattleMap$[0]){
+		donpcevent "อาณาเขตรอบที่ 2#BG1::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG1";
+		disablenpc "อาณาเขตรอบที่ 2#BG1";
+	}
+	else if($currentGround03$==$sumBattleMap$[1]){
+		donpcevent "อาณาเขตรอบที่ 2#BG2::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG2";
+		disablenpc "อาณาเขตรอบที่ 2#BG2";
+	}
+	else if($currentGround03$==$sumBattleMap$[2]){
+		donpcevent "อาณาเขตรอบที่ 2#BG3::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG3";
+		disablenpc "อาณาเขตรอบที่ 2#BG3";
+	}
+	else if($currentGround03$==$sumBattleMap$[3]){
+		donpcevent "อาณาเขตรอบที่ 2#BG4::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG4";
+		disablenpc "อาณาเขตรอบที่ 2#BG4";
+	}
+	else if($currentGround03$==$sumBattleMap$[4]){
+		donpcevent "อาณาเขตรอบที่ 2#BG5::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG5";
+		disablenpc "อาณาเขตรอบที่ 2#BG5";
+	}
+	else if($currentGround03$==$sumBattleMap$[5]){
+		donpcevent "อาณาเขตรอบที่ 2#BG6::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG6";
+		disablenpc "อาณาเขตรอบที่ 2#BG6";
+	}
+	else if($currentGround03$==$sumBattleMap$[6]){
+		donpcevent "อาณาเขตรอบที่ 2#BG7::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG7";
+		disablenpc "อาณาเขตรอบที่ 2#BG7";
+	}
+	else if($currentGround03$==$sumBattleMap$[7]){
+		donpcevent "อาณาเขตรอบที่ 2#BG8::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG8";
+		disablenpc "อาณาเขตรอบที่ 2#BG8";
+	}
+	else if($currentGround03$==$sumBattleMap$[8]){
+		donpcevent "อาณาเขตรอบที่ 2#BG9::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG9";
+		disablenpc "อาณาเขตรอบที่ 2#BG9";
+	}
+	else if($currentGround03$==$sumBattleMap$[9]){
+		donpcevent "อาณาเขตรอบที่ 2#BG10::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG10";
+		disablenpc "อาณาเขตรอบที่ 2#BG10";
+	}
+	if($currentPlayerGround03>1)
+	addtimer 180000, "waitingRoom3Timer::OnTimerCount4";
+	end;
+	
+OnTimerCount4:
+	if($isGround03Playing == 0)
+	end;
+	mapannounce $currentGround03$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 50 ช่อง",bc_map;
+	if($currentGround03$==$sumBattleMap$[0])
+	donpcevent "อาณาเขตรอบที่ 3#BG1::OnDoDamage";
+	else if($currentGround03$==$sumBattleMap$[1])
+	donpcevent "อาณาเขตรอบที่ 3#BG2::OnDoDamage";
+	else if($currentGround03$==$sumBattleMap$[2])
+	donpcevent "อาณาเขตรอบที่ 3#BG3::OnDoDamage";
+	else if($currentGround03$==$sumBattleMap$[3])
+	donpcevent "อาณาเขตรอบที่ 3#BG4::OnDoDamage";
+	else if($currentGround03$==$sumBattleMap$[4])
+	donpcevent "อาณาเขตรอบที่ 3#BG5::OnDoDamage";
+	else if($currentGround03$==$sumBattleMap$[5])
+	donpcevent "อาณาเขตรอบที่ 3#BG6::OnDoDamage";
+	else if($currentGround03$==$sumBattleMap$[6])
+	donpcevent "อาณาเขตรอบที่ 3#BG7::OnDoDamage";
+	else if($currentGround03$==$sumBattleMap$[7])
+	donpcevent "อาณาเขตรอบที่ 3#BG8::OnDoDamage";
+	else if($currentGround03$==$sumBattleMap$[8])
+	donpcevent "อาณาเขตรอบที่ 3#BG9::OnDoDamage";
+	else if($currentGround03$==$sumBattleMap$[9])
+	donpcevent "อาณาเขตรอบที่ 3#BG10::OnDoDamage";
+	if($currentPlayerGround03>1)
+	addtimer 180000, "waitingRoom3Timer::OnTimerCount4";
+	end;
+}
+
+function	script	waitingRoom3	{
+	if($currentPlayerGround03>=2 && $sumTime3==0){
+		$sumTime3 = 60;
+		if($sumTime3==60){
+			mapannounce $waitingGround03$,"อีก "+$sumTime3+" วินาทีจะวาร์ปผู้เล่นทุกคนไปยังสนามรบที่ 3",bc_map;
+			addtimer 5000, "waitingRoom3Timer::OnTimerCount";
+			end;
+		}
+		end;
+	}
+	end;
+}
+
+prontera,151,179,4	script	สนามรบที่ 4	10200,{
+	if($isGround03Playing==0){
+		mes "เข้าห้องแรก ๆ ให้เต็มก่อนนะ";
+		close;
+	}
+	if($isGround04Playing==0&& $currentPlayerGround04 <100){
+		mes "จำนวนผู้เล่นที่รออยู่ "+$currentPlayerGround04+"/100";
+		next;
+		menu "เข้าสู่ห้องเตรียมพร้อมรบที่ 4",L_1,"ยังไม่พร้อม",L_2;
+	}else{
+		mes "ไม่สามารถเข้าห้องนี้ได้ในขณะนี้";
+		mes "จำนวนผู้เล่นที่อยู่ในสนามรบที่ 4 "+$currentPlayerGround04+"/100";
+		close;
+	}
+	L_1:
+	mes "ขอให้โชคดี";
+	close2;
+	$currentPlayerGround04++;
+	clearitem getcharid(0);
+	skill "KO_BAKURETSU2",0,SKILL_PERM;
+	skill "KO_BAKURETSU3",0,SKILL_PERM;
+	skill "KO_BAKURETSU2",1,SKILL_PERM;
+	skill "KO_BAKURETSU3",1,SKILL_PERM;
+	mapannounce "prontera","ผู้เล่น "+strcharinfo(0)+" ได้เข้าสู่สนามรบที่ 4 จำนวนผู้เล่นขณะนี้ "+$currentPlayerGround04+" / 100",bc_map;
+	warp $waitingGround04$,0,0;
+	callfunc("waitingRoom4");
+	end;
+	
+	L_2:
+	mes "ดีแล้วล่ะ";
+	mes "เจ้าควรเตรียมตัวเสียก่อน";
+	close;
+
+OnInit:
+	waitingroom "สนามรบที่ 4",0;
+	end;
+}
+
+-	script	waitingRoom4Timer	-1,{
+	end;
+
+OnTimerCount:
+	if($currentPlayerGround04<=1){
+		end;
+	}
+	if($sumTime4<=0){
+		$isGround04Playing = 1;
+		.@sumMapNameToGo$ = $sumBattleMap$[rand(0,10)];
+		while(.@sumMapNameToGo$==$currentGround04$||.@sumMapNameToGo$==$currentGround04$||.@sumMapNameToGo$==$currentGround04$||.@sumMapNameToGo$==$currentGround04$||.@sumMapNameToGo$==$currentGround05$)
+		.@sumMapNameToGo$ = $sumBattleMap$[rand(0,10)];
+		$currentGround04$ = .@sumMapNameToGo$;
+		mapwarp $waitingGround04$,$currentGround04$,0,0,0;
+		$sumTime4=0;
+		if($currentGround04$==$sumBattleMap$[0])
+		enablenpc "อาณาเขตรอบที่ 1#BG1";
+		else if($currentGround04$==$sumBattleMap$[1])
+		enablenpc "อาณาเขตรอบที่ 1#BG2";
+		else if($currentGround04$==$sumBattleMap$[2])
+		enablenpc "อาณาเขตรอบที่ 1#BG3";
+		else if($currentGround04$==$sumBattleMap$[3])
+		enablenpc "อาณาเขตรอบที่ 1#BG4";
+		else if($currentGround04$==$sumBattleMap$[4])
+		enablenpc "อาณาเขตรอบที่ 1#BG5";
+		else if($currentGround04$==$sumBattleMap$[5])
+		enablenpc "อาณาเขตรอบที่ 1#BG6";
+		else if($currentGround04$==$sumBattleMap$[6])
+		enablenpc "อาณาเขตรอบที่ 1#BG7";
+		else if($currentGround04$==$sumBattleMap$[7])
+		enablenpc "อาณาเขตรอบที่ 1#BG8";
+		else if($currentGround04$==$sumBattleMap$[8])
+		enablenpc "อาณาเขตรอบที่ 1#BG9";
+		else if($currentGround04$==$sumBattleMap$[9])
+		enablenpc "อาณาเขตรอบที่ 1#BG10";
+		addtimer 180000, "waitingRoom4Timer::OnTimerCount2";
+		addtimer 10000, "waitingRoom4Timer::OnTimerCountHint";
+		callfunc("SpawnItemGround4");
+		end;
+	}else{
+		$sumTime4 -= 5;
+		mapannounce $waitingGround04$,"อีก "+$sumTime4+" วินาทีจะวาร์ปผู้เล่นทุกคนไปยังสนามรบที่ 4",bc_map;
+		addtimer 5000, "waitingRoom4Timer::OnTimerCount";
+		end;
+	}
+	end;
+	
+OnTimerCountHint:
+	if($isGround04Playing == 0)
+	end;
+	mapannounce $currentGround04$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 150 ช่อง",bc_map;
+	callfunc("F_ViewPointRestart",$currentGround04$);
+	end;
+
+OnTimerCount2:
+	if($isGround04Playing == 0)
+	end;
+	mapannounce $currentGround04$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 100 ช่อง",bc_map;
+	if($currentGround04$==$sumBattleMap$[0]){
+		donpcevent "อาณาเขตรอบที่ 1#BG1::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG1";
+		disablenpc "อาณาเขตรอบที่ 1#BG1";
+	}
+	else if($currentGround04$==$sumBattleMap$[1]){
+		donpcevent "อาณาเขตรอบที่ 1#BG2::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG2";
+		disablenpc "อาณาเขตรอบที่ 1#BG2";
+	}
+	else if($currentGround04$==$sumBattleMap$[2]){
+		donpcevent "อาณาเขตรอบที่ 1#BG3::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG3";
+		disablenpc "อาณาเขตรอบที่ 1#BG3";
+	}
+	else if($currentGround04$==$sumBattleMap$[3]){
+		donpcevent "อาณาเขตรอบที่ 1#BG4::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG4";
+		disablenpc "อาณาเขตรอบที่ 1#BG4";
+	}
+	else if($currentGround04$==$sumBattleMap$[4]){
+		donpcevent "อาณาเขตรอบที่ 1#BG5::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG5";
+		disablenpc "อาณาเขตรอบที่ 1#BG5";
+	}
+	else if($currentGround04$==$sumBattleMap$[5]){
+		donpcevent "อาณาเขตรอบที่ 1#BG6::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG6";
+		disablenpc "อาณาเขตรอบที่ 1#BG6";
+	}
+	else if($currentGround04$==$sumBattleMap$[6]){
+		donpcevent "อาณาเขตรอบที่ 1#BG7::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG7";
+		disablenpc "อาณาเขตรอบที่ 1#BG7";
+	}
+	else if($currentGround04$==$sumBattleMap$[7]){
+		donpcevent "อาณาเขตรอบที่ 1#BG8::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG8";
+		disablenpc "อาณาเขตรอบที่ 1#BG8";
+	}
+	else if($currentGround04$==$sumBattleMap$[8]){
+		donpcevent "อาณาเขตรอบที่ 1#BG9::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG9";
+		disablenpc "อาณาเขตรอบที่ 1#BG9";
+	}
+	else if($currentGround04$==$sumBattleMap$[9]){
+		donpcevent "อาณาเขตรอบที่ 1#BG10::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG10";
+		disablenpc "อาณาเขตรอบที่ 1#BG10";
+	}
+	if($currentPlayerGround04>1)
+	addtimer 180000, "waitingRoom4Timer::OnTimerCount3";
+	end;
+	
+OnTimerCount3:
+	if($isGround04Playing == 0)
+	end;
+	mapannounce $currentGround04$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 50 ช่อง",bc_map;
+	if($currentGround04$==$sumBattleMap$[0]){
+		donpcevent "อาณาเขตรอบที่ 2#BG1::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG1";
+		disablenpc "อาณาเขตรอบที่ 2#BG1";
+	}
+	else if($currentGround04$==$sumBattleMap$[1]){
+		donpcevent "อาณาเขตรอบที่ 2#BG2::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG2";
+		disablenpc "อาณาเขตรอบที่ 2#BG2";
+	}
+	else if($currentGround04$==$sumBattleMap$[2]){
+		donpcevent "อาณาเขตรอบที่ 2#BG3::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG3";
+		disablenpc "อาณาเขตรอบที่ 2#BG3";
+	}
+	else if($currentGround04$==$sumBattleMap$[3]){
+		donpcevent "อาณาเขตรอบที่ 2#BG4::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG4";
+		disablenpc "อาณาเขตรอบที่ 2#BG4";
+	}
+	else if($currentGround04$==$sumBattleMap$[4]){
+		donpcevent "อาณาเขตรอบที่ 2#BG5::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG5";
+		disablenpc "อาณาเขตรอบที่ 2#BG5";
+	}
+	else if($currentGround04$==$sumBattleMap$[5]){
+		donpcevent "อาณาเขตรอบที่ 2#BG6::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG6";
+		disablenpc "อาณาเขตรอบที่ 2#BG6";
+	}
+	else if($currentGround04$==$sumBattleMap$[6]){
+		donpcevent "อาณาเขตรอบที่ 2#BG7::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG7";
+		disablenpc "อาณาเขตรอบที่ 2#BG7";
+	}
+	else if($currentGround04$==$sumBattleMap$[7]){
+		donpcevent "อาณาเขตรอบที่ 2#BG8::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG8";
+		disablenpc "อาณาเขตรอบที่ 2#BG8";
+	}
+	else if($currentGround04$==$sumBattleMap$[8]){
+		donpcevent "อาณาเขตรอบที่ 2#BG9::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG9";
+		disablenpc "อาณาเขตรอบที่ 2#BG9";
+	}
+	else if($currentGround04$==$sumBattleMap$[9]){
+		donpcevent "อาณาเขตรอบที่ 2#BG10::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG10";
+		disablenpc "อาณาเขตรอบที่ 2#BG10";
+	}
+	if($currentPlayerGround04>1)
+	addtimer 180000, "waitingRoom4Timer::OnTimerCount4";
+	end;
+	
+OnTimerCount4:
+	if($isGround04Playing == 0)
+	end;
+	mapannounce $currentGround04$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 50 ช่อง",bc_map;
+	if($currentGround04$==$sumBattleMap$[0])
+	donpcevent "อาณาเขตรอบที่ 3#BG1::OnDoDamage";
+	else if($currentGround04$==$sumBattleMap$[1])
+	donpcevent "อาณาเขตรอบที่ 3#BG2::OnDoDamage";
+	else if($currentGround04$==$sumBattleMap$[2])
+	donpcevent "อาณาเขตรอบที่ 3#BG3::OnDoDamage";
+	else if($currentGround04$==$sumBattleMap$[3])
+	donpcevent "อาณาเขตรอบที่ 3#BG4::OnDoDamage";
+	else if($currentGround04$==$sumBattleMap$[4])
+	donpcevent "อาณาเขตรอบที่ 3#BG5::OnDoDamage";
+	else if($currentGround04$==$sumBattleMap$[5])
+	donpcevent "อาณาเขตรอบที่ 3#BG6::OnDoDamage";
+	else if($currentGround04$==$sumBattleMap$[6])
+	donpcevent "อาณาเขตรอบที่ 3#BG7::OnDoDamage";
+	else if($currentGround04$==$sumBattleMap$[7])
+	donpcevent "อาณาเขตรอบที่ 3#BG8::OnDoDamage";
+	else if($currentGround04$==$sumBattleMap$[8])
+	donpcevent "อาณาเขตรอบที่ 3#BG9::OnDoDamage";
+	else if($currentGround04$==$sumBattleMap$[9])
+	donpcevent "อาณาเขตรอบที่ 3#BG10::OnDoDamage";
+	if($currentPlayerGround04>1)
+	addtimer 180000, "waitingRoom4Timer::OnTimerCount4";
+	end;
+}
+
+function	script	waitingRoom4	{
+	if($currentPlayerGround04>=2 && $sumTime4==0){
+		$sumTime4 = 60;
+		if($sumTime4==60){
+			mapannounce $waitingGround04$,"อีก "+$sumTime4+" วินาทีจะวาร์ปผู้เล่นทุกคนไปยังสนามรบที่ 4",bc_map;
+			addtimer 5000, "waitingRoom4Timer::OnTimerCount";
+			end;
+		}
+		end;
+	}
+	end;
+}
+
+prontera,161,179,4	script	สนามรบที่ 5	10202,{
+	if($isGround04Playing==0){
+		mes "เข้าห้องแรก ๆ ให้เต็มก่อนนะ";
+		close;
+	}
+	if($isGround05Playing==0&& $currentPlayerGround05 <100){
+		mes "จำนวนผู้เล่นที่รออยู่ "+$currentPlayerGround05+"/100";
+		next;
+		menu "เข้าสู่ห้องเตรียมพร้อมรบที่ 5",L_1,"ยังไม่พร้อม",L_2;
+	}else{
+		mes "ไม่สามารถเข้าห้องนี้ได้ในขณะนี้";
+		mes "จำนวนผู้เล่นที่อยู่ในสนามรบที่ 5 "+$currentPlayerGround05+"/100";
+		close;
+	}
+	L_1:
+	mes "ขอให้โชคดี";
+	close2;
+	$currentPlayerGround05++;
+	clearitem getcharid(0);
+	skill "KO_BAKURETSU2",0,SKILL_PERM;
+	skill "KO_BAKURETSU3",0,SKILL_PERM;
+	skill "KO_BAKURETSU2",1,SKILL_PERM;
+	skill "KO_BAKURETSU3",1,SKILL_PERM;
+	mapannounce "prontera","ผู้เล่น "+strcharinfo(0)+" ได้เข้าสู่สนามรบที่ 5 จำนวนผู้เล่นขณะนี้ "+$currentPlayerGround05+" / 100",bc_map;
+	warp $waitingGround05$,0,0;
+	callfunc("waitingRoom5");
+	end;
+	
+	L_2:
+	mes "ดีแล้วล่ะ";
+	mes "เจ้าควรเตรียมตัวเสียก่อน";
+	close;
+
+OnInit:
+	waitingroom "สนามรบที่ 5",0;
+	end;
+}
+
+-	script	waitingRoom5Timer	-1,{
+	end;
+	
+OnTimerCount:
+	if($currentPlayerGround05<=1){
+		end;
+	}
+	if($sumTime5<=0){
+		$isGround05Playing = 1;
+		.@sumMapNameToGo$ = $sumBattleMap$[rand(0,10)];
+		while(.@sumMapNameToGo$==$currentGround05$||.@sumMapNameToGo$==$currentGround05$||.@sumMapNameToGo$==$currentGround05$||.@sumMapNameToGo$==$currentGround05$||.@sumMapNameToGo$==$currentGround05$)
+		.@sumMapNameToGo$ = $sumBattleMap$[rand(0,10)];
+		$currentGround05$ = .@sumMapNameToGo$;
+		mapwarp $waitingGround05$,$currentGround05$,0,0,0;
+		$sumTime5=0;
+		if($currentGround05$==$sumBattleMap$[0])
+		enablenpc "อาณาเขตรอบที่ 1#BG1";
+		else if($currentGround05$==$sumBattleMap$[1])
+		enablenpc "อาณาเขตรอบที่ 1#BG2";
+		else if($currentGround05$==$sumBattleMap$[2])
+		enablenpc "อาณาเขตรอบที่ 1#BG3";
+		else if($currentGround05$==$sumBattleMap$[3])
+		enablenpc "อาณาเขตรอบที่ 1#BG4";
+		else if($currentGround05$==$sumBattleMap$[4])
+		enablenpc "อาณาเขตรอบที่ 1#BG5";
+		else if($currentGround05$==$sumBattleMap$[5])
+		enablenpc "อาณาเขตรอบที่ 1#BG6";
+		else if($currentGround05$==$sumBattleMap$[6])
+		enablenpc "อาณาเขตรอบที่ 1#BG7";
+		else if($currentGround05$==$sumBattleMap$[7])
+		enablenpc "อาณาเขตรอบที่ 1#BG8";
+		else if($currentGround05$==$sumBattleMap$[8])
+		enablenpc "อาณาเขตรอบที่ 1#BG9";
+		else if($currentGround05$==$sumBattleMap$[9])
+		enablenpc "อาณาเขตรอบที่ 1#BG10";
+		addtimer 180000, "waitingRoom5Timer::OnTimerCount2";
+		addtimer 10000, "waitingRoom5Timer::OnTimerCountHint";
+		callfunc("SpawnItemGround5");
+		end;
+	}else{
+		$sumTime5 -= 5;
+		mapannounce $waitingGround05$,"อีก "+$sumTime5+" วินาทีจะวาร์ปผู้เล่นทุกคนไปยังสนามรบที่ 5",bc_map;
+		addtimer 5000, "waitingRoom5Timer::OnTimerCount";
+		end;
+	}
+	end;
+	
+OnTimerCountHint:
+	if($isGround05Playing == 0)
+	end;
+	mapannounce $currentGround05$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 150 ช่อง",bc_map;
+	callfunc("F_ViewPointRestart",$currentGround05$);
+	end;
+
+OnTimerCount2:
+	if($isGround05Playing == 0)
+	end;
+	mapannounce $currentGround05$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 100 ช่อง",bc_map;
+	if($currentGround05$==$sumBattleMap$[0]){
+		donpcevent "อาณาเขตรอบที่ 1#BG1::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG1";
+		disablenpc "อาณาเขตรอบที่ 1#BG1";
+	}
+	else if($currentGround05$==$sumBattleMap$[1]){
+		donpcevent "อาณาเขตรอบที่ 1#BG2::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG2";
+		disablenpc "อาณาเขตรอบที่ 1#BG2";
+	}
+	else if($currentGround05$==$sumBattleMap$[2]){
+		donpcevent "อาณาเขตรอบที่ 1#BG3::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG3";
+		disablenpc "อาณาเขตรอบที่ 1#BG3";
+	}
+	else if($currentGround05$==$sumBattleMap$[3]){
+		donpcevent "อาณาเขตรอบที่ 1#BG4::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG4";
+		disablenpc "อาณาเขตรอบที่ 1#BG4";
+	}
+	else if($currentGround05$==$sumBattleMap$[4]){
+		donpcevent "อาณาเขตรอบที่ 1#BG5::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG5";
+		disablenpc "อาณาเขตรอบที่ 1#BG5";
+	}
+	else if($currentGround05$==$sumBattleMap$[5]){
+		donpcevent "อาณาเขตรอบที่ 1#BG6::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG6";
+		disablenpc "อาณาเขตรอบที่ 1#BG6";
+	}
+	else if($currentGround05$==$sumBattleMap$[6]){
+		donpcevent "อาณาเขตรอบที่ 1#BG7::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG7";
+		disablenpc "อาณาเขตรอบที่ 1#BG7";
+	}
+	else if($currentGround05$==$sumBattleMap$[7]){
+		donpcevent "อาณาเขตรอบที่ 1#BG8::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG8";
+		disablenpc "อาณาเขตรอบที่ 1#BG8";
+	}
+	else if($currentGround05$==$sumBattleMap$[8]){
+		donpcevent "อาณาเขตรอบที่ 1#BG9::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG9";
+		disablenpc "อาณาเขตรอบที่ 1#BG9";
+	}
+	else if($currentGround05$==$sumBattleMap$[9]){
+		donpcevent "อาณาเขตรอบที่ 1#BG10::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 2#BG10";
+		disablenpc "อาณาเขตรอบที่ 1#BG10";
+	}
+	if($currentPlayerGround05>1)
+	addtimer 180000, "waitingRoom5Timer::OnTimerCount3";
+	end;
+	
+OnTimerCount3:
+	if($isGround05Playing == 0)
+	end;
+	mapannounce $currentGround05$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 50 ช่อง",bc_map;
+	if($currentGround05$==$sumBattleMap$[0]){
+		donpcevent "อาณาเขตรอบที่ 2#BG1::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG1";
+		disablenpc "อาณาเขตรอบที่ 2#BG1";
+	}
+	else if($currentGround05$==$sumBattleMap$[1]){
+		donpcevent "อาณาเขตรอบที่ 2#BG2::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG2";
+		disablenpc "อาณาเขตรอบที่ 2#BG2";
+	}
+	else if($currentGround05$==$sumBattleMap$[2]){
+		donpcevent "อาณาเขตรอบที่ 2#BG3::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG3";
+		disablenpc "อาณาเขตรอบที่ 2#BG3";
+	}
+	else if($currentGround05$==$sumBattleMap$[3]){
+		donpcevent "อาณาเขตรอบที่ 2#BG4::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG4";
+		disablenpc "อาณาเขตรอบที่ 2#BG4";
+	}
+	else if($currentGround05$==$sumBattleMap$[4]){
+		donpcevent "อาณาเขตรอบที่ 2#BG5::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG5";
+		disablenpc "อาณาเขตรอบที่ 2#BG5";
+	}
+	else if($currentGround05$==$sumBattleMap$[5]){
+		donpcevent "อาณาเขตรอบที่ 2#BG6::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG6";
+		disablenpc "อาณาเขตรอบที่ 2#BG6";
+	}
+	else if($currentGround05$==$sumBattleMap$[6]){
+		donpcevent "อาณาเขตรอบที่ 2#BG7::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG7";
+		disablenpc "อาณาเขตรอบที่ 2#BG7";
+	}
+	else if($currentGround05$==$sumBattleMap$[7]){
+		donpcevent "อาณาเขตรอบที่ 2#BG8::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG8";
+		disablenpc "อาณาเขตรอบที่ 2#BG8";
+	}
+	else if($currentGround05$==$sumBattleMap$[8]){
+		donpcevent "อาณาเขตรอบที่ 2#BG9::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG9";
+		disablenpc "อาณาเขตรอบที่ 2#BG9";
+	}
+	else if($currentGround05$==$sumBattleMap$[9]){
+		donpcevent "อาณาเขตรอบที่ 2#BG10::OnDoDamage";
+		enablenpc "อาณาเขตรอบที่ 3#BG10";
+		disablenpc "อาณาเขตรอบที่ 2#BG10";
+	}
+	if($currentPlayerGround05>1)
+	addtimer 180000, "waitingRoom5Timer::OnTimerCount4";
+	end;
+	
+OnTimerCount4:
+	if($isGround05Playing == 0)
+	end;
+	mapannounce $currentGround05$,"อีก 2 นาทีต้องอยู่ภายในระยะที่กำหนดในแผนที่ทางขวาบนจอ ระยะ 50 ช่อง",bc_map;
+	if($currentGround05$==$sumBattleMap$[0])
+	donpcevent "อาณาเขตรอบที่ 3#BG1::OnDoDamage";
+	else if($currentGround05$==$sumBattleMap$[1])
+	donpcevent "อาณาเขตรอบที่ 3#BG2::OnDoDamage";
+	else if($currentGround05$==$sumBattleMap$[2])
+	donpcevent "อาณาเขตรอบที่ 3#BG3::OnDoDamage";
+	else if($currentGround05$==$sumBattleMap$[3])
+	donpcevent "อาณาเขตรอบที่ 3#BG4::OnDoDamage";
+	else if($currentGround05$==$sumBattleMap$[4])
+	donpcevent "อาณาเขตรอบที่ 3#BG5::OnDoDamage";
+	else if($currentGround05$==$sumBattleMap$[5])
+	donpcevent "อาณาเขตรอบที่ 3#BG6::OnDoDamage";
+	else if($currentGround05$==$sumBattleMap$[6])
+	donpcevent "อาณาเขตรอบที่ 3#BG7::OnDoDamage";
+	else if($currentGround05$==$sumBattleMap$[7])
+	donpcevent "อาณาเขตรอบที่ 3#BG8::OnDoDamage";
+	else if($currentGround05$==$sumBattleMap$[8])
+	donpcevent "อาณาเขตรอบที่ 3#BG9::OnDoDamage";
+	else if($currentGround05$==$sumBattleMap$[9])
+	donpcevent "อาณาเขตรอบที่ 3#BG10::OnDoDamage";
+	if($currentPlayerGround05>1)
+	addtimer 180000, "waitingRoom5Timer::OnTimerCount4";
+	end;
+}
+
+function	script	waitingRoom5	{
+	if($currentPlayerGround05>=2 && $sumTime5==0){
+		$sumTime5 = 60;
+		if($sumTime5==60){
+			mapannounce $waitingGround05$,"อีก "+$sumTime5+" วินาทีจะวาร์ปผู้เล่นทุกคนไปยังสนามรบที่ 5",bc_map;
+			addtimer 5000, "waitingRoom5Timer::OnTimerCount";
+			end;
+		}
+		end;
+	}
+	end;
+}
+
+function	script	F_PlayerDead	{
+	atcommand "@dropall";
+	if(strcharinfo(3)==$currentGround01$ && $isGround01Playing == 1){
+		$currentPlayerGround01--;
+		mapannounce strcharinfo(3),"ผู้เล่น "+strcharinfo(0)+" ได้ถูกฆ่า จำนวนผู้เหลือรอด "+$currentPlayerGround01+" / 100",bc_map;
+		if($currentPlayerGround01<=1){
+			getmapxy(.@map$,.@x,.@y,UNITTYPE_PC);
+			makeitem $winnerChickenDinnerReward,1,.@map$,.@x,.@y;
+			callfunc("MatchEndGround1");
+		}
+	}
+	else if(strcharinfo(3)==$currentGround02$&& $isGround02Playing == 1){
+		$currentPlayerGround02--;
+		mapannounce strcharinfo(3),"ผู้เล่น "+strcharinfo(0)+" ได้ถูกฆ่า จำนวนผู้เหลือรอด "+$currentPlayerGround02+" / 100",bc_map;
+		if($currentPlayerGround02<=1){
+			getmapxy(.@map$,.@x,.@y,UNITTYPE_PC);
+			makeitem $winnerChickenDinnerReward,1,.@map$,.@x,.@y;
+			callfunc("MatchEndGround2");
+		}
+	}
+	else if(strcharinfo(3)==$currentGround03$&& $isGround03Playing == 1){
+		$currentPlayerGround03--;
+		mapannounce strcharinfo(3),"ผู้เล่น "+strcharinfo(0)+" ได้ถูกฆ่า จำนวนผู้เหลือรอด "+$currentPlayerGround03+" / 100",bc_map;
+		if($currentPlayerGround03<=1){
+			getmapxy(.@map$,.@x,.@y,UNITTYPE_PC);
+			makeitem $winnerChickenDinnerReward,1,.@map$,.@x,.@y;
+			callfunc("MatchEndGround3");
+		}
+	}else if(strcharinfo(3)==$currentGround04$&& $isGround04Playing == 1){
+		$currentPlayerGround04--;
+		mapannounce strcharinfo(3),"ผู้เล่น "+strcharinfo(0)+" ได้ถูกฆ่า จำนวนผู้เหลือรอด "+$currentPlayerGround04+" / 100",bc_map;
+		if($currentPlayerGround04<=1){
+			getmapxy(.@map$,.@x,.@y,UNITTYPE_PC);
+			makeitem $winnerChickenDinnerReward,1,.@map$,.@x,.@y;
+			callfunc("MatchEndGround4");
+		}
+	}else if(strcharinfo(3)==$currentGround05$&& $isGround05Playing == 1){
+		$currentPlayerGround05--;
+		mapannounce strcharinfo(3),"ผู้เล่น "+strcharinfo(0)+" ได้ถูกฆ่า จำนวนผู้เหลือรอด "+$currentPlayerGround05+" / 100",bc_map;
+		if($currentPlayerGround05<=1){
+			getmapxy(.@map$,.@x,.@y,UNITTYPE_PC);
+			makeitem $winnerChickenDinnerReward,1,.@map$,.@x,.@y;
+			callfunc("MatchEndGround5");
+		}
+	}
+	end;
+}
+
+-	script	MatchEndGround1Timer	-1,{
+OnRoom1End:
+	cleanmap $currentGround01$;
+	mapwarp $currentGround01$,$town$,156,191,0;
+	$currentGround01$ = "";
+	$isGround01Playing = 0;
+	$currentPlayerGround01 = 0;
+	end;
+}
+
+function	script	MatchEndGround1	{
+	mapannounce $currentGround01$,"อีก 20 วินาทีจะวาร์ปผู้เล่นทุกคนออกจากแผนที่นี้",bc_map;
+	addtimer 20000, "MatchEndGround1Timer::OnRoom1End";
+	if($currentGround01$==$sumBattleMap$[0]){
+		disablenpc "อาณาเขตรอบที่ 1#BG1";
+		disablenpc "อาณาเขตรอบที่ 2#BG1";
+		disablenpc "อาณาเขตรอบที่ 3#BG1";
+	}
+	else if($currentGround01$==$sumBattleMap$[1]){
+		disablenpc "อาณาเขตรอบที่ 1#BG2";
+		disablenpc "อาณาเขตรอบที่ 2#BG2";
+		disablenpc "อาณาเขตรอบที่ 3#BG2";
+	}
+	else if($currentGround01$==$sumBattleMap$[2]){
+		disablenpc "อาณาเขตรอบที่ 1#BG3";
+		disablenpc "อาณาเขตรอบที่ 2#BG3";
+		disablenpc "อาณาเขตรอบที่ 3#BG3";
+	}
+	else if($currentGround01$==$sumBattleMap$[3]){
+		disablenpc "อาณาเขตรอบที่ 1#BG4";
+		disablenpc "อาณาเขตรอบที่ 2#BG4";
+		disablenpc "อาณาเขตรอบที่ 3#BG4";
+	}
+	else if($currentGround01$==$sumBattleMap$[4]){
+		disablenpc "อาณาเขตรอบที่ 1#BG5";
+		disablenpc "อาณาเขตรอบที่ 2#BG5";
+		disablenpc "อาณาเขตรอบที่ 3#BG5";
+	}
+	else if($currentGround01$==$sumBattleMap$[5]){
+		disablenpc "อาณาเขตรอบที่ 1#BG6";
+		disablenpc "อาณาเขตรอบที่ 2#BG6";
+		disablenpc "อาณาเขตรอบที่ 3#BG6";
+	}
+	else if($currentGround01$==$sumBattleMap$[6]){
+		disablenpc "อาณาเขตรอบที่ 1#BG7";
+		disablenpc "อาณาเขตรอบที่ 2#BG7";
+		disablenpc "อาณาเขตรอบที่ 3#BG7";
+	}
+	else if($currentGround01$==$sumBattleMap$[7]){
+		disablenpc "อาณาเขตรอบที่ 1#BG8";
+		disablenpc "อาณาเขตรอบที่ 2#BG8";
+		disablenpc "อาณาเขตรอบที่ 3#BG8";
+	}
+	else if($currentGround01$==$sumBattleMap$[8]){
+		disablenpc "อาณาเขตรอบที่ 1#BG9";
+		disablenpc "อาณาเขตรอบที่ 2#BG9";
+		disablenpc "อาณาเขตรอบที่ 3#BG9";
+	}
+	else if($currentGround01$==$sumBattleMap$[9]){
+		disablenpc "อาณาเขตรอบที่ 1#BG10";
+		disablenpc "อาณาเขตรอบที่ 2#BG10";
+		disablenpc "อาณาเขตรอบที่ 3#BG10";
+	}
+	end;
+}
+
+-	script	MatchEndGround2Timer	-1,{
+OnRoom2End:
+	cleanmap $currentGround02$;
+	mapwarp $currentGround02$,$town$,156,191,0;
+	$currentGround02$ = "";
+	$isGround02Playing = 0;
+	$currentPlayerGround02 = 0;
+	end;
+}
+
+function	script	MatchEndGround2	{
+	mapannounce $currentGround02$,"อีก 20 วินาทีจะวาร์ปผู้เล่นทุกคนออกจากแผนที่นี้",bc_map;
+	addtimer 20000, "MatchEndGround2Timer::OnRoom2End";
+	if($currentGround02$==$sumBattleMap$[0]){
+		disablenpc "อาณาเขตรอบที่ 1#BG1";
+		disablenpc "อาณาเขตรอบที่ 2#BG1";
+		disablenpc "อาณาเขตรอบที่ 3#BG1";
+	}
+	else if($currentGround02$==$sumBattleMap$[1]){
+		disablenpc "อาณาเขตรอบที่ 1#BG2";
+		disablenpc "อาณาเขตรอบที่ 2#BG2";
+		disablenpc "อาณาเขตรอบที่ 3#BG2";
+	}
+	else if($currentGround02$==$sumBattleMap$[2]){
+		disablenpc "อาณาเขตรอบที่ 1#BG3";
+		disablenpc "อาณาเขตรอบที่ 2#BG3";
+		disablenpc "อาณาเขตรอบที่ 3#BG3";
+	}
+	else if($currentGround02$==$sumBattleMap$[3]){
+		disablenpc "อาณาเขตรอบที่ 1#BG4";
+		disablenpc "อาณาเขตรอบที่ 2#BG4";
+		disablenpc "อาณาเขตรอบที่ 3#BG4";
+	}
+	else if($currentGround02$==$sumBattleMap$[4]){
+		disablenpc "อาณาเขตรอบที่ 1#BG5";
+		disablenpc "อาณาเขตรอบที่ 2#BG5";
+		disablenpc "อาณาเขตรอบที่ 3#BG5";
+	}
+	else if($currentGround02$==$sumBattleMap$[5]){
+		disablenpc "อาณาเขตรอบที่ 1#BG6";
+		disablenpc "อาณาเขตรอบที่ 2#BG6";
+		disablenpc "อาณาเขตรอบที่ 3#BG6";
+	}
+	else if($currentGround02$==$sumBattleMap$[6]){
+		disablenpc "อาณาเขตรอบที่ 1#BG7";
+		disablenpc "อาณาเขตรอบที่ 2#BG7";
+		disablenpc "อาณาเขตรอบที่ 3#BG7";
+	}
+	else if($currentGround02$==$sumBattleMap$[7]){
+		disablenpc "อาณาเขตรอบที่ 1#BG8";
+		disablenpc "อาณาเขตรอบที่ 2#BG8";
+		disablenpc "อาณาเขตรอบที่ 3#BG8";
+	}
+	else if($currentGround02$==$sumBattleMap$[8]){
+		disablenpc "อาณาเขตรอบที่ 1#BG9";
+		disablenpc "อาณาเขตรอบที่ 2#BG9";
+		disablenpc "อาณาเขตรอบที่ 3#BG9";
+	}
+	else if($currentGround02$==$sumBattleMap$[9]){
+		disablenpc "อาณาเขตรอบที่ 1#BG10";
+		disablenpc "อาณาเขตรอบที่ 2#BG10";
+		disablenpc "อาณาเขตรอบที่ 3#BG10";
+	}
+	end;
+}
+
+-	script	MatchEndGround3Timer	-1,{
+OnRoom3End:
+	cleanmap $currentGround03$;
+	mapwarp $currentGround03$,$town$,156,191,0;
+	$currentGround03$ = "";
+	$isGround03Playing = 0;
+	$currentPlayerGround03 = 0;
+	end;
+}
+
+function	script	MatchEndGround3	{
+	mapannounce $currentGround03$,"อีก 20 วินาทีจะวาร์ปผู้เล่นทุกคนออกจากแผนที่นี้",bc_map;
+	addtimer 20000, "MatchEndGround3Timer::OnRoom3End";
+	if($currentGround03$==$sumBattleMap$[0]){
+		disablenpc "อาณาเขตรอบที่ 1#BG1";
+		disablenpc "อาณาเขตรอบที่ 2#BG1";
+		disablenpc "อาณาเขตรอบที่ 3#BG1";
+	}
+	else if($currentGround03$==$sumBattleMap$[1]){
+		disablenpc "อาณาเขตรอบที่ 1#BG2";
+		disablenpc "อาณาเขตรอบที่ 2#BG2";
+		disablenpc "อาณาเขตรอบที่ 3#BG2";
+	}
+	else if($currentGround03$==$sumBattleMap$[2]){
+		disablenpc "อาณาเขตรอบที่ 1#BG3";
+		disablenpc "อาณาเขตรอบที่ 2#BG3";
+		disablenpc "อาณาเขตรอบที่ 3#BG3";
+	}
+	else if($currentGround03$==$sumBattleMap$[3]){
+		disablenpc "อาณาเขตรอบที่ 1#BG4";
+		disablenpc "อาณาเขตรอบที่ 2#BG4";
+		disablenpc "อาณาเขตรอบที่ 3#BG4";
+	}
+	else if($currentGround03$==$sumBattleMap$[4]){
+		disablenpc "อาณาเขตรอบที่ 1#BG5";
+		disablenpc "อาณาเขตรอบที่ 2#BG5";
+		disablenpc "อาณาเขตรอบที่ 3#BG5";
+	}
+	else if($currentGround03$==$sumBattleMap$[5]){
+		disablenpc "อาณาเขตรอบที่ 1#BG6";
+		disablenpc "อาณาเขตรอบที่ 2#BG6";
+		disablenpc "อาณาเขตรอบที่ 3#BG6";
+	}
+	else if($currentGround03$==$sumBattleMap$[6]){
+		disablenpc "อาณาเขตรอบที่ 1#BG7";
+		disablenpc "อาณาเขตรอบที่ 2#BG7";
+		disablenpc "อาณาเขตรอบที่ 3#BG7";
+	}
+	else if($currentGround03$==$sumBattleMap$[7]){
+		disablenpc "อาณาเขตรอบที่ 1#BG8";
+		disablenpc "อาณาเขตรอบที่ 2#BG8";
+		disablenpc "อาณาเขตรอบที่ 3#BG8";
+	}
+	else if($currentGround03$==$sumBattleMap$[8]){
+		disablenpc "อาณาเขตรอบที่ 1#BG9";
+		disablenpc "อาณาเขตรอบที่ 2#BG9";
+		disablenpc "อาณาเขตรอบที่ 3#BG9";
+	}
+	else if($currentGround03$==$sumBattleMap$[9]){
+		disablenpc "อาณาเขตรอบที่ 1#BG10";
+		disablenpc "อาณาเขตรอบที่ 2#BG10";
+		disablenpc "อาณาเขตรอบที่ 3#BG10";
+	}
+	end;
+}
+
+-	script	MatchEndGround4Timer	-1,{
+OnRoom4End:
+	cleanmap $currentGround04$;
+	mapwarp $currentGround04$,$town$,156,191,0;
+	$currentGround04$ = "";
+	$isGround04Playing = 0;
+	$currentPlayerGround04 = 0;
+	end;
+}
+
+function	script	MatchEndGround4	{
+	mapannounce $currentGround04$,"อีก 20 วินาทีจะวาร์ปผู้เล่นทุกคนออกจากแผนที่นี้",bc_map;
+	addtimer 20000, "MatchEndGround4Timer::OnRoom4End";
+	if($currentGround04$==$sumBattleMap$[0]){
+		disablenpc "อาณาเขตรอบที่ 1#BG1";
+		disablenpc "อาณาเขตรอบที่ 2#BG1";
+		disablenpc "อาณาเขตรอบที่ 3#BG1";
+	}
+	else if($currentGround04$==$sumBattleMap$[1]){
+		disablenpc "อาณาเขตรอบที่ 1#BG2";
+		disablenpc "อาณาเขตรอบที่ 2#BG2";
+		disablenpc "อาณาเขตรอบที่ 3#BG2";
+	}
+	else if($currentGround04$==$sumBattleMap$[2]){
+		disablenpc "อาณาเขตรอบที่ 1#BG3";
+		disablenpc "อาณาเขตรอบที่ 2#BG3";
+		disablenpc "อาณาเขตรอบที่ 3#BG3";
+	}
+	else if($currentGround04$==$sumBattleMap$[3]){
+		disablenpc "อาณาเขตรอบที่ 1#BG4";
+		disablenpc "อาณาเขตรอบที่ 2#BG4";
+		disablenpc "อาณาเขตรอบที่ 3#BG4";
+	}
+	else if($currentGround04$==$sumBattleMap$[4]){
+		disablenpc "อาณาเขตรอบที่ 1#BG5";
+		disablenpc "อาณาเขตรอบที่ 2#BG5";
+		disablenpc "อาณาเขตรอบที่ 3#BG5";
+	}
+	else if($currentGround04$==$sumBattleMap$[5]){
+		disablenpc "อาณาเขตรอบที่ 1#BG6";
+		disablenpc "อาณาเขตรอบที่ 2#BG6";
+		disablenpc "อาณาเขตรอบที่ 3#BG6";
+	}
+	else if($currentGround04$==$sumBattleMap$[6]){
+		disablenpc "อาณาเขตรอบที่ 1#BG7";
+		disablenpc "อาณาเขตรอบที่ 2#BG7";
+		disablenpc "อาณาเขตรอบที่ 3#BG7";
+	}
+	else if($currentGround04$==$sumBattleMap$[7]){
+		disablenpc "อาณาเขตรอบที่ 1#BG8";
+		disablenpc "อาณาเขตรอบที่ 2#BG8";
+		disablenpc "อาณาเขตรอบที่ 3#BG8";
+	}
+	else if($currentGround04$==$sumBattleMap$[8]){
+		disablenpc "อาณาเขตรอบที่ 1#BG9";
+		disablenpc "อาณาเขตรอบที่ 2#BG9";
+		disablenpc "อาณาเขตรอบที่ 3#BG9";
+	}
+	else if($currentGround04$==$sumBattleMap$[9]){
+		disablenpc "อาณาเขตรอบที่ 1#BG10";
+		disablenpc "อาณาเขตรอบที่ 2#BG10";
+		disablenpc "อาณาเขตรอบที่ 3#BG10";
+	}
+	end;
+}
+
+-	script	MatchEndGround5Timer	-1,{
+OnRoom5End:
+	cleanmap $currentGround05$;
+	mapwarp $currentGround05$,$town$,156,191,0;
+	$currentGround05$ = "";
+	$isGround05Playing = 0;
+	$currentPlayerGround05 = 0;
+	end;
+}
+
+function	script	MatchEndGround5	{
+	mapannounce $currentGround05$,"อีก 20 วินาทีจะวาร์ปผู้เล่นทุกคนออกจากแผนที่นี้",bc_map;
+	addtimer 20000, "MatchEndGround5Timer::OnRoom5End";
+	if($currentGround05$==$sumBattleMap$[0]){
+		disablenpc "อาณาเขตรอบที่ 1#BG1";
+		disablenpc "อาณาเขตรอบที่ 2#BG1";
+		disablenpc "อาณาเขตรอบที่ 3#BG1";
+	}
+	else if($currentGround05$==$sumBattleMap$[1]){
+		disablenpc "อาณาเขตรอบที่ 1#BG2";
+		disablenpc "อาณาเขตรอบที่ 2#BG2";
+		disablenpc "อาณาเขตรอบที่ 3#BG2";
+	}
+	else if($currentGround05$==$sumBattleMap$[2]){
+		disablenpc "อาณาเขตรอบที่ 1#BG3";
+		disablenpc "อาณาเขตรอบที่ 2#BG3";
+		disablenpc "อาณาเขตรอบที่ 3#BG3";
+	}
+	else if($currentGround05$==$sumBattleMap$[3]){
+		disablenpc "อาณาเขตรอบที่ 1#BG4";
+		disablenpc "อาณาเขตรอบที่ 2#BG4";
+		disablenpc "อาณาเขตรอบที่ 3#BG4";
+	}
+	else if($currentGround05$==$sumBattleMap$[4]){
+		disablenpc "อาณาเขตรอบที่ 1#BG5";
+		disablenpc "อาณาเขตรอบที่ 2#BG5";
+		disablenpc "อาณาเขตรอบที่ 3#BG5";
+	}
+	else if($currentGround05$==$sumBattleMap$[5]){
+		disablenpc "อาณาเขตรอบที่ 1#BG6";
+		disablenpc "อาณาเขตรอบที่ 2#BG6";
+		disablenpc "อาณาเขตรอบที่ 3#BG6";
+	}
+	else if($currentGround05$==$sumBattleMap$[6]){
+		disablenpc "อาณาเขตรอบที่ 1#BG7";
+		disablenpc "อาณาเขตรอบที่ 2#BG7";
+		disablenpc "อาณาเขตรอบที่ 3#BG7";
+	}
+	else if($currentGround05$==$sumBattleMap$[7]){
+		disablenpc "อาณาเขตรอบที่ 1#BG8";
+		disablenpc "อาณาเขตรอบที่ 2#BG8";
+		disablenpc "อาณาเขตรอบที่ 3#BG8";
+	}
+	else if($currentGround05$==$sumBattleMap$[8]){
+		disablenpc "อาณาเขตรอบที่ 1#BG9";
+		disablenpc "อาณาเขตรอบที่ 2#BG9";
+		disablenpc "อาณาเขตรอบที่ 3#BG9";
+	}
+	else if($currentGround05$==$sumBattleMap$[9]){
+		disablenpc "อาณาเขตรอบที่ 1#BG10";
+		disablenpc "อาณาเขตรอบที่ 2#BG10";
+		disablenpc "อาณาเขตรอบที่ 3#BG10";
+	}
+	end;
+}
+
+function	script	SpawnItemGround1	{
+	freeloop(1);
+	.@count = 0;
+	//Healing
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround01$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[rand(0,1)];
+		makeitem .@sumToDropItem,1,$currentGround01$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Armor
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround01$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[rand(2,7)];
+		makeitem .@sumToDropItem,1,$currentGround01$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Ammo
+	while ( .@count < 120 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround01$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[8];
+		makeitem .@sumToDropItem,rand(1,10),$currentGround01$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Bomb
+	while ( .@count < 30 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround01$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[9];
+		makeitem .@sumToDropItem,rand(1,2),$currentGround01$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Shotgun
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround01$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[12];
+		makeitem .@sumToDropItem,1,$currentGround01$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Handgun
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround01$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[10];
+		makeitem .@sumToDropItem,1,$currentGround01$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Sniper Rifle
+	while ( .@count < 25 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround01$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[11];
+		makeitem .@sumToDropItem,1,$currentGround01$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Grenade Launcher
+	while ( .@count < 25 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround01$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[13];
+		makeitem .@sumToDropItem,1,$currentGround01$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	freeloop(0);
+	end;
+}
+
+function	script	SpawnItemGround2	{
+	freeloop(1);
+	.@count = 0;
+	//Healing
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround02$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[rand(0,1)];
+		makeitem .@sumToDropItem,1,$currentGround02$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Armor
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround02$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[rand(2,7)];
+		makeitem .@sumToDropItem,1,$currentGround02$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Ammo
+	while ( .@count < 120 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround02$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[8];
+		makeitem .@sumToDropItem,rand(1,10),$currentGround02$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Bomb
+	while ( .@count < 30 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround02$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[9];
+		makeitem .@sumToDropItem,rand(1,2),$currentGround02$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Shotgun
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround02$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[12];
+		makeitem .@sumToDropItem,1,$currentGround02$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Handgun
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround02$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[10];
+		makeitem .@sumToDropItem,1,$currentGround02$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Sniper Rifle
+	while ( .@count < 25 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround02$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[11];
+		makeitem .@sumToDropItem,1,$currentGround02$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Grenade Launcher
+	while ( .@count < 25 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround02$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[13];
+		makeitem .@sumToDropItem,1,$currentGround02$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	freeloop(0);
+	end;
+}
+
+function	script	SpawnItemGround3	{
+	freeloop(1);
+	.@count = 0;
+	//Healing
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround03$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[rand(0,1)];
+		makeitem .@sumToDropItem,1,$currentGround03$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Armor
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround03$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[rand(2,7)];
+		makeitem .@sumToDropItem,1,$currentGround03$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Ammo
+	while ( .@count < 120 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround03$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[8];
+		makeitem .@sumToDropItem,rand(1,10),$currentGround03$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Bomb
+	while ( .@count < 30 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround03$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[9];
+		makeitem .@sumToDropItem,rand(1,2),$currentGround03$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Shotgun
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround03$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[12];
+		makeitem .@sumToDropItem,1,$currentGround03$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Handgun
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround03$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[10];
+		makeitem .@sumToDropItem,1,$currentGround03$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Sniper Rifle
+	while ( .@count < 25 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround03$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[11];
+		makeitem .@sumToDropItem,1,$currentGround03$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Grenade Launcher
+	while ( .@count < 25 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround03$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[13];
+		makeitem .@sumToDropItem,1,$currentGround03$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	freeloop(0);
+	end;
+}
+
+function	script	SpawnItemGround4	{
+	freeloop(1);
+	.@count = 0;
+	//Healing
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround04$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[rand(0,1)];
+		makeitem .@sumToDropItem,1,$currentGround04$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Armor
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround04$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[rand(2,7)];
+		makeitem .@sumToDropItem,1,$currentGround04$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Ammo
+	while ( .@count < 120 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround04$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[8];
+		makeitem .@sumToDropItem,rand(1,10),$currentGround04$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Bomb
+	while ( .@count < 30 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround04$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[9];
+		makeitem .@sumToDropItem,rand(1,2),$currentGround04$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Shotgun
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround04$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[12];
+		makeitem .@sumToDropItem,1,$currentGround04$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Handgun
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround04$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[10];
+		makeitem .@sumToDropItem,1,$currentGround04$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Sniper Rifle
+	while ( .@count < 25 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround04$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[11];
+		makeitem .@sumToDropItem,1,$currentGround04$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Grenade Launcher
+	while ( .@count < 25 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround04$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[13];
+		makeitem .@sumToDropItem,1,$currentGround04$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	freeloop(0);
+	end;
+}
+
+function	script	SpawnItemGround5	{
+	freeloop(1);
+	.@count = 0;
+	//Healing
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround05$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[rand(0,1)];
+		makeitem .@sumToDropItem,1,$currentGround05$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Armor
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround05$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[rand(2,7)];
+		makeitem .@sumToDropItem,1,$currentGround05$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Ammo
+	while ( .@count < 120 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround05$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[8];
+		makeitem .@sumToDropItem,rand(1,10),$currentGround05$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Bomb
+	while ( .@count < 30 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround05$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[9];
+		makeitem .@sumToDropItem,rand(1,2),$currentGround05$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Shotgun
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround05$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[12];
+		makeitem .@sumToDropItem,1,$currentGround05$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Handgun
+	while ( .@count < 50 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround05$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[10];
+		makeitem .@sumToDropItem,1,$currentGround05$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Sniper Rifle
+	while ( .@count < 25 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround05$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[11];
+		makeitem .@sumToDropItem,1,$currentGround05$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	//Grenade Launcher
+	while ( .@count < 25 ) {
+		do {
+			.@x = rand(1,500);
+			.@y = rand(1,500);
+		} while (!checkcell($currentGround05$,.@x,.@y,cell_chkpass));
+		.@sumToDropItem = $sumItem[13];
+		makeitem .@sumToDropItem,1,$currentGround05$,.@x,.@y;
+		.@count++;
+	}
+	.@count = 0;
+	freeloop(0);
+	end;
+}
+
+ein_fild04,185,207,0	script	อาณาเขตรอบที่ 1#BG1	2248,150,150,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) < 150)
+	heal -10,-10;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+ein_fild04,185,207,0	script	อาณาเขตรอบที่ 2#BG1	2252,100,100,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 100)
+	heal -25,-25;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+ein_fild04,185,207,0	script	อาณาเขตรอบที่ 3#BG1	2251,50,50,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 50)
+	heal -50,-50;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+ein_fild04,1,1,0	script	 #BG1	139,500,500,{
+	end;
+	
+OnViewPointRestart:
+	addrid(1);
+	viewpoint 1,185,207,1,0xFF0000;
+	end;
+}
+
+harboro1,194,162,0	script	อาณาเขตรอบที่ 1#BG2	2248,150,150,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) < 150)
+	heal -10,-10;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+harboro1,194,162,0	script	อาณาเขตรอบที่ 2#BG2	2252,100,100,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 100)
+	heal -25,-25;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+harboro1,194,162,0	script	อาณาเขตรอบที่ 3#BG2	2251,50,50,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 50)
+	heal -50,-50;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+harboro1,1,1,0	script	 #BG2	139,500,500,{
+	end;
+	
+OnViewPointRestart:
+	addrid(1);
+	viewpoint 1,194,162,1,0xFF0000;
+	end;
+}
+
+verus03,122,170,0	script	อาณาเขตรอบที่ 1#BG3	2248,150,150,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) < 150)
+	heal -10,-10;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+verus03,122,170,0	script	อาณาเขตรอบที่ 2#BG3	2252,100,100,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 100)
+	heal -25,-25;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+verus03,122,170,0	script	อาณาเขตรอบที่ 3#BG3	2251,50,50,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 50)
+	heal -50,-50;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+verus03,1,1,0	script	 #BG3	139,500,500,{
+	end;
+	
+OnViewPointRestart:
+	addrid(1);
+	viewpoint 1,122,170,1,0xFF0000;
+	end;
+}
+
+ma_fild01,205,187,0	script	อาณาเขตรอบที่ 1#BG4	2248,150,150,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) < 150)
+	heal -10,-10;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+ma_fild01,205,187,0	script	อาณาเขตรอบที่ 2#BG4	2252,100,100,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 100)
+	heal -25,-25;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+ma_fild01,205,187,0	script	อาณาเขตรอบที่ 3#BG4	2251,50,50,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 50)
+	heal -50,-50;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+ma_fild01,1,1,0	script	 #BG4	139,500,500,{
+	end;
+	
+OnViewPointRestart:
+	addrid(1);
+	viewpoint 1,205,187,1,0xFF0000;
+	end;
+}
+
+dew_fild01,197,207,0	script	อาณาเขตรอบที่ 1#BG5	2248,150,150,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) < 150)
+	heal -10,-10;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+dew_fild01,197,207,0	script	อาณาเขตรอบที่ 2#BG5	2252,100,100,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 100)
+	heal -25,-25;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+dew_fild01,197,207,0	script	อาณาเขตรอบที่ 3#BG5	2251,50,50,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 50)
+	heal -50,-50;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+dew_fild01,1,1,0	script	 #BG5	139,500,500,{
+	end;
+	
+OnViewPointRestart:
+	addrid(1);
+	viewpoint 1,197,207,1,0xFF0000;
+	end;
+}
+
+gef_fild00,156,231,0	script	อาณาเขตรอบที่ 1#BG6	2248,150,150,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) < 150)
+	heal -10,-10;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+gef_fild00,156,231,0	script	อาณาเขตรอบที่ 2#BG6	2252,100,100,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 100)
+	heal -25,-25;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+gef_fild00,156,231,0	script	อาณาเขตรอบที่ 3#BG6	2251,50,50,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 50)
+	heal -50,-50;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+gef_fild00,1,1,0	script	 #BG6	139,500,500,{
+	end;
+	
+OnViewPointRestart:
+	addrid(1);
+	viewpoint 1,156,231,1,0xFF0000;
+	end;
+}
+
+pay_fild01,187,201,0	script	อาณาเขตรอบที่ 1#BG7	2248,150,150,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) < 150)
+	heal -10,-10;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+pay_fild01,187,201,0	script	อาณาเขตรอบที่ 2#BG7	2252,100,100,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 100)
+	heal -25,-25;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+pay_fild01,187,201,0	script	อาณาเขตรอบที่ 3#BG7	2251,50,50,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 50)
+	heal -50,-50;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+pay_fild01,1,1,0	script	 #BG7	139,500,500,{
+	end;
+	
+OnViewPointRestart:
+	addrid(1);
+	viewpoint 1,187,201,1,0xFF0000;
+	end;
+}
+
+prt_fild02,194,206,0	script	อาณาเขตรอบที่ 1#BG8	2248,150,150,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) < 150)
+	heal -10,-10;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+prt_fild02,194,206,0	script	อาณาเขตรอบที่ 2#BG8	2252,100,100,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 100)
+	heal -25,-25;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+prt_fild02,194,206,0	script	อาณาเขตรอบที่ 3#BG8	2251,50,50,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 50)
+	heal -50,-50;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+prt_fild02,1,1,0	script	 #BG8	139,500,500,{
+	end;
+	
+OnViewPointRestart:
+	addrid(1);
+	viewpoint 1,194,206,1,0xFF0000;
+	end;
+}
+
+yuno_fild02,193,216,0	script	อาณาเขตรอบที่ 1#BG9	2248,150,150,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) < 150)
+	heal -10,-10;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+yuno_fild02,193,216,0	script	อาณาเขตรอบที่ 2#BG9	2252,100,100,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 100)
+	heal -25,-25;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+yuno_fild02,193,216,0	script	อาณาเขตรอบที่ 3#BG9	2251,50,50,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 50)
+	heal -50,-50;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+yuno_fild02,1,1,0	script	 #BG9	139,500,500,{
+	end;
+	
+OnViewPointRestart:
+	addrid(1);
+	viewpoint 1,193,216,1,0xFF0000;
+	end;
+}
+
+ayo_fild02,196,149,0	script	อาณาเขตรอบที่ 1#BG10	2248,150,150,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) < 150)
+	heal -10,-10;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+ayo_fild02,196,149,0	script	อาณาเขตรอบที่ 2#BG10	2252,100,100,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 100)
+	heal -25,-25;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+ayo_fild02,196,149,0	script	อาณาเขตรอบที่ 3#BG10	2251,50,50,{
+	end;
+	
+OnTouch:
+	dispbottom("คุณเข้า Safe Zone แล้ว");
+	end;
+	
+OnDoDamage:
+	addrid(1);
+	getmapxy(.@null$, .@px, .@py, 0);
+	getmapxy(.@null$, .@nx, .@ny, 1, strnpcinfo(3));
+	if(distance(.@px, .@py, .@nx, .@ny) > 50)
+	heal -50,-50;
+	addtimer 10000, ""+strnpcinfo(0)+"::OnDoDamage";
+	
+	end;
+}
+
+ayo_fild02,1,1,0	script	 #BG10	139,500,500,{
+	end;
+	
+OnViewPointRestart:
+	addrid(1);
+	viewpoint 1,196,149,1,0xFF0000;
+	end;
+}
+
+function	script	F_ViewPointRestart	{
+	if(getarg(0) == $battleGround01$){
+		donpcevent " #BG1::OnViewPointRestart";
+	}
+	else if(getarg(0) == $battleGround02$){
+		donpcevent " #BG2::OnViewPointRestart";
+	}
+	else if(getarg(0) == $battleGround03$){
+		donpcevent " #BG3::OnViewPointRestart";
+	}
+	else if(getarg(0) == $battleGround04$){
+		donpcevent " #BG4::OnViewPointRestart";
+	}
+	else if(getarg(0) == $battleGround05$){
+		donpcevent " #BG5::OnViewPointRestart";
+	}
+	else if(getarg(0) == $battleGround06$){
+		donpcevent " #BG6::OnViewPointRestart";
+	}
+	else if(getarg(0) == $battleGround07$){
+		donpcevent " #BG7::OnViewPointRestart";
+	}
+	else if(getarg(0) == $battleGround08$){
+		donpcevent " #BG8::OnViewPointRestart";
+	}
+	else if(getarg(0) == $battleGround09$){
+		donpcevent " #BG9::OnViewPointRestart";
+	}
+	else if(getarg(0) == $battleGround10$){
+		donpcevent " #BG10::OnViewPointRestart";
+	}
+	end;
+}

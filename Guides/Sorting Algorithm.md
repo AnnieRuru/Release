@@ -143,4 +143,4 @@ select * from `char` order by name;
 [meko's Array manipulation functions](http://herc.ws/board/topic/14817-array-manipulation-functions/)
 
 #### See also:
-[Shuffle Algorithm](https://github.com/AnnieRuru/Release/wiki/Shuffle-Algorithm)
+[Shuffle Algorithm](https://github.com/AnnieRuru/Release/blob/master/Guides/Shuffle%20Algorithm.md)

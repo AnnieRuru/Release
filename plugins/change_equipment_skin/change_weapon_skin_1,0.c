@@ -9,7 +9,7 @@
 //===== Description: =========================================
 //= change equipment skin
 //===== Topic ================================================
-//= 
+//= http://herc.ws/board/topic/16618-change-equipment-skin/
 //===== Additional Comments: =================================  
 //= only weapon supported, LOOK_SHIELD are fuck up ... not supported
 //============================================================

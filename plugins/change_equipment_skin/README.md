@@ -26,6 +26,8 @@ change_equipment_skin: (
 
 When player equip a shadow weapon ID 24001, will show the weapon look 1238, which is Zeny_Knife
 
+"@reloadequipmentskin" will reload this file ... 
+
 ------------------------------------
 
 Note: yes, the clif->sendlook is extremely messy, I attempt to make this support change shield skin  

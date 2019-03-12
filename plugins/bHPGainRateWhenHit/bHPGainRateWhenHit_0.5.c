@@ -3,7 +3,7 @@
 //===== By: ==================================================
 //= AnnieRuru
 //===== Current Version: =====================================
-//= 0.5
+//= 0.5a
 //===== Compatible With: ===================================== 
 //= Hercules 2019-03-12
 //===== Description: =========================================
@@ -90,12 +90,11 @@ int64 battle_calc_damage_pre( struct block_list **src, struct block_list **bl, s
 		return 0;
 
 	struct map_session_data *t_sd = BL_CAST( BL_PC, *bl );
-	int flag = (*d)->flag;
-	unsigned int damage_unsigned = (unsigned int)*damage; // just to remove compile error ... dunno if this break anything
-
 	if ( t_sd != NULL ) {
 		struct player_data *ssd = getFromMSD( t_sd, 0 );
 		if ( ssd ) {
+			int flag = (*d)->flag;
+			unsigned int damage_unsigned = (unsigned int)*damage; // just to remove compile error ... dunno if this break anything
 			if ( (flag & BF_WEAPON) != 0 && (rnd() % 1000) < ssd->hp_gain_rate_chance_weapon ) {
 				if ( ssd->hp_gain_rate_amount_weapon >= 100 ) {
 					pc->heal( t_sd, damage_unsigned, 0, true );

@@ -1,6 +1,6 @@
 The main point of using this function is to shuffle arrays.  
 This function uses [Fisher-Yates shuffle](https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle).  
--> It generate a set of numbers in random order that are not repeated.  
+-> It generate a set of numbers in random order that the numbers are not repeated.  
 This can also found in [Hercules github](https://github.com/HerculesWS/Hercules/commit/bb214d4651c9c9aa9599f50cb5de52059176a87f).
 ```c
 //	F_ShuffleNumbers( <start num>, <last num>, <output array>{, <count>} );
@@ -44,7 +44,7 @@ prontera,155,185,5	script	dfdsfsadfsdf	1_F_MARIA,{
 	dispbottom "original = "+ .@string$;
 
 	// randomize the array ~
-	callfunc "F_ShuffleNumbers", 0, .@size -1, .@r;
+	F_ShuffleNumbers 0, .@size -1, .@r;
 	for ( .@i = 0; .@i < .@size; ++.@i )
 		.@tmp2[.@i] = .@tmp[ .@r[.@i] ];
 

@@ -1,3 +1,5 @@
+## Compare Battleground script between rAthena & Hercules
+
 I have 2 samples:
 
 1. [Topic in Hercules](http://herc.ws/board/topic/15913-annieruru-emp-bg/)  

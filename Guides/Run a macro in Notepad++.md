@@ -1,3 +1,5 @@
+## Run a macro in Notepad++
+
 Notepad++ has macro feature, very useful to repeat same action over again in a file  
 A fine example is generate a huge array list
 

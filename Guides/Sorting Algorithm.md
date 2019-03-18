@@ -1,3 +1,5 @@
+## Sorting Algorithm
+
 As the name implies, its sort the value in the array from smallest number to largest number.
 
 ### Counting Sort

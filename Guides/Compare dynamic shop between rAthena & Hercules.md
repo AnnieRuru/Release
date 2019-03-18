@@ -1,3 +1,5 @@
+## Compare dynamic shop between rAthena & Hercules
+
 I wonder how many of you still remember that old dynamic shop script ?  
 [Sample Mithril Coin Shop](https://github.com/AnnieRuru/Release/blob/master/scripts/Quest%20%26%20Shops/mithril_coin_shop/mithril_coin_shop_1.1.txt)  
 because nobody is using this method anymore ~ so long eAthena legacy ~

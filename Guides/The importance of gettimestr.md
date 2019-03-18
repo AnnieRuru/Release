@@ -1,3 +1,5 @@
+## The importance of gettimestr
+
 `*gettimestr` is probably another underused script command,  
 because members always think `*gettime` can do the same, but actually its the opposite
 

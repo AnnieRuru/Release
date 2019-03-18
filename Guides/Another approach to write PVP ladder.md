@@ -1,3 +1,5 @@
+## Another approach to write PVP ladder
+
 I always thought there are only 2 methods to write a PVP ladder script
 
 #### Method 1:

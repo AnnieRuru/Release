@@ -1,3 +1,5 @@
+## Shuffle Algorithm
+
 The main point of using this function is to shuffle arrays.  
 This function uses [Fisher-Yates shuffle](https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle).  
 -> It generate a set of numbers in random order that the numbers are not repeated.  

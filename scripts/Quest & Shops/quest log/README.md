@@ -12,7 +12,7 @@ luckily I got a few segment here and there in my old hard-disk so doesn't take t
 
 #### Quest #1  
 typical talk to npc A, then npc B ... etc  
-demonstrate how to use *checkquest  
+demonstrate how to use `*checkquest`  
 
 #### Quest #2
 collect item quest  

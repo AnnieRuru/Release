@@ -1,0 +1,36 @@
+//===== Hercules Script ====================================
+//= timeleft__ function
+//===== By: ================================================
+//= Annieruru
+//===== Current Version: ===================================
+//= 1.2
+//===== Compatible With: ===================================
+//= Hercules 2019-03-18
+//===== Description: =======================================
+//= show the time left in days/hours/min/sec
+//===== Topic ==============================================
+//= 1st appear in https://www.eathena.ws/board/index.php?showtopic=194195
+//===== Additional Comments: ===============================
+//= ... but has been used quite a lot
+//= I think mine better than lone_wolf inside Global Function
+//= because mine only show 2 fields if it is above 1 hour
+//= but lone_wolf version will omit the 0 if in 0 minute
+//==========================================================
+
+function	script	timeleft__	{
+	.@left = getarg(0);
+	if ( .@left <= 0 )
+		return getarg(0);
+	.@day = .@left / 86400;
+	.@hour = .@left % 86400 / 3600;
+	.@min = .@left % 3600 / 60;
+	.@sec = .@left % 60;
+	if ( .@day )
+		return sprintf( _$( "%d day %d hour" ), .@day, .@hour );
+	else if ( .@hour )
+		return sprintf( _$( "%d hour %d min" ), .@hour, .@min );
+	else if ( .@min )
+		return sprintf( _$( "%d min %d sec" ), .@min, .@sec );
+	else
+		return sprintf( _$( "%d sec" ), .@sec );
+}

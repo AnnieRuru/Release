@@ -3,7 +3,7 @@
 //===== By: ==================================================
 //= AnnieRuru
 //===== Current Version: =====================================
-//= 0.2
+//= 0.2a
 //===== Compatible With: ===================================== 
 //= Hercules 2019-03-19
 //===== Description: =========================================
@@ -50,7 +50,7 @@ int battle_check_target_post( int retVal, struct block_list *src, struct block_l
 			timer->delete( hateffect_timerid, hateffect_countdown );
 			hateffect_timerid = INVALID_TIMER;
 		}
-		hateffect_timerid = timer->add( timer->gettick() + 5000, hateffect_countdown, ((struct map_session_data*)s_bl)->bl.id, 0 );
+		hateffect_timerid = timer->add( timer->gettick() + battle->bc->prevent_logout, hateffect_countdown, ((struct map_session_data*)s_bl)->bl.id, 0 );
 		clif->hat_effect_single( s_bl, 27, true );
 	}
 

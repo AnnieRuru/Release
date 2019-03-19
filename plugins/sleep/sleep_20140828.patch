@@ -1,0 +1,70 @@
+//===== Hercules patch =======================================
+//= @sleep atcommand
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.0a
+//===== Compatible With: ===================================== 
+//= Hercules 2014-03-13
+//===== Description: =========================================
+//= sleeps the player and make it invulnerable from attacks
+//===== Topic ================================================
+//= http://herc.ws/board/topic/4563-need-a-sleep-script-for-hercules/?do=findComment&comment=29566
+//===== Additional Comments: =================================  
+//= want to take a break and go to toilet ? here comes to the rescue !
+//============================================================
+
+ src/map/atcommand.c | 33 +++++++++++++++++++++++++++++++++
+ 1 file changed, 33 insertions(+)
+
+diff --git a/src/map/atcommand.c b/src/map/atcommand.c
+index b5e8fa7..a830913 100644
+--- a/src/map/atcommand.c
++++ b/src/map/atcommand.c
+@@ -9374,6 +9374,38 @@ static inline void atcmd_channel_help(int fd, const char *command, bool can_crea
+ 	clif->message(fd,atcmd_output);
+ 	return true;
+ }
++
++ACMD(sleep) {
++	if ( map->list[sd->bl.m].flag.pvp || map->list[sd->bl.m].flag.gvg || map->list[sd->bl.m].flag.gvg_castle || map->list[sd->bl.m].flag.battleground ) {
++		clif->message( fd, "Cannot use this command in pvp/gvg/battleground maps." );
++		return false;
++	}
++	else if ( map->list[sd->bl.m].flag.nowarp && map->list[sd->bl.m].flag.nowarpto ) {
++		clif->message( fd, "Cannot use this command in event maps." );
++		return false;
++	}
++	else if ( battle_config.prevent_logout && ( DIFF_TICK( timer->gettick(), sd->canlog_tick ) < battle_config.prevent_logout ) ) {
++		clif->message( fd, "Cannot use this command while in combat." );
++		return false;
++	}
++	else if ( sd->sc.opt1 && sd->sc.opt1 != OPT1_SLEEP ) {
++		clif->message( fd, "Cannot use this command during status ailment" );
++		return false;
++	}
++	else if ( !sd->sc.opt1 ) {
++		status->change_start( NULL, &sd->bl, SC_TRICKDEAD, 10000, 1, 0, 0, 0, 1000, 0 );
++		sd->sc.opt1 = OPT1_SLEEP;
++		clif->message( fd, "You have fallen asleep." );
++	}
++	else {
++		sd->sc.opt1 = 0;
++		clif->emotion( &sd->bl, 45 );
++		status_change_end( &sd->bl, SC_TRICKDEAD, -1 );
++		clif->message( fd, "You have awake." );
++	}
++	return true;
++}
++
+ /**
+  * Fills the reference of available commands in atcommand DBMap
+  **/
+@@ -9384,6 +9416,7 @@ void atcommand_basecommands(void) {
+ 	 * Command reference list, place the base of your commands here
+ 	 **/
+ 	AtCommandInfo atcommand_base[] = {
++		ACMD_DEF(sleep),
+ 		ACMD_DEF2("warp", mapmove),
+ 		ACMD_DEF(where),
+ 		ACMD_DEF(jumpto),

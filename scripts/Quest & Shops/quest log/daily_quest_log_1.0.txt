@@ -16,7 +16,7 @@ function	script	F_MesItemInfo	{
 //===== By: ==================================================
 //= AnnieRuru
 //===== Current Version: =====================================
-//= 1.0
+//= 1.0a
 //===== Compatible With: ===================================== 
 //= Hercules 2019-02-23
 //===== Description: =========================================
@@ -26,14 +26,10 @@ function	script	F_MesItemInfo	{
 //===== Topic ================================================
 //= http://herc.ws/board/topic/7218-sample-questlog-script/
 //===== Additional Comments: =================================  
-//= Note : the item giver should be done on attendance system ... though
+//= Note : the daily item giver should be done with attendance system ... though
 //============================================================
 
 /*	Hercules\db\quest_db.conf
-{
-	Id: 49916
-	Name: "Shining Rocker"
-},
 {
 	Id: 49917
 	Name: "Daily Item Giver"
@@ -60,7 +56,7 @@ function	script	F_MesItemInfo	{
 		IconName = "ico_dq.bmp",
 		Description = {
 			"Claim Freebies Everyday !",
-			"by <NAVI>Daily Item Giver<INFO>prontera,155,185,</INFO></NAVI>"
+			"by <NAVI>Daily Quest<INFO>prontera,155,185,</INFO></NAVI>"
 		},
 		Summary = "Gain Freebies Everyday",
 		NpcSpr = "1_F_MARIA",
@@ -76,7 +72,7 @@ function	script	F_MesItemInfo	{
 		IconName = "ico_dq.bmp",
 		Description = {
 			"Hunt Poring Everyday !",
-			"by <NAVI>Daily Item Giver<INFO>prontera,155,185,</INFO></NAVI>"
+			"by <NAVI>Daily Quest<INFO>prontera,155,185,</INFO></NAVI>"
 		},
 		Summary = "Hunt Poring Everyday",
 		NpcSpr = "1_F_MARIA",
@@ -91,7 +87,7 @@ function	script	F_MesItemInfo	{
 		IconName = "ico_dq.bmp",
 		Description = {
 			"Hunt Poring Everyday !",
-			"by <NAVI>Daily Item Giver<INFO>prontera,155,185,</INFO></NAVI>"
+			"by <NAVI>Daily Quest<INFO>prontera,155,185,</INFO></NAVI>"
 		},
 		Summary = "Hunt Poring Everyday (Cooldown)",
 		NpcSpr = "1_F_MARIA",
@@ -124,6 +120,7 @@ prontera,155,185,5	script	Daily Quest	1_F_MARIA,{
 		erasequest 49918;
 		setquest 49919, getcalendartime(0,0);
 		dispbottom "complete";
+		getexp 1000,1000;
 		close;
 	}
 	else if ( questprogress(49918,HUNTING) == 1 ) {

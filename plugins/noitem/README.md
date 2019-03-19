@@ -1,4 +1,4 @@
-### Download: 1.5
+### Download: 1.6
 plugin
 
 tested with
@@ -50,5 +50,9 @@ plugin
 1.5  
 plugin  
 --- remove the 50 items restriction limit by utilizing vector
+
+1.6  
+plugin  
+--- fix server crash on certain compiler
 
 </details>

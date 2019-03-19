@@ -1,0 +1,47 @@
+function	script	timeleft__	{
+	.@left = getarg(0);
+	if ( .@left <= 0 )
+		return getarg(0);
+	.@day = .@left / 86400;
+	.@hour = .@left % 86400 / 3600;
+	.@min = .@left % 3600 / 60;
+	.@sec = .@left % 60;
+	if ( .@day )
+		return sprintf( _$( "%d day %d hour" ), .@day, .@hour );
+	else if ( .@hour )
+		return sprintf( _$( "%d hour %d min" ), .@hour, .@min );
+	else if ( .@min )
+		return sprintf( _$( "%d min %d sec" ), .@min, .@sec );
+	else
+		return sprintf( _$( "%d sec" ), .@sec );
+}
+
+//===== Hercules Script ======================================
+//= Daily Supply
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: ===================================== 
+//= Hercules 2019-03-18
+//===== Description: ========================================= 
+//= get daily supply
+//===== Topic ================================================
+//= http://herc.ws/board/topic/16634-daily-random-supplies/?do=findComment&comment=90905
+//===== Additional Comments: =================================
+//= 
+//============================================================
+
+prontera,155,185,5	script	kjdsfhskhf	1_F_MARIA,{
+	.@today = atoi( gettimestr( "%Y%m%d", 9 ) );
+	if ( #daily_supply == .@today ) {
+		mes "You have already taken today's supply";
+		mesf "You have to wait %s countdown to get next supply", timeleft__( getcalendartime(0,0) - gettimetick(2) );
+		close;
+	}
+	getitem F_Rand( 656, 657, 505, 645, 506, 14510 ), rand(1,10);
+	getitem F_Rand( 656, 657, 505, 645, 506, 14510 ), rand(5,15);
+	getitem F_Rand( 656, 657, 505, 645, 506, 14510 ), rand(10,20);
+	#daily_supply = .@today;
+	end;
+}

@@ -1,0 +1,153 @@
+function	script	F_MesItemInfo	{
+	.@item = getarg(0);
+	.@itemname$ = getitemname(.@item);
+	if (.@itemname$ != "null") {
+		.@itemslot = getitemslots(.@item);
+		if (.@itemslot)
+			.@itemname$ = sprintf("%s [%d]", .@itemname$, .@itemslot);
+	}
+	else
+		.@itemname$ = "Unknown Item";
+	if (PACKETVER >= 20150729)
+		return sprintf("<ITEM>%s<INFO>%d</INFO></ITEM>", .@itemname$, .@item);
+	else if (PACKETVER >= 20130130)
+		return sprintf("<ITEMLINK>%s<INFO>%d</INFO></ITEMLINK>", .@itemname$, .@item);
+	else
+		return .@itemname$;
+}
+
+function	script	timeleft__	{
+	.@left = getarg(0);
+	if ( .@left <= 0 )
+		return getarg(0);
+	.@day = .@left / 86400;
+	.@hour = .@left % 86400 / 3600;
+	.@min = .@left % 3600 / 60;
+	.@sec = .@left % 60;
+	if ( .@day )
+		return sprintf( _$( "%d day %d hour" ), .@day, .@hour );
+	else if ( .@hour )
+		return sprintf( _$( "%d hour %d min" ), .@hour, .@min );
+	else if ( .@min )
+		return sprintf( _$( "%d min %d sec" ), .@min, .@sec );
+	else
+		return sprintf( _$( "%d sec" ), .@sec );
+}
+
+//===== Hercules Script ======================================
+//= Daily Supply
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.3
+//===== Compatible With: ===================================== 
+//= Hercules 2019-03-19
+//===== Description: ========================================= 
+//= get daily supply, but also with every 6 hours and every 12 hours
+//===== Topic ================================================
+//= http://herc.ws/board/topic/16634-daily-random-supplies/?do=findComment&comment=90931
+//===== Additional Comments: =================================
+//= 
+//============================================================
+
+/*
+prontera,153,185,5	script	Debug only	1_F_MARIA,{
+	deletearray #daily_supply;
+	end;
+}
+*/
+
+prontera,155,185,5	script	Daily Supply	1_F_MARIA,{
+	mes .npcname$;
+	mes "Supply set no.1 can claim at every 12am, 6am, 12pm, 6pm";
+	mes "Supply set no.2 can claim at every 12am and 12pm";
+	mes "Supply set no.3 can claim at every 12am";
+	next;
+//	for ( .@i = 1; .@i <= 3; ++.@i )
+//		dispbottom #daily_supply[.@i] +" "+ gettimestr("%Y-%m/%d %H:%M:%S", 21, #daily_supply[.@i] );
+	for ( .@i = 0; .@i < 3; ++.@i ) {
+		if ( #daily_supply[.@i +1] < gettimetick(2) )
+			.@menu$[.@i] = sprintf( _$( "%sTake Supply Set#%d%s" ), F_MesColor(C_GREEN), .@i +1, F_MesColor(C_BLACK) );
+		else
+			.@menu$[.@i] = sprintf( _$( "%sWait %s%s" ), F_MesColor(C_RED), timeleft__( #daily_supply[.@i +1] - gettimetick(2) ), F_MesColor(C_BLACK) );
+	}
+	.@s = select ( implode(.@menu$, ":"), "Display Chances" );
+	mes .npcname$;
+	if ( .@s == 4 ) {
+		mes "The Chances are:-";
+		for ( .@i = 1; .@i <= 3; ++.@i ) {
+			mes " ";
+			mesf "Set %d :", .@i;
+			mesf "Randomly get any one type of these item, the amount between %d~%d", getd(".item"+ .@i +"[0]"), getd(".item"+ .@i +"[1]");
+			for ( .@j = 3; .@j < getd(".item"+ .@i +"size"); .@j += 2 )
+				mesf "%s : %s", F_MesItemInfo( getd(".item"+ .@i +"["+( .@j -1 )+"]") ), getd(".chance_display_item"+ .@i +"$["+ .@j +"]");
+		}
+		close;
+	}
+	if ( #daily_supply[.@s] < gettimetick(2) ) {
+		mes "Retrieving today's supply...";
+		.@r = rand(.totalchance[.@s]);
+		for ( .@i = 3; ( .@r -= getd(".item"+ .@s +"["+ .@i +"]") ) >= 0; .@i += 2 );
+		getitem getd(".item"+ .@s +"["+( .@i -1 )+"]"), rand( getd(".item"+ .@s +"[0]"), getd(".item"+ .@s +"[1]") );
+		switch ( .@s ) {
+		case 1: #daily_supply[1] = min( getcalendartime(0,0), getcalendartime(6,0), getcalendartime(12,0), getcalendartime(18,0) ); break;
+		case 2: #daily_supply[2] = min( getcalendartime(0,0), getcalendartime(12,0) ); break;
+		case 3: #daily_supply[3] = getcalendartime(0,0); break;
+		}
+	}
+	else {
+		mes "You have already taken this supply";
+		mesf "You have to wait %s", timeleft__( #daily_supply[.@s] - gettimetick(2) );
+	}
+	close;
+OnInit:
+	.npcname$ = "["+ strnpcinfo(NPC_NAME_VISIBLE) +"]";
+	setarray .item1,
+		1, 10, // amount : rand(1,10)
+	//	chance of getting the items Set#1
+	//	<Item ID>,<chance>
+		Red_Potion,    5,
+		Orange_Potion, 4,
+		Yellow_Potion, 3,
+		White_Potion,  2,
+		Blue_Potion,   1,
+		Green_Potion,  6;
+
+	setarray .item2,
+		5, 15, // amount : rand(5,15)
+	//	chance of getting the items Set#2
+	//	<Item ID>,<chance>
+		Red_Herb,    5,
+		Yellow_Herb, 4,
+		White_Herb,  3,
+		Blue_Herb,   2,
+		Green_Herb,  1;
+
+	setarray .item3,
+		10, 20, // amount : rand(10,20)
+	//	chance of getting the items Set#3
+	//	<Item ID>,<chance>
+		Apple,        5,
+		Banana,       4,
+		Grape,        3,
+		Carrot,       2,
+		Sweet_Potato, 1,
+		Meat,         99, 
+		Honey,        50,
+		Milk,         100;
+
+	for ( .@i = 1; .@i <= 3; ++.@i ) {
+		setd ".item"+ .@i +"size", getarraysize( getd(".item"+ .@i) );
+		for ( .@j = 3; .@j < getd(".item"+ .@i +"size"); .@j += 2 )
+			.totalchance[.@i] += getd(".item"+ .@i +"["+ .@j +"]");
+		for ( .@j = 3; .@j < getd(".item"+ .@i +"size"); .@j += 2 ) {
+			.@chance = getd(".item"+ .@i +"["+ .@j +"]") *10000 / .totalchance[.@i];
+			.@division = .@chance / 100;
+			.@remainder$ = .@chance % 100;
+			while ( getstrlen(.@remainder$) < 2 )
+				.@remainder$ = insertchar(.@remainder$, "0", 0);
+			setd ".chance_display_item"+ .@i +"$["+ .@j +"]", .@division +"."+ .@remainder$ +"%";
+		}
+	}
+	end;
+}

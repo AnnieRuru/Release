@@ -1,0 +1,138 @@
+//===== Hercules Script ======================================
+//= ITEML function
+//===== By: ==================================================
+//= AnnieRuru
+//= original by Cydh -> https://rathena.org/board/topic/118548-release-script-command-itemlink-to-generate/
+//===== Current Version: =====================================
+//= 1.0
+//===== Compatible With: =====================================
+//= Hercules 2019-03-20
+//===== Description: =========================================
+//= display clickable item link for npctalk/message/dispbottom/announce/unittalk
+//===== Topic ================================================
+//= http://herc.ws/board/topic/16648-iteml-function/
+//===== Additional Comments: =================================
+//= just a script to test this function
+//============================================================
+
+// <ITEML>00000085&00(00(00(00(00</ITEM
+
+prontera,155,185,3	script	itemlinktest#1	1_F_MARIA,{
+	input .@a;
+	npctalk F_ITEML(.@a, 0, 4001,4001,4001,4001);
+	npctalk F_ITEML(5083, 0, 4001,4001,4001,4001, 1,2000,1);
+	setarray .@opt_id, 1, 2;
+	setarray .@opt_value, 2000, 2000;
+//	setarray .@opt_param, 0, 0;
+	npctalk F_ITEML(5083, 0, 4001,4001,4001,4001, .@opt_id, .@opt_value, .@opt_param);
+//	debugmes itemlink(.@a,1);
+	debugmes F_ITEML(.@a, 0, 4001,4001,4001,4001);
+	debugmes F_ITEML(5083, 0, 4001,4001,4001,4001, .@opt_id, .@opt_value, .@opt_param);
+	end;
+}
+
+prontera,158,185,3	script	itemlinktest#2	1_F_MARIA,{
+	input .@a$;
+	npctalk .@a$;
+	debugmes .@a$;
+	end;
+}
+
+prontera,150,185,3	script	base62tobase10	1_F_MARIA,{
+	input .@a$;
+	for ( .@i = 0; getstrlen(.@a$); ++.@i ) {
+		.@value += 62 ** .@i * callsub( S_base10, charat( .@a$, getstrlen(.@a$) -1 ) );
+		.@a$ = delchar( .@a$, getstrlen(.@a$) -1 );
+	}
+	dispbottom .@a$ +" = "+ .@value;
+	end;
+S_base10:
+	if ( getarg(0) == "0" ) return 0;
+	if ( getarg(0) == "1" ) return 1;
+	if ( getarg(0) == "2" ) return 2;
+	if ( getarg(0) == "3" ) return 3;
+	if ( getarg(0) == "4" ) return 4;
+	if ( getarg(0) == "5" ) return 5;
+	if ( getarg(0) == "6" ) return 6;
+	if ( getarg(0) == "7" ) return 7;
+	if ( getarg(0) == "8" ) return 8;
+	if ( getarg(0) == "9" ) return 9;
+	if ( getarg(0) == "a" ) return 10;
+	if ( getarg(0) == "b" ) return 11;
+	if ( getarg(0) == "c" ) return 12;
+	if ( getarg(0) == "d" ) return 13;
+	if ( getarg(0) == "e" ) return 14;
+	if ( getarg(0) == "f" ) return 15;
+	if ( getarg(0) == "g" ) return 16;
+	if ( getarg(0) == "h" ) return 17;
+	if ( getarg(0) == "i" ) return 18;
+	if ( getarg(0) == "j" ) return 19;
+	if ( getarg(0) == "k" ) return 20;
+	if ( getarg(0) == "l" ) return 21;
+	if ( getarg(0) == "m" ) return 22;
+	if ( getarg(0) == "n" ) return 23;
+	if ( getarg(0) == "o" ) return 24;
+	if ( getarg(0) == "p" ) return 25;
+	if ( getarg(0) == "q" ) return 26;
+	if ( getarg(0) == "r" ) return 27;
+	if ( getarg(0) == "s" ) return 28;
+	if ( getarg(0) == "t" ) return 29;
+	if ( getarg(0) == "u" ) return 30;
+	if ( getarg(0) == "v" ) return 31;
+	if ( getarg(0) == "w" ) return 32;
+	if ( getarg(0) == "x" ) return 33;
+	if ( getarg(0) == "y" ) return 34;
+	if ( getarg(0) == "z" ) return 35;
+	if ( getarg(0) == "A" ) return 36;
+	if ( getarg(0) == "B" ) return 37;
+	if ( getarg(0) == "C" ) return 38;
+	if ( getarg(0) == "D" ) return 39;
+	if ( getarg(0) == "E" ) return 40;
+	if ( getarg(0) == "F" ) return 41;
+	if ( getarg(0) == "G" ) return 42;
+	if ( getarg(0) == "H" ) return 43;
+	if ( getarg(0) == "I" ) return 44;
+	if ( getarg(0) == "J" ) return 45;
+	if ( getarg(0) == "K" ) return 46;
+	if ( getarg(0) == "L" ) return 47;
+	if ( getarg(0) == "M" ) return 48;
+	if ( getarg(0) == "N" ) return 49;
+	if ( getarg(0) == "O" ) return 50;
+	if ( getarg(0) == "P" ) return 51;
+	if ( getarg(0) == "Q" ) return 52;
+	if ( getarg(0) == "R" ) return 53;
+	if ( getarg(0) == "S" ) return 54;
+	if ( getarg(0) == "T" ) return 55;
+	if ( getarg(0) == "U" ) return 56;
+	if ( getarg(0) == "V" ) return 57;
+	if ( getarg(0) == "W" ) return 58;
+	if ( getarg(0) == "X" ) return 59;
+	if ( getarg(0) == "Y" ) return 60;
+	if ( getarg(0) == "Z" ) return 61;
+	return -1;
+}
+
+prontera,150,180,5	script	item_option	1_F_MARIA,{
+//	setequipoption EQI_HEAD_TOP, 1, 1, 2000;
+	setequipoption EQI_HEAD_TOP, 2, 2, 2000;
+	end;
+}
+
+prontera,155,180,5	script	final test	1_F_MARIA,{
+//	getnameditem 501, getcharid(0);
+	npctalk F_ITEML(501);
+	npctalk F_ITEML(1201);
+	npctalk F_ITEML(5083);
+	npctalk F_ITEML(19543);
+//	npctalk F_ITEML(501, 0, 254, 0, 150000, 2); // this is currently bug in hercules
+//	debugmes F_ITEML(501, 0, 254, 0, 150000, 2);
+	npctalk F_ITEML(1501, 13);
+	npctalk F_ITEML(1501, 13, 4001, 4002, 4003, 4004);
+	npctalk F_ITEML(5083, 0, 4001,4001,4001,4001, 1,2000,1);
+	setarray .@opt_id, 1, 2;
+	setarray .@opt_value, 2000, 2000;
+//	setarray .@opt_param, 0, 0;
+	npctalk F_ITEML(5083, 0, 4001,4001,4001,4001, .@opt_id, .@opt_value, .@opt_param);
+//	debugmes F_ITEML(5083, 0, 4001,4001,4001,4001, .@opt_id, .@opt_value, .@opt_param);
+	end;
+}

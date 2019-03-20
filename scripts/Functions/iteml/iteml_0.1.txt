@@ -1,0 +1,32 @@
+//===== Hercules Script ======================================
+//= ITEML function
+//===== By: ==================================================
+//= AnnieRuru
+//= original by Cydh -> https://rathena.org/board/topic/118548-release-script-command-itemlink-to-generate/
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: =====================================
+//= Hercules 2019-03-20
+//===== Description: =========================================
+//= display clickable item link for npctalk/message/dispbottom/announce/unittalk
+//===== Topic ================================================
+//= http://herc.ws/board/topic/16648-iteml-function/
+//===== Additional Comments: =================================
+//= 1st attempt to write this
+//============================================================
+
+function	script	F_ITEML	{
+	.@id = getarg(0);
+	.@digit[2] = .@id / 3844;
+	.@digit[1] = .@id / 62 % 62;
+	.@digit[0] = .@id % 62;
+	.@itemtype = getiteminfo( .@id, 2 );
+	if ( .@itemtype == IT_WEAPON || .@itemtype == IT_ARMOR )
+		.@show_slot = true;
+	return "<ITEML>00000"+ .@show_slot +( (.@digit[2] > 0)? $@base62$[ .@digit[2] ] : "" )+ $@base62$[ .@digit[1] ] + $@base62$[ .@digit[0] ] +"</ITEML>";
+}
+-	script	ITEML	FAKE_NPC,{
+OnInit:
+	setarray $@base62$,"0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z";
+	end;
+}

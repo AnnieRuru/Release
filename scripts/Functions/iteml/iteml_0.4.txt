@@ -1,0 +1,45 @@
+//===== Hercules Script ======================================
+//= ITEML function
+//===== By: ==================================================
+//= AnnieRuru
+//= original by Cydh -> https://rathena.org/board/topic/118548-release-script-command-itemlink-to-generate/
+//===== Current Version: =====================================
+//= 0.4
+//===== Compatible With: =====================================
+//= Hercules 2019-03-20
+//===== Description: =========================================
+//= display clickable item link for npctalk/message/dispbottom/announce/unittalk
+//===== Topic ================================================
+//= http://herc.ws/board/topic/16648-iteml-function/
+//===== Additional Comments: =================================
+//= add refine and cards
+//============================================================
+
+function	script	F_ITEML	{
+	.@id = getarg(0);
+	.@itemid$ = callsub( S_Base62, .@id );
+	.@itemtype = getiteminfo( .@id, ITEMINFO_TYPE );
+	if ( .@itemtype == IT_WEAPON || .@itemtype == IT_ARMOR )
+		.@show_slot = true;
+	.@equip_loc$ = callsub( S_Base62, getiteminfo( .@id, ITEMINFO_LOC ), 5 );
+	.@viewid$ = "&"+ callsub( S_Base62, getiteminfo( .@id, ITEMINFO_VIEWSPRITE ) );
+	if ( .@refine = getarg(1,0) )
+		.@refine$ = "%"+ callsub( S_Base62, .@refine );
+	.@cards$ = sprintf( "(%s(%s(%s(%s", callsub( S_Base62, getarg(2,0) ), callsub( S_Base62, getarg(3,0) ), callsub( S_Base62, getarg(4,0) ), callsub( S_Base62, getarg(5,0) ) );
+	return "<ITEML>"+ .@equip_loc$ + .@show_slot + .@itemid$ + .@viewid$ + .@refine$ + .@cards$ +"</ITEML>";
+S_Base62:
+	.@num = getarg(0);
+	while ( .@num ) {
+		.@base62_value$ = $@base62$[ .@num % 62 ] + .@base62_value$;
+		.@num /= 62;
+	}
+	.@default_zeroes = getarg(1,2);
+	while ( getstrlen(.@base62_value$) < .@default_zeroes )
+		.@base62_value$ = insertchar( .@base62_value$, "0", 0 );
+	return .@base62_value$;
+}
+-	script	ITEML	FAKE_NPC,{
+OnInit:
+	setarray $@base62$,"0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z";
+	end;
+}

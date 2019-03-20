@@ -27,7 +27,7 @@
 HPExport struct hplugin_info pinfo = {
 	"bAtkWhenLowHP",
 	SERVER_TYPE_MAP,
-	"0.1",
+	"0.2",
 	HPM_VERSION,
 };
 

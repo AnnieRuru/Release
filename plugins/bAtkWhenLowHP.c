@@ -3,7 +3,7 @@
 //===== By: ==================================================
 //= AnnieRuru
 //===== Current Version: =====================================
-//= 0.1a
+//= 0.2
 //===== Compatible With: ===================================== 
 //= Hercules 2019-03-20
 //===== Description: =========================================
@@ -70,8 +70,12 @@ void pc_damage_post( struct map_session_data *sd, struct block_list *src, unsign
 			status_calc_bl( &sd->bl, SCB_BATK );
 		}
 		else if ( sd->battle_status.hp *100 / sd->battle_status.max_hp >= 25 && ssd->is_low_hp == true ) {
+//			int bonus = sd->base_status.batk - ssd->atk_when_low_hp;
+//			sd->base_status.batk = cap_value( bonus, 0, USHRT_MAX );
+//			ssd->is_low_hp = false;
+//			status_calc_bl( &sd->bl, SCB_BATK );
 			ssd->is_low_hp = false;
-			status_calc_pc( sd, SCO_FORCE );
+			status_calc_pc( sd, SCO_NONE );
 		}
 	}
 	return;
@@ -90,7 +94,7 @@ void pc_heal_post( struct map_session_data *sd, unsigned int hp, unsigned int sp
 		}
 		else if ( sd->battle_status.hp *100 / sd->battle_status.max_hp >= 25 && ssd->is_low_hp == true ) {
 			ssd->is_low_hp = false;
-			status_calc_pc( sd, SCO_FORCE );
+			status_calc_pc( sd, SCO_NONE );
 		}
 	}
 	return;
@@ -110,4 +114,5 @@ HPExport void plugin_init (void) {
 	addHookPre( pc, bonus, pc_bonus_pre );
 	addHookPost( pc, damage, pc_damage_post );
 	addHookPost( pc, heal, pc_heal_post );
+	addHookPre( status, calc_pc_, status_calc_pc_pre );
 }

@@ -4,7 +4,7 @@
 //= AnnieRuru
 //= original by Cydh -> https://rathena.org/board/topic/118548-release-script-command-itemlink-to-generate/
 //===== Current Version: =====================================
-//= 1.0
+//= 1.0a
 //===== Compatible With: =====================================
 //= Hercules 2019-03-20
 //===== Description: =========================================
@@ -32,7 +32,7 @@ function	script	F_ITEML	{
 			.@opt_value = getarg(7,0);
 			.@opt_param = getarg(8,0);
 		}
-		else if ( getdatatype( getarg(6) ) & DATATYPE_VAR ) {
+		else if ( getdatatype( getarg(6) ) == DATATYPE_VAR|DATATYPE_INT ) {
 			copyarray .@opt_id, getarg(6), MAX_ITEM_OPTIONS;
 			copyarray .@opt_value, getarg(7), MAX_ITEM_OPTIONS;
 			copyarray .@opt_param, getarg(8), MAX_ITEM_OPTIONS;

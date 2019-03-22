@@ -4,16 +4,16 @@
 //= AnnieRuru
 //= original by Cydh -> https://rathena.org/board/topic/118548-release-script-command-itemlink-to-generate/
 //===== Current Version: =====================================
-//= 0.4
+//= 1.1
 //===== Compatible With: =====================================
-//= Hercules 2019-03-20
+//= Hercules 2019-03-22
 //===== Description: =========================================
 //= display clickable item link for npctalk/message/dispbottom/announce/unittalk
-//=    ITEML( <ItemID>{, <refine>{, <card1>, <card2>, <card3>, <card4> }} );
+//=    ITEML( <ItemID>{, <refine>{, <card1>, <card2>, <card3>, <card4>{, <item option ID>, <item option value>, <item option param> }}} );
 //===== Topic ================================================
 //= http://herc.ws/board/topic/16648-iteml-function/
 //===== Additional Comments: =================================
-//= add refine and cards
+//= fix item options
 //============================================================
 
 function	script	F_ITEML	{
@@ -27,7 +27,27 @@ function	script	F_ITEML	{
 	if ( .@refine = getarg(1,0) )
 		.@refine$ = "%"+ callsub( S_Base62, .@refine );
 	.@cards$ = sprintf( "(%s(%s(%s(%s", callsub( S_Base62, getarg(2,0) ), callsub( S_Base62, getarg(3,0) ), callsub( S_Base62, getarg(4,0) ), callsub( S_Base62, getarg(5,0) ) );
-	return "<ITEML>"+ .@equip_loc$ + .@show_slot + .@itemid$ + .@viewid$ + .@refine$ + .@cards$ +"</ITEML>";
+	if ( getarg(6,0) ) {
+		.@datatype = getdatatype( getarg(6) );
+		if ( .@datatype == (DATATYPE_VAR|DATATYPE_INT) ) {
+			copyarray .@opt_id, getarg(6), MAX_ITEM_OPTIONS;
+			copyarray .@opt_value, getarg(7), MAX_ITEM_OPTIONS;
+			copyarray .@opt_param, getarg(8), MAX_ITEM_OPTIONS;
+		}
+		else if ( .@datatype & DATATYPE_INT ) {
+			.@opt_id = getarg(6);
+			.@opt_value = getarg(7);
+			.@opt_param = getarg(8);
+		}
+		else {
+			debugmes "F_ITEML - Error";
+			end;
+		}
+		.@item_option_size = getarraysize(.@opt_id);
+		for ( .@i = 0; .@i < .@item_option_size; ++.@i )
+			.@item_option$ += sprintf( "*%s+%s,%s", callsub( S_Base62, .@opt_id[.@i] ), callsub( S_Base62, .@opt_param[.@i] ), callsub( S_Base62, .@opt_value[.@i] ) );
+	}
+	return "<ITEML>"+ .@equip_loc$ + .@show_slot + .@itemid$ + .@viewid$ + .@refine$ + .@cards$ + .@item_option$ +"</ITEML>";
 S_Base62:
 	.@num = getarg(0);
 	while ( .@num ) {

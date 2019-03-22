@@ -4,11 +4,12 @@
 //= AnnieRuru
 //= original by Cydh -> https://rathena.org/board/topic/118548-release-script-command-itemlink-to-generate/
 //===== Current Version: =====================================
-//= 1.0
+//= 1.1
 //===== Compatible With: =====================================
-//= Hercules 2019-03-20
+//= Hercules 2019-03-22
 //===== Description: =========================================
 //= display clickable item link for npctalk/message/dispbottom/announce/unittalk
+//=    ITEML( <ItemID>{, <refine>{, <card1>, <card2>, <card3>, <card4>{, <item option ID>, <item option value>, <item option param> }}} );
 //===== Topic ================================================
 //= http://herc.ws/board/topic/16648-iteml-function/
 //===== Additional Comments: =================================
@@ -124,12 +125,13 @@ prontera,155,180,5	script	final test	1_F_MARIA,{
 	npctalk F_ITEML(1201);
 	npctalk F_ITEML(5083);
 	npctalk F_ITEML(19543);
-//	npctalk F_ITEML(501, 0, 254, 0, 150000, 2); // this is currently bug in hercules
-//	debugmes F_ITEML(501, 0, 254, 0, 150000, 2);
+	npctalk F_ITEML(501, 0, 254, 0, 150000 & 65535, 2); // this is currently bug in hercules
+	debugmes F_ITEML(501, 0, 254, 0, 150000 & 65535, 2);
 	npctalk F_ITEML(1501, 13);
 	npctalk F_ITEML(1501, 13, 4001, 4002, 4003, 4004);
-	npctalk F_ITEML(5083, 0, 4001,4001,4001,4001, 1,2000,1);
-	setarray .@opt_id, 1, 2;
+	npctalk F_ITEML(5083, 0, 4001,4001,4001,4001, 1,2000,0);
+	npctalk F_ITEML(5083, 0, 4001,4001,4001,4001, VAR_ATTPOWER,2000,0);
+	setarray .@opt_id, VAR_MAXHPAMOUNT, VAR_MAXSPAMOUNT;
 	setarray .@opt_value, 2000, 2000;
 //	setarray .@opt_param, 0, 0;
 	npctalk F_ITEML(5083, 0, 4001,4001,4001,4001, .@opt_id, .@opt_value, .@opt_param);

@@ -3,7 +3,7 @@
 //===== By: ==================================================
 //= AnnieRuru
 //===== Current Version: =====================================
-//= 1.0
+//= 1.0a
 //===== Compatible With: ===================================== 
 //= Hercules 2019-03-10
 //===== Description: =========================================
@@ -34,7 +34,7 @@ VECTOR_DECL(struct change_weapon_skin_data) weapon_skin_data;
 HPExport struct hplugin_info pinfo = {
 	"change_equipment_skin",
 	SERVER_TYPE_MAP,
-	"1.0",
+	"1.0a",
 	HPM_VERSION,
 };
 
@@ -88,7 +88,7 @@ int read_change_equipment_skin(void) {
 	int itemid_ = 0, skinid_ = 0, i = 0;
 	const char *looktype_string = NULL;
 	VECTOR_INIT(weapon_skin_data);
-	while ( config = libconfig->setting_get_elem( config_db, i++ ) ) {
+	while (( config = libconfig->setting_get_elem( config_db, i++ ) )) {
 		if ( !libconfig->setting_lookup_string( config, "Type", &looktype_string ) ) {
 			ShowError( "Missing 'Type' on entry no."CL_WHITE"%d"CL_RESET" in '"CL_WHITE"%s"CL_RESET"'.\n", i, confpath );
 			continue;

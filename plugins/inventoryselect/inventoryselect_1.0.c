@@ -3,7 +3,7 @@
 //===== By: ==================================================
 //= AnnieRuru
 //===== Current Version: =====================================
-//= 1.0
+//= 1.0a
 //===== Compatible With: ===================================== 
 //= Hercules 2019-03-22
 //===== Description: =========================================
@@ -27,7 +27,7 @@
 HPExport struct hplugin_info pinfo = {
 	"inventoryselect",
 	SERVER_TYPE_MAP,
-	"1.0",
+	"1.0a",
 	HPM_VERSION,
 };
 
@@ -76,7 +76,6 @@ BUILDIN(inventoryselect) {
 		script_pushint( st, -1 );
 	}
 	else {
-		struct player_data *ssd = getFromMSD( sd, 0 );
 		int i = ssd->inventory_select, j;
 		char var[SCRIPT_VARNAME_LENGTH];
 

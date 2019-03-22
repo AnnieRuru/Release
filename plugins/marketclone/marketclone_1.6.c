@@ -51,7 +51,7 @@ int market_clone_companion = 0; // set to 1 to enable
 HPExport struct hplugin_info pinfo = {
 	"marketclone",
 	SERVER_TYPE_MAP,
-	"1.6",
+	"1.6a",
 	HPM_VERSION,
 };
 

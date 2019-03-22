@@ -4,7 +4,7 @@
 //= AnnieRuru
 //= originally by QQfoolsorellina
 //===== Current Version: =====================================
-//= 1.2
+//= 1.2a
 //===== Compatible With: ===================================== 
 //= Hercules 2019-02-24
 //===== Description: =========================================
@@ -27,7 +27,7 @@
 HPExport struct hplugin_info pinfo = {
 	"OnPCStatCalcEvent",
 	SERVER_TYPE_MAP,
-	"1.2",
+	"1.2a",
 	HPM_VERSION,
 };
 
@@ -58,12 +58,12 @@ BUILDIN(recalculatestat) {
 		timer->add( timer->gettick() +1, recalculate_countdown, sd->bl.id, 0 ); // another trick ... although not thread-safe, but whatever ~
 	return true;
 }
-
+/*
 ACMD(recalculatestat) {
 	status_calc_pc(sd, SCO_FORCE);
 	return true;
 }
-
+*/
 HPExport void plugin_init (void) {
 	addHookPost( status, calc_pc_additional, status_calc_pc_additional_post );
 	addScriptCommand( "recalculatestat", "?", recalculatestat );

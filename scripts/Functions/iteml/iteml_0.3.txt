@@ -9,7 +9,7 @@
 //= Hercules 2019-03-20
 //===== Description: =========================================
 //= display clickable item link for npctalk/message/dispbottom/announce/unittalk
-//=    ITEML( <ItemID> );
+//=    F_ITEML( <ItemID> );
 //===== Topic ================================================
 //= http://herc.ws/board/topic/16648-iteml-function/
 //===== Additional Comments: =================================

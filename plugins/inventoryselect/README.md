@@ -1,6 +1,6 @@
 ## Credit to [Epoque](https://rathena.org/board/topic/118545-release-stormbreaker/) for the idea
 
-### Download : 1.0
+### Download : 1.1
 plugin
 
 while reading the description,
@@ -39,3 +39,17 @@ prontera,158,185,5	script	djk2sfhsd	1_F_MARIA,{
 }
 ```
 
+![inventoryselect](https://raw.githubusercontent.com/AnnieRuru/customs/master/screenshots/screen2019Hercules038.jpg)
+
+<details>
+	<summary>Revision History</summary>
+
+1.0 - plugin
+
+1.0a
+- fix struct player_data twice
+
+1.1 - plugin
+- fix server crash when using magnifier
+
+</details>

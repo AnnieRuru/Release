@@ -4,7 +4,7 @@
 //= AnnieRuru
 //= Credit - Dastgir -> http://hercules.ws/board/topic/7188-market/
 //===== Current Version: =====================================
-//= 1.6
+//= 1.6a
 //===== Compatible With: ===================================== 
 //= Hercules 2019-03-22
 //===== Description: =========================================
@@ -219,7 +219,7 @@ ACMD(market){
 		clif->message( fd, "You can't create a Market clone too near to an npc." );
 		return false;
 	}
-	if ( !message || !*message ) {
+	if ( strlen(message) == 0 || !*message ) {
 		clif->message( fd, "Syntax: @market \"<Title>\" \"<Message>\" <Color>");
 		clif->message( fd, "The <Color> field is optional. Examples:-");
 		color_list(fd);

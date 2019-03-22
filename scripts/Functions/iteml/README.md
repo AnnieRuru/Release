@@ -8,7 +8,7 @@ script
 
 item link system, shift-click on the item to display the item description
 
-thanks to Cydh posting the topic, I also get a crack on the formula,
+thanks to Cydh posting the topic, I also get a crack on the formula,  
 although this is a script function ... well not a script command like cydh did ... but I guess it also gets the job done
 
 

@@ -1,0 +1,407 @@
+ src/map/atcommand.c | 134 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ src/map/battle.c    |   4 ++
+ src/map/chat.c      |  20 ++++++++
+ src/map/chat.h      |   2 +
+ src/map/clif.c      |   2 +
+ src/map/map.c       |   3 ++
+ src/map/mob.c       |  42 ++++++++++++++++
+ src/map/mob.h       |   5 ++
+ src/map/pc.h        |   2 +
+ src/map/script.c    |   8 ++++
+ 10 files changed, 222 insertions(+)
+
+diff --git a/src/map/atcommand.c b/src/map/atcommand.c
+index b788c6c..00c7635 100644
+--- a/src/map/atcommand.c
++++ b/src/map/atcommand.c
+@@ -1958,6 +1958,8 @@ int atkillmonster_sub(struct block_list *bl, va_list ap)
+ 	nullpo_ret(md=(struct mob_data *)bl);
+ 	flag = va_arg(ap, int);
+ 	
++	if ( md->market_chat_id )
++		return 0;
+ 	if (md->guardian_data)
+ 		return 0; //Do not touch WoE mobs!
+ 	
+@@ -3636,6 +3638,11 @@ void atcommand_raise_sub(struct map_session_data* sd) {
+ 			if (pl_sd->st && pl_sd->st->state != END)
+ 				pl_sd->st->state = END;
+ 		}
++		if ( pl_sd->market_clone_id ) {
++			status->damage( NULL, map->id2bl( pl_sd->market_clone_id ), 100, 0, 0, 5 );
++			pl_sd->market_clone_id = 0;
++			pl_sd->market_clone_delay = (int)time(NULL);
++		}
+ 	}
+ 	mapit->free(iter);
+ 	
+@@ -9374,6 +9381,131 @@ static inline void atcmd_channel_help(int fd, const char *command, bool can_crea
+ 	clif->message(fd,atcmd_output);
+ 	return true;
+ }
++
++ACMD(market){
++	char title[CHAT_SIZE_MAX], msg[CHAT_SIZE_MAX];
++	int clone_delay = 10; // 10 seconds
++	if ( sd->market_clone_id ) {
++		clif->message( fd, "You already have a Market clone summoned. Type '@marketkill' to remove that clone.");
++		return false;
++	}
++	if ( sd->market_clone_delay + clone_delay > (int)time(NULL) ) {
++		safesnprintf( atcmd_output, CHAT_SIZE_MAX, "You must wait %d seconds before using this command again.", sd->market_clone_delay + clone_delay - (int)time(NULL) );
++		clif->message( fd, atcmd_output );
++		return false;
++	}
++	if ( !map->list[sd->bl.m].flag.town ) {
++		clif->message( fd, "You can only use @market in a town.");
++		return false;
++	}
++	if ( map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKNOCHAT ) ) {
++		clif->message( fd, "You cannot use @market in this area.");
++		return false;
++	}
++	if ( pc_isdead(sd) ) {
++		clif->message( fd, "You can't create a Market clone while you are dead." );
++		return false;
++	}
++	if ( npc->isnear( &sd->bl ) ) {
++		clif->message( fd, "You can't create a Market clone too near to an npc." );
++		return false;
++	}
++	if ( !message || !*message ) {
++		clif->message( fd, "Syntax: @market \"<Title>\" \"<Message>\"");
++		return false;
++	}
++//	if ( sscanf( message, "\"%[^\"]\" \"%[^\"]\"", title, msg ) < 2 ) {
++//		clif->message( fd, "Remember the Quotation Mark -> \"");
++//		clif->message( fd, "Syntax: @market \"<Title>\" \"<Message>\"");
++//		return false;
++//	} no more f*cking sscanf
++	{ // say hello to the dirties string calculation ~ Hooray ~ !!
++		int i = 0, j = 0, l = strlen( message ) +1;
++		char *temp = (char*)aMalloc( strlen( message ) +1 );
++		if ( message[0] != '\"' ) {
++			clif->message( fd, "Remember the <Title> should start with a Quotation Mark -> \"");
++			clif->message( fd, "Syntax: @market \"<Title>\" \"<Message>\"");
++			return false;
++		}
++		i = 1;
++		while ( i <= l ) {
++			if ( message[i] == '\"' || message[i] == '\0' )
++				break;
++			else
++				temp[j++] = message[i];
++			i++;
++		}
++		if ( message[i] != '\"' ) {
++			clif->message( fd, "Remember the <Title> should end with a Quotation Mark -> \"");
++			clif->message( fd, "Syntax: @market \"<Title>\" \"<Message>\"");
++			return false;
++		}
++		temp[j] = '\0';
++		safestrncpy( title, temp, CHAT_SIZE_MAX );		
++		i++;
++		if ( message[i] != ' ' ) {
++			clif->message( fd, "Remember the [Space] between the <Title> and <Message>.");
++			clif->message( fd, "Syntax: @market \"<Title>\" \"<Message>\"");
++			return false;
++		}
++		i++;
++		if ( message[i] != '\"' ) {
++			clif->message( fd, "Remember the <Message> should start with a Quotation Mark -> \"");
++			clif->message( fd, "Syntax: @market \"<Title>\" \"<Message>\"");
++			return false;
++		}
++		i++;
++		j = 0;
++		while ( i <= l ) {
++			if ( message[i] == '\"' || message[i] == '\0' )
++				break;
++			else
++				temp[j++] = message[i];
++			i++;
++		}
++		if ( message[i] != '\"' ) {
++			clif->message( fd, "Remember the <Message> should end with a Quotation Mark -> \"");
++			clif->message( fd, "Syntax: @market \"<Title>\" \"<Message>\"");
++			return false;
++		}
++		temp[j] = '\0';
++		safestrncpy( msg, temp, CHAT_SIZE_MAX );
++		aFree( temp );
++	}
++	if ( strlen( title ) < 4 ) {
++		clif->message( fd, "The Title must more than 4 characters." );
++		return false;
++	}
++	if ( strlen( title ) >= CHATROOM_TITLE_SIZE ) {
++		safesnprintf( atcmd_output, CHAT_SIZE_MAX, "The Title must not more than %d characters.", CHATROOM_TITLE_SIZE );
++		clif->message( fd, atcmd_output );
++		return false;
++	}
++	if ( strlen( msg ) < 4 ) {
++		clif->message( fd, "The Message must more than 4 characters." );
++		return false;
++	}
++	sd->market_clone_id = mob->clone_spawn_market( sd, sd->bl.m, sd->bl.x, sd->bl.y, title, msg );
++	if ( !sd->market_clone_id ) {
++		clif->message( fd, "Market clone Cannot be Created." );
++		return false;
++	}
++	clif->message( fd, "Market clone Created." );
++	return true;
++}
++
++ACMD(marketkill){
++	if ( !sd->market_clone_id ) {
++		clif->message( fd, "You don't have a market clone yet. Type '@market \"<title>\" \"<message>\"' to create one.");
++		return false;
++	}
++	status_kill( map->id2bl( sd->market_clone_id ) );
++	clif->message( fd, "Your market clone has removed." );
++	sd->market_clone_id = 0;
++	sd->market_clone_delay = (int)time(NULL);
++	return true;
++}
++
+ /**
+  * Fills the reference of available commands in atcommand DBMap
+  **/
+@@ -9384,6 +9516,8 @@ void atcommand_basecommands(void) {
+ 	 * Command reference list, place the base of your commands here
+ 	 **/
+ 	AtCommandInfo atcommand_base[] = {
++		ACMD_DEF(market),
++		ACMD_DEF(marketkill),
+ 		ACMD_DEF2("warp", mapmove),
+ 		ACMD_DEF(where),
+ 		ACMD_DEF(jumpto),
+diff --git a/src/map/battle.c b/src/map/battle.c
+index fa388fc..dc5a319 100644
+--- a/src/map/battle.c
++++ b/src/map/battle.c
+@@ -6112,6 +6112,10 @@ int battle_check_target( struct block_list *src, struct block_list *target,int f
+ 	if( (s_bl = battle->get_master(src)) == NULL )
+ 		s_bl = src;
+ 
++	if ( target->type == BL_MOB )
++		if ( ((TBL_MOB*)target)->market_chat_id )
++			return -1;
++
+ 	if ( s_bl->type == BL_PC ) {
+ 		switch( t_bl->type ) {
+ 			case BL_MOB: // Source => PC, Target => MOB
+diff --git a/src/map/chat.c b/src/map/chat.c
+index cd7b5f8..c1e82e6 100644
+--- a/src/map/chat.c
++++ b/src/map/chat.c
+@@ -125,6 +125,26 @@ bool chat_joinchat(struct map_session_data* sd, int chatid, const char* pass) {
+ 		return false;
+ 	}
+ 
++	if ( cd->owner->type == BL_MOB ) {
++		struct mob_data *md = (TBL_MOB*)cd->owner;
++		if ( md->market_chat_id ) {
++			short msg_len = 0;
++			int color = 0xFFC0CB; // PINK !
++			int colorcode = (color & 0x0000FF) << 16 | (color & 0x00FF00) | (color & 0xFF0000) >> 16;
++			char output[CHAT_SIZE_MAX];
++			safesnprintf( output, CHAT_SIZE_MAX, "%s : %s", md->name, md->market_message );
++			msg_len = strlen( output )+1;
++			WFIFOHEAD( sd->fd, msg_len + 12 );
++			WFIFOW( sd->fd, 0 ) = 0x2C1;
++			WFIFOW( sd->fd, 2 ) = msg_len + 12;
++			WFIFOL( sd->fd, 4 ) = 0;
++			WFIFOL( sd->fd, 8 ) = colorcode;
++			safestrncpy( (char*)WFIFOP( sd->fd,12 ), output, msg_len );
++			WFIFOSET( sd->fd, msg_len + 12 );
++			return true;
++		}
++	}
++
+ 	if( !cd->pub && strncmp(pass, cd->pass, sizeof(cd->pass)) != 0 && !pc_has_permission(sd, PC_PERM_JOIN_ALL_CHAT) )
+ 	{
+ 		clif->joinchatfail(sd,1); // wrong password
+diff --git a/src/map/chat.h b/src/map/chat.h
+index e055c04..1f6bf4d 100644
+--- a/src/map/chat.h
++++ b/src/map/chat.h
+@@ -6,6 +6,8 @@
+ #define MAP_CHAT_H
+ 
+ #include "map.h" // struct block_list, CHATROOM_TITLE_SIZE
++#include "mob.h"
++#include "../common/socket.h"
+ #include "../common/cbasetypes.h"
+ #include "../common/db.h"
+ 
+diff --git a/src/map/clif.c b/src/map/clif.c
+index 308f419..033ae73 100644
+--- a/src/map/clif.c
++++ b/src/map/clif.c
+@@ -4367,6 +4367,8 @@ void clif_getareachar_unit(struct map_session_data* sd,struct block_list *bl) {
+ 					}
+ 				}
+ #endif
++				if ( md->market_chat_id )
++					clif->dispchat( (struct chat_data*)map->id2bl( md->market_chat_id ), sd->fd );
+ 			}
+ 			break;
+ 		case BL_PET:
+diff --git a/src/map/map.c b/src/map/map.c
+index 0c8c2d9..91fe3a9 100644
+--- a/src/map/map.c
++++ b/src/map/map.c
+@@ -1670,6 +1670,9 @@ void map_deliddb(struct block_list *bl)
+ int map_quit(struct map_session_data *sd) {
+ 	int i;
+ 
++	if ( sd->market_clone_id )
++		status_kill( map->id2bl( sd->market_clone_id ) );
++
+ 	if(!sd->state.active) { //Removing a player that is not active.
+ 		struct auth_node *node = chrif->search(sd->status.account_id);
+ 		if (node && node->char_id == sd->status.char_id &&
+diff --git a/src/map/mob.c b/src/map/mob.c
+index fd2c421..3392e51 100644
+--- a/src/map/mob.c
++++ b/src/map/mob.c
+@@ -3531,6 +3531,47 @@ int mob_clone_spawn(struct map_session_data *sd, int16 m, int16 x, int16 y, cons
+ 	return md->bl.id;
+ }
+ 
++int mob_clone_spawn_market( struct map_session_data *sd, int16 m, int16 x, int16 y, char market_title[], char market_msg[] ) { //Copy of mob_clone_spawn with some modification.
++	int class_;
++	struct mob_data *md;
++	struct mob_db* db;
++	struct status_data *mstatus;
++	struct chat_data* cd;
++
++	ARR_FIND( MOB_CLONE_START, MOB_CLONE_END, class_, mob->db_data[class_] == NULL );
++	if ( class_ >= MOB_CLONE_END )
++		return 0;
++
++	db = mob->db_data[class_] = (struct mob_db*)aCalloc( 1, sizeof(struct mob_db) );
++	mstatus = &db->status;
++	safestrncpy( db->sprite, sd->status.name, NAME_LENGTH );
++	safestrncpy( db->name, sd->status.name, NAME_LENGTH );
++	safestrncpy( db->jname, sd->status.name, NAME_LENGTH );
++	db->lv = status->get_lv(&sd->bl);
++	memcpy( mstatus, &sd->base_status, sizeof( struct status_data ) );
++	mstatus->rhw.atk = mstatus->rhw.atk2 = mstatus->lhw.atk = mstatus->lhw.atk2 = mstatus->hp = mstatus->max_hp = mstatus->sp = mstatus->max_sp =  1;
++	mstatus->mode = 0;
++	memcpy( &db->vd, &sd->vd, sizeof( struct view_data ) );
++	db->base_exp = db->job_exp = db->range2 = db->range3 = 1;
++	db->option = 0;
++
++	md = mob->once_spawn_sub( &sd->bl, m, x, y, sd->status.name, class_, "", SZ_SMALL, AI_NONE );
++	if ( !md )
++		return 0;
++	md->special_state.clone = 1;
++	mob->spawn(md);
++	unit->setdir( &md->bl, unit->getdir(&sd->bl) );
++	cd = chat->create( &md->bl, market_title, "", 1, false, 0, "", 0, 1, MAX_LEVEL );
++	if ( !cd )
++		return 0;
++	md->market_chat_id = cd->bl.id;
++	safestrncpy( md->market_message, market_msg, CHAT_SIZE_MAX );
++	clif->dispchat( cd, 0 );
++	if ( sd->vd.dead_sit == 2 )
++		clif->sitting( &md->bl );
++	return md->bl.id;
++}
++
+ int mob_clone_delete(struct mob_data *md)
+ {
+ 	const int class_ = md->class_;
+@@ -4806,6 +4847,7 @@ void mob_defaults(void) {
+ 	mob->skill_event = mobskill_event;
+ 	mob->is_clone = mob_is_clone;
+ 	mob->clone_spawn = mob_clone_spawn;
++	mob->clone_spawn_market = mob_clone_spawn_market;
+ 	mob->clone_delete = mob_clone_delete;
+ 	mob->drop_adjust = mob_drop_adjust;
+ 	mob->item_dropratio_adjust = item_dropratio_adjust;
+diff --git a/src/map/mob.h b/src/map/mob.h
+index 728f3d8..9b71a6b 100644
+--- a/src/map/mob.h
++++ b/src/map/mob.h
+@@ -8,6 +8,7 @@
+ #include "map.h" // struct status_data, struct view_data, struct mob_skill
+ #include "status.h" // struct status_data, struct status_change
+ #include "unit.h" // struct unit_data
++#include "chat.h"
+ #include "../common/cbasetypes.h"
+ #include "../common/mmo.h" // struct item
+ 
+@@ -185,6 +186,9 @@ struct mob_data {
+ 	 * MvP Tombstone NPC ID
+ 	 **/
+ 	int tomb_nid;
++
++	int market_chat_id;
++	char market_message[CHAT_SIZE_MAX];
+ };
+ 
+ 
+@@ -338,6 +342,7 @@ struct mob_interface {
+ 	int (*skill_event) (struct mob_data *md, struct block_list *src, int64 tick, int flag);
+ 	int (*is_clone) (int class_);
+ 	int (*clone_spawn) (struct map_session_data *sd, int16 m, int16 x, int16 y, const char *event, int master_id, int mode, int flag, unsigned int duration);
++	int (*clone_spawn_market) ( struct map_session_data *sd, int16 m, int16 x, int16 y, char market_title[], char market_msg[] );
+ 	int (*clone_delete) (struct mob_data *md);
+ 	unsigned int (*drop_adjust) (int baserate, int rate_adjust, unsigned short rate_min, unsigned short rate_max);
+ 	void (*item_dropratio_adjust) (int nameid, int mob_id, int *rate_adjust);
+diff --git a/src/map/pc.h b/src/map/pc.h
+index bec4522..267a24f 100644
+--- a/src/map/pc.h
++++ b/src/map/pc.h
+@@ -547,6 +547,8 @@ struct map_session_data {
+ 	const char* delunit_prevfile;
+ 	int delunit_prevline;
+ 
++	int market_clone_id;
++	int market_clone_delay;
+ };
+ 
+ #define EQP_WEAPON EQP_HAND_R
+diff --git a/src/map/script.c b/src/map/script.c
+index dee678b..a4aa845 100644
+--- a/src/map/script.c
++++ b/src/map/script.c
+@@ -9240,6 +9240,8 @@ int buildin_killmonster_sub_strip(struct block_list *bl,va_list ap)
+ 	char *event=va_arg(ap,char *);
+ 	int allflag=va_arg(ap,int);
+ 
++	if ( md->market_chat_id )
++		return 0;
+ 	md->state.npc_killmonster = 1;
+ 
+ 	if(!allflag) {
+@@ -9258,6 +9260,8 @@ int buildin_killmonster_sub(struct block_list *bl,va_list ap)
+ 	char *event=va_arg(ap,char *);
+ 	int allflag=va_arg(ap,int);
+ 
++	if ( md->market_chat_id )
++		return 0;
+ 	if(!allflag) {
+ 		if(strcmp(event,md->npc_event)==0)
+ 			status_kill(bl);
+@@ -9301,6 +9305,8 @@ int buildin_killmonsterall_sub_strip(struct block_list *bl,va_list ap)
+ 	struct mob_data *md;
+ 
+ 	md = BL_CAST(BL_MOB, bl);
++	if ( md->market_chat_id )
++		return 0;
+ 	if (md->npc_event[0])
+ 		md->npc_event[0] = 0;
+ 
+@@ -9309,6 +9315,8 @@ int buildin_killmonsterall_sub_strip(struct block_list *bl,va_list ap)
+ }
+ int buildin_killmonsterall_sub(struct block_list *bl,va_list ap)
+ {
++	if ( ((TBL_MOB*)bl)->market_chat_id )
++		return 0;
+ 	status_kill(bl);
+ 	return 0;
+ }

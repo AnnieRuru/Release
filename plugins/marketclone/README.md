@@ -1,4 +1,4 @@
-### Download: 1.6
+### Download: 1.7
 plugin
 
 --------------------------------
@@ -88,5 +88,8 @@ patch
 - remove all TBL_ and change to struct
 - add NULL checks to places where it needed
 - update the clif_charnameack with struct packet_reqnameall_ack
+
+1.7 - plugin
+- fix memory leak for not removing the chatroom
 
 </details>

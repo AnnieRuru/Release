@@ -4,7 +4,7 @@ https://github.com/rathena/rathena/issues/1779
 got people ask how to do that ...  
 so I write a plugin for it
 
-### Download: 1.0
+### Download: 1.1
 plugin
 
 also need to add a file in **conf/import/change_equipment_skin.conf**
@@ -51,4 +51,9 @@ if anybody knows how to make it support shield, I'm open to suggestion
 
 1.0 - plugin
 - release with just the weapon look
+
+1.1 - plugin
+- display a message for file not found
+- fix memory leak on VECTOR_ENSURE
+
 </details>

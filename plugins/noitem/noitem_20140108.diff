@@ -1,0 +1,185 @@
+//===== rAthena Patch ========================================
+//= noitem mapflag
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.2
+//===== Compatible With: ===================================== 
+//= rAthena 2014-01-08
+//===== Description: =========================================
+//= block players from using items
+//===== Topic ================================================
+//= https://rathena.org/board/topic/77088-certain-map-weapon-restriction/?do=findComment&comment=239079
+//===== Additional Comments: =================================  
+//= prontera   mapflag   noitem   4,5
+//= block players from equipping weapon and armor
+//============================================================
+
+ src/map/map.c    |  1 +
+ src/map/map.h    |  3 +++
+ src/map/npc.c    | 24 ++++++++++++++++++++++++
+ src/map/pc.c     | 37 +++++++++++++++++++++++++++++++++++++
+ src/map/status.c |  6 ++++++
+ 5 files changed, 71 insertions(+)
+
+diff --git a/src/map/map.c b/src/map/map.c
+index 75c7f3d..a1914fb 100644
+--- a/src/map/map.c
++++ b/src/map/map.c
+@@ -3082,6 +3082,7 @@ void map_flags_init(void)
+ 		map[i].adjust.bexp = 100;  // per map base exp multiplicator
+ 		map[i].adjust.jexp = 100;  // per map job exp multiplicator
+ 		memset(map[i].drop_list, 0, sizeof(map[i].drop_list));  // pvp nightmare drop list
++		memset(map[i].noitemlist, -1, sizeof(map[i].noitemlist));// noitem item list mapflag
+ 
+ 		// skill damage
+ #ifdef ADJUST_SKILL_DAMAGE
+diff --git a/src/map/map.h b/src/map/map.h
+index a1f2840..ddbece4 100644
+--- a/src/map/map.h
++++ b/src/map/map.h
+@@ -49,6 +49,7 @@ void map_msg_reload(void);
+ #define MAX_IGNORE_LIST 20 	// official is 14
+ #define MAX_VENDING 12
+ #define MAX_MAP_SIZE 512*512 	// Wasn't there something like this already? Can't find it.. [Shinryo]
++#define MAX_RESTRICTED_LIST 50 // use in noitem mapflag
+ 
+ /** Added definitions for WoESE objects and other [L0ne_W0lf], [aleos] */
+ enum MOBID {
+@@ -630,6 +631,7 @@ struct map_data {
+ #ifdef ADJUST_SKILL_DAMAGE
+ 		unsigned skill_damage : 1;
+ #endif
++		unsigned noitem	: 1;
+ 	} flag;
+ 	struct point save;
+ 	struct npc_data *npc[MAX_NPC_PER_MAP];
+@@ -643,6 +645,7 @@ struct map_data {
+ 	int mob_delete_timer;	// [Skotlex]
+ 	uint32 zone;	// zone number (for item/skill restrictions)
+ 	int nocommand; //Blocks @/# commands for non-gms. [Skotlex]
++	int noitemlist[MAX_RESTRICTED_LIST];
+ 	struct {
+ 		int jexp;	// map experience multiplicator
+ 		int bexp;	// map experience multiplicator
+diff --git a/src/map/npc.c b/src/map/npc.c
+index aa99716..cf858d3 100644
+--- a/src/map/npc.c
++++ b/src/map/npc.c
+@@ -3701,6 +3701,30 @@ static const char* npc_parse_mapflag(char* w1, char* w2, char* w3, char* w4, con
+ 		ShowInfo("npc_parse_mapflag: skill_damage: ADJUST_SKILL_DAMAGE is inactive (core.h). Skipping this mapflag..\n");
+ #endif
+ 	}
++	else if (!strcmpi(w3,"noitem")) {
++		int id = 0, i = 0, j = 0, k = 0, l = 0;
++		char *temp = (char*)aMalloc( strlen(w4) +1 );
++		if ( l = strlen(w4) ) {
++			i = 0;
++			while ( i <= l && k < MAX_RESTRICTED_LIST ) {
++				if ( w4[i] != ' ' && w4[i] != '	' && w4[i] != ',' && w4[i] != '\0' ) {
++					temp[j++] = w4[i];
++				}
++				else if ( w4[i-1] != ' ' && w4[i-1] != '	' && w4[i-1] != ',' ) {
++					temp[j] = '\0';
++					id = atoi( temp );
++					if ( id >= IT_HEALING && id < IT_MAX || itemdb_exists( id ) )
++						map[m].noitemlist[i] = id;
++					else
++						ShowWarning("npc_parse_mapflag: Item ID \"%s\" does not exist.\n           Mapflag noitem: At %s (file '%s', line '%d').\n", temp, map[m].name, filepath, strline(buffer,start-buffer));
++					k++;
++					j = 0;
++				}
++				i++;
++			}
++		}
++		map[m].flag.noitem = state;
++	}
+ 	else
+ 		ShowError("npc_parse_mapflag: unrecognized mapflag '%s' (file '%s', line '%d').\n", w3, filepath, strline(buffer,start-buffer));
+ 
+diff --git a/src/map/pc.c b/src/map/pc.c
+index e1542c9..2b11a4d 100755
+--- a/src/map/pc.c
++++ b/src/map/pc.c
+@@ -971,6 +971,13 @@ int pc_isequip(struct map_session_data *sd,int n)
+ 	if (!pc_isItemClass(sd,item))
+ 		return 0;
+ 
++	if ( map[sd->bl.m].flag.noitem ) {
++		int i;
++		ARR_FIND( 0, MAX_RESTRICTED_LIST, i, item->nameid == map[sd->bl.m].noitemlist[i] || item->type == map[sd->bl.m].noitemlist[i] );
++		if ( i < MAX_RESTRICTED_LIST )
++			return 0;
++	}
++
+ 	return 1;
+ }
+ 
+@@ -4395,6 +4402,13 @@ int pc_isUseitem(struct map_session_data *sd,int n)
+ 	if (!pc_isItemClass(sd,item))
+ 		return 0;
+ 
++	if ( map[sd->bl.m].flag.noitem ) {
++		int i;
++		ARR_FIND( 0, MAX_RESTRICTED_LIST, i, map[sd->bl.m].noitemlist[i] == nameid || item->type == map[sd->bl.m].noitemlist[i] );
++		if( i < MAX_RESTRICTED_LIST )
++			return 0;
++	}
++
+ 	//Dead Branch & Bloody Branch & Porings Box
+ 	if( nameid == ITEMID_BRANCH_OF_DEAD_TREE || nameid == ITEMID_BLOODY_DEAD_BRANCH || nameid == ITEMID_PORING_BOX || nameid == ITEMID_TREASURE_CHEST_SUMMONED_II )
+ 		log_branch(sd);
+@@ -8708,6 +8722,16 @@ bool pc_equipitem(struct map_session_data *sd,int n,int req_pos)
+ 
+ 	if (!(id = sd->inventory_data[n]))
+ 		return false;
++
++	if ( map[sd->bl.m].flag.noitem ) {
++		int b;
++		ARR_FIND(0, MAX_RESTRICTED_LIST, b, id->nameid == map[sd->bl.m].noitemlist[b] || id->type == map[sd->bl.m].noitemlist[b] );
++		if ( b < MAX_RESTRICTED_LIST ) {
++			clif_equipitemack(sd,n,0,0);
++			return 0;
++		}
++	}
++
+ 	pos = pc_equippoint(sd,n); //With a few exceptions, item should go in all specified slots.
+ 
+ 	if(battle_config.battle_log)
+@@ -9098,6 +9122,19 @@ void pc_checkitem(struct map_session_data *sd) {
+ 			calc_flag = 1;
+ 			continue;
+ 		}
++
++		if ( map[sd->bl.m].flag.noitem ) {
++			int j;
++			struct item_data *i_data = itemdb_exists( it.nameid );
++			for ( j = 0; j < MAX_RESTRICTED_LIST; j++ ) {
++				if ( map[sd->bl.m].noitemlist[j] == i_data->type || map[sd->bl.m].noitemlist[j] == it.nameid ) {
++					pc_unequipitem(sd, i, 2);
++					calc_flag = 1;
++					continue;
++				}
++			}
++		}
++
+ 	}
+ 
+ 	if( calc_flag && sd->state.active ) {
+diff --git a/src/map/status.c b/src/map/status.c
+index 08d37a6..1fc25ca 100644
+--- a/src/map/status.c
++++ b/src/map/status.c
+@@ -3021,6 +3021,12 @@ int status_calc_pc_(struct map_session_data* sd, bool first)
+ 				}
+ 				if(!data->script)
+ 					continue;
++				if ( map[sd->bl.m].flag.noitem ) {
++					int k;
++					ARR_FIND(0, MAX_RESTRICTED_LIST, k, c == map[sd->bl.m].noitemlist[k] || data->type == map[sd->bl.m].noitemlist[k] );
++					if ( k < MAX_RESTRICTED_LIST )
++						continue;
++				}
+ 				if(!pc_has_permission(sd,PC_PERM_USE_ALL_EQUIPMENT) && itemdb_isNoEquip(data,sd->bl.m)) // Card restriction checks.
+ 					continue;
+ 				if(i == EQI_HAND_L && sd->status.inventory[index].equip == EQP_HAND_L) { // Left hand status.

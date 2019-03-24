@@ -1,0 +1,169 @@
+//===== rAthena Patch ========================================
+//= noitem mapflag
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: ===================================== 
+//= rAthena 2013-01-17
+//===== Description: =========================================
+//= block players from using items
+//===== Topic ================================================
+//= https://rathena.org/board/topic/77365-disabling-some-healing-items/?do=findComment&comment=172935
+//===== Additional Comments: =================================  
+//= prontera   mapflag   noitem   4,5
+//= block players from equipping weapon and armor
+//============================================================
+
+
+
+Index: map.c
+===================================================================
+--- map.c	(revision 17101)
++++ map.c	(working copy)
+@@ -2909,6 +2909,7 @@
+ 		map[i].bexp      = 100;  // per map base exp multiplicator
+ 		map[i].jexp      = 100;  // per map job exp multiplicator
+ 		memset(map[i].drop_list, 0, sizeof(map[i].drop_list));  // pvp nightmare drop list
++		memset(map[i].noitemlist, -1, sizeof(map[i].noitemlist));// noitem item list mapflag
+ 
+ 		// adjustments
+ 		if( battle_config.pk_mode )
+Index: map.h
+===================================================================
+--- map.h	(revision 17101)
++++ map.h	(working copy)
+@@ -44,6 +44,7 @@
+ #define MAX_IGNORE_LIST 20 // official is 14
+ #define MAX_VENDING 12
+ #define MAX_MAP_SIZE 512*512 // Wasn't there something like this already? Can't find it.. [Shinryo]
++#define MAX_RESTRICTED_LIST 50 // use in noitem mapflag
+ 
+ // Added definitions for WoESE objects. [L0ne_W0lf]
+ enum MOBID {
+@@ -562,6 +563,7 @@
+ 		unsigned guildlock :1;
+ 		unsigned src4instance : 1; // To flag this map when it's used as a src map for instances
+ 		unsigned reset :1; // [Daegaladh]
++		unsigned noitem	: 1;
+ 	} flag;
+ 	struct point save;
+ 	struct npc_data *npc[MAX_NPC_PER_MAP];
+@@ -577,6 +579,7 @@
+ 	int jexp;	// map experience multiplicator
+ 	int bexp;	// map experience multiplicator
+ 	int nocommand; //Blocks @/# commands for non-gms. [Skotlex]
++	int noitemlist[MAX_RESTRICTED_LIST];
+ 	/**
+ 	 * Ice wall reference counter for bugreport:3574
+ 	 * - since there are a thounsand mobs out there in a lot of maps checking on,
+Index: npc.c
+===================================================================
+--- npc.c	(revision 17101)
++++ npc.c	(working copy)
+@@ -3395,6 +3395,22 @@
+ 		map[m].flag.guildlock=state;
+ 	else if (!strcmpi(w3,"reset"))
+ 		map[m].flag.reset=state;
++	else if (!strcmpi(w3,"noitem")) {
++		int i = 0, id = 0;
++		char *arr = NULL, *list = strdup(w4);
++		arr = strtok( list, " ," );
++		while ( arr ) {
++			id = atoi(arr);
++				if ( id >= 0 && id <= 18 || itemdb_exists( id ) )
++					map[m].noitemlist[i] = id;
++				else
++					ShowWarning("npc_parse_mapflag: Item ID \"%s\" does not exist.\n           Mapflag noitem: At %s (file '%s', line '%d').\n", arr, map[m].name, filepath, strline(buffer,start-buffer));
++			i++;
++			arr = strtok(NULL," ,");
++		}
++		free(list);
++		map[m].flag.noitem = state;
++	}
+ 	else
+ 		ShowError("npc_parse_mapflag: unrecognized mapflag '%s' (file '%s', line '%d').\n", w3, filepath, strline(buffer,start-buffer));
+ 
+Index: pc.c
+===================================================================
+--- pc.c	(revision 17101)
++++ pc.c	(working copy)
+@@ -868,6 +868,12 @@
+ 		return 0;
+ 	if(map[sd->bl.m].flag.battleground && ((item->flag.no_equip&8) || !pc_isAllowedCardOn(sd,item->slot,n,8)))
+ 		return 0;
++	if(map[sd->bl.m].flag.noitem) {
++		int i;
++		ARR_FIND( 0, MAX_RESTRICTED_LIST, i, item->nameid == map[sd->bl.m].noitemlist[i] || item->type == map[sd->bl.m].noitemlist[i] );
++		if ( i < MAX_RESTRICTED_LIST )
++			return 0;
++	}
+ 	if(map[sd->bl.m].flag.restricted)
+ 	{
+ 		int flag =8*map[sd->bl.m].zone;
+@@ -4118,7 +4124,12 @@
+ 				return 0;
+ 			break;
+ 	}
+-
++	if ( map[sd->bl.m].flag.noitem ) {
++		int i;
++		ARR_FIND(0, MAX_RESTRICTED_LIST, i, map[sd->bl.m].noitemlist[i] == nameid || item->type == map[sd->bl.m].noitemlist[i] );
++		if( i < MAX_RESTRICTED_LIST )
++			return 0;
++	}
+ 	if( nameid >= 12153 && nameid <= 12182 && sd->md != NULL )
+ 		return 0; // Mercenary Scrolls
+ 
+@@ -8253,8 +8264,15 @@
+ 		clif_equipitemack(sd,n,0,0);
+ 		return 0;
+ 	}
+-
+ 	id = sd->inventory_data[n];
++	if ( map[sd->bl.m].flag.noitem ) {
++		int b;
++		ARR_FIND(0, MAX_RESTRICTED_LIST, b, id->nameid == map[sd->bl.m].noitemlist[b] || id->type == map[sd->bl.m].noitemlist[b] );
++		if ( b < MAX_RESTRICTED_LIST ) {
++			clif_equipitemack(sd,n,0,0);
++			return 0;
++		}
++	}
+ 	pos = pc_equippoint(sd,n); //With a few exceptions, item should go in all specified slots.
+ 
+ 	if(battle_config.battle_log)
+@@ -8653,6 +8671,17 @@
+ 			continue;
+ 		}
+ 
++		if ( map[sd->bl.m].flag.noitem ) {
++			int b;
++			for ( b = 0; b < MAX_RESTRICTED_LIST; b++ ) {
++				if ( map[sd->bl.m].noitemlist[b] == it->type || map[sd->bl.m].noitemlist[b] == it->nameid ) {
++					pc_unequipitem(sd, i, 2);
++					calc_flag = 1;
++					continue;
++				}
++			}
++		}
++
+ 		if( it )
+ 		{ // check for forbiden items.
+ 			int flag =
+Index: status.c
+===================================================================
+--- status.c	(revision 17101)
++++ status.c	(working copy)
+@@ -2585,6 +2585,12 @@
+ 				}
+ 				if(!data->script)
+ 					continue;
++				if ( map[sd->bl.m].flag.noitem ) {
++					int b;
++					ARR_FIND(0, MAX_RESTRICTED_LIST, b, c == map[sd->bl.m].noitemlist[b] || data->type == map[sd->bl.m].noitemlist[b] );
++					if ( b < MAX_RESTRICTED_LIST )
++						continue;
++				}
+ 				if(data->flag.no_equip) { //Card restriction checks.
+ 					if(map[sd->bl.m].flag.restricted && data->flag.no_equip&(8*map[sd->bl.m].zone))
+ 						continue;

@@ -1,4 +1,4 @@
-### Download: 1.7
+### Download: 1.8
 plugin
 
 tested with
@@ -53,5 +53,9 @@ noitem_20151030
 
 1.7 - plugin
 - fix memory leak cause by aStrdup and VECTOR_ENSURE
+
+1.8 - plugin
+- fix duplicate entry by ShowWarning
+- add missing IT_AMMO item type deny
 
 </details>

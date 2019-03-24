@@ -1,34 +1,37 @@
 hehehe ... I'm so happy that now mapflag also can be a plugin  
 I think I can safely release all my custom mapflags for hercules users 
 
-### Download: 1.2
+### Download: 1.3
 plugin
 
 
 Example:
 ```c
 prontera    mapflag    fixedaspd    150
-setmapflagfixedaspd "prontera", 150;
+	setmf_fixedaspd "prontera", 150;
 ```
 all players at prontera will move at default speed
+the value capped between 85~199 ... although the maximum may not actually 199,  
+it can be battle_config.max_aspd for 1st/2nd jobs, or battle_config.max_third_aspd for 3rd jobs
 
 ```c
 prontera    mapflag    fixedaspd    150    99
-setmapflagfixedaspd "prontera", 150, 99;
+	setmf_fixedaspd "prontera", 150, 99;
 ```
 all players except GM99 at prontera will move at default speed
 
 ```c
-removemapflagfixedaspd "prontera";
+	removemf_fixedaspd "prontera";
 ```
-remove the fixedaspd mapflag in prontera, without using "@reloadscript"
+remove the fixedaspd mapflag in prontera, without using `@reloadscript`
 
 ```c
-	dispbottom getmapflagfixedaspd( "prontera" ) +"";
-	dispbottom getmapflagfixedaspd( "prontera", 0 ) +"";
-	dispbottom getmapflagfixedaspd( "prontera", 1 ) +"";
+	dispbottom getmf_fixedaspd( "prontera" ) +"";
+	dispbottom getmf_fixedaspd( "prontera", 0 ) +"";
+	dispbottom getmf_fixedaspd( "prontera", 1 ) +"";
 ```
-first 2 lines return the fixedaspd value, 3rd line return the GM level bypass restriction
+first 2 lines return the fixedaspd value, 3rd line return the GM level bypass restriction  
+Note: since the minimum value is 85, if the mapflag is off, return 0
 
 <details>
 <summary>Revision History</summary>
@@ -45,5 +48,8 @@ first 2 lines return the fixedaspd value, 3rd line return the GM level bypass re
 - update to latest revision
 - add GM level bypass restriction
 - add `*setmapflagfixedaspd` `*removemapflagfixedaspd` `*getmapflagfixedaspd` script command
+
+1.3 - plugin
+- change `*setmapflagfixedaspd` into `*setmf_fixedaspd` ... and so on
 
 </details>

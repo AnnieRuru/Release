@@ -10,7 +10,7 @@ Example:
 prontera    mapflag    fixedaspd    150
 	setmf_fixedaspd "prontera", 150;
 ```
-all players at prontera will move at default speed  
+all players will have fixed attack speed at 150 speed  
 the value capped between 85~199 ... although the maximum may not actually 199,  
 it can be battle_config.max_aspd for 1st/2nd jobs, or battle_config.max_third_aspd for 3rd jobs
 

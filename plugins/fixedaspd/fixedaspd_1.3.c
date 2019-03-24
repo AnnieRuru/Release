@@ -12,7 +12,7 @@
 //= http://herc.ws/board/topic/11155-fixedaspd-mapflag/
 //===== Additional Comments: =================================  
 //= prontera   mapflag   fixedaspd   150
-//= setmapflagfixedaspd "prontera", 150;
+//= setmf_fixedaspd "prontera", 150;
 //= fixed players attack speed at 150 speed at prontera map
 //============================================================
 

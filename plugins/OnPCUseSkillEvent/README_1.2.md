@@ -102,43 +102,43 @@ data/luafiles514/lua files/skillinfoz/skillinfolist.lub
 
 data/luafiles514/lua files/skillinfoz/skillid.lub
 ```lua
- CUSTOM_damage = 1301,  
- CUSTOM_nodamage = 1302,  
- CUSTOM_setpos = 1303,  
- CUSTOM_self = 1304,
+	CUSTOM_damage = 1301,  
+	CUSTOM_nodamage = 1302,  
+	CUSTOM_setpos = 1303,  
+	CUSTOM_self = 1304,
 ```
 
 data/luafiles514/lua files/skillinfoz/skilldescript.lub
 ```lua
-  [SKID.CUSTOM_damage] = {    
-	"Test Target Enemy",
-	"MAX Lv : 1 ",
-	"push these variables :-",
-	"'@useskilllv' for the skill level.",
-	"'@useskilltarget' for the GID.",
-  },
-  [SKID.CUSTOM_nodamage] = {    
-	"Test Target Friend",
-	"MAX Lv : 1 ",
-	"push these variables :-",
-	"'@useskilllv' for the skill level.",
-	"'@useskilltarget' for the GID.",
-  },
-  [SKID.CUSTOM_setpos] = {   
-	"Test Coordinate",
-	"MAX Lv : 1 ",
-	"push these variables :-",
-	"'@useskilllv' for the skill level.",
-	"'@useskillx' for the X coordinate.",
-	"'@useskilly' for the Y coordinate.",
-  },
-  [SKID.CUSTOM_self] = {  
-	"Test Self",
-	"MAX Lv : 1 ",
-	"push these variables :-",
-	"'@useskilllv' for the skill level.",
-  },
- ```
+	[SKID.CUSTOM_damage] = {    
+		"Test Target Enemy",
+		"MAX Lv : 1 ",
+		"push these variables :-",
+		"'.@useskilllv' for the skill level.",
+		"'.@useskilltarget' for the GID.",
+	},
+	[SKID.CUSTOM_nodamage] = {    
+		"Test Target Friend",
+		"MAX Lv : 1 ",
+		"push these variables :-",
+		"'.@useskilllv' for the skill level.",
+		"'.@useskilltarget' for the GID.",
+	},
+	[SKID.CUSTOM_setpos] = {   
+		"Test Coordinate",
+		"MAX Lv : 1 ",
+		"push these variables :-",
+		"'.@useskilllv' for the skill level.",
+		"'.@useskillx' for the X coordinate.",
+		"'.@useskilly' for the Y coordinate.",
+	},
+	[SKID.CUSTOM_self] = {  
+		"Test Self",
+		"MAX Lv : 1 ",
+		"push these variables :-",
+		"'.@useskilllv' for the skill level.",
+	}
+```
 
 
 

@@ -4,7 +4,7 @@
 //= AnnieRuru
 //= original by digitalhamster
 //===== Current Version: =====================================
-//= 1.3
+//= 1.3a
 //===== Compatible With: ===================================== 
 //= Hercules 2019-03-24
 //===== Description: =========================================
@@ -32,7 +32,7 @@
 HPExport struct hplugin_info pinfo = {
 	"charms",
 	SERVER_TYPE_MAP,
-	"1.3",
+	"1.3a",
 	HPM_VERSION,
 };
 
@@ -154,8 +154,10 @@ void npc_parse_unknown_mapflag_pre( const char **name, const char **w3, const ch
 				}
 				else {
 					id = atoi(temp);
-					if ( itemdb->exists(id) == NULL )
+					if ( itemdb->exists(id) == NULL ) {
 						ShowWarning( "npc_parse_mapflag: Item ID \"%s\" does not exist.\n    Mapflag nocharms: At %s (file '%s', line '%d').\n", temp, *name, *filepath, strline( *buffer, *start - *buffer ) );
+						id = 0;
+					}
 				}
 				if ( id > 0 ) {
 					struct item_data *idata = itemdb->search( id );
@@ -288,4 +290,3 @@ HPExport void plugin_init (void) {
 	addHookPre( pc, delitem, pc_delitem_pre );
 	addHookPost( pc, delitem, pc_delitem_post );
 }
- 

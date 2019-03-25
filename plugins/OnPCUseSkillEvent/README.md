@@ -1,13 +1,10 @@
 After so many years of hearing rumor of this modification,  
 finally today is the day I can release this to public
 
-
 ### Download : 1.4
 plugin
 
 remember that `@reloadskilldb` also can reload `conf/import/OnPCUseSkillEvent.conf` file
-
-
 
 original topic from [eathena](https://www.eathena.ws/board/index.php?showtopic=274088)
 
@@ -167,8 +164,6 @@ data/luafiles514/lua files/skillinfoz/skilldescript.lub
 	}
 ```
 
-
-
 conf/import/OnPCUseSkillEvent.conf
 ```c
 OnPCUseSkillEvent: (
@@ -182,7 +177,6 @@ OnPCUseSkillEvent: (
 	Event_Label: "qwer::Ontarget"
 },
 {
-
 	SkillName: "CUSTOM_setpos"
 	Event_Label: "qwer::Onpos"
 },
@@ -200,14 +194,12 @@ Ontarget:
 	dispbottom "lv: "+ @useskilllv +" | target "+ @useskilltarget;
 	unittalk @useskilltarget, "from "+ strcharinfo(PC_NAME);
 	end;
-	
 Onpos:	
 	dispbottom "lv: "+ @useskilllv +" | x: "+ @useskillx +" | y: "+ @useskilly;
 	end;
-	
-Onself:	dispbottom "lv: "+ @useskilllv;
+Onself:
+	dispbottom "lv: "+ @useskilllv;
 	end;
-	
 OnPCStatCalcEvent:	
 	skill CUSTOM_damage, 1;
 	skill CUSTOM_nodamage, 1;

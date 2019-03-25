@@ -1,13 +1,10 @@
 After so many years of hearing rumor of this modification,  
 finally today is the day I can release this to public
 
-
 ### Download : 1.2
 plugin
 
 remember that `@reloadskilldb` also can reload `conf/import/OnPCUseSkillEvent.txt` file
-
-
 
 original topic from [eathena](https://www.eathena.ws/board/index.php?showtopic=274088)
 
@@ -140,14 +137,12 @@ data/luafiles514/lua files/skillinfoz/skilldescript.lub
 	}
 ```
 
-
-
 conf/import/OnPCUseSkillEvent.txt
 ```c
-CUSTOM_damage,"qwer::Ontarget"
-CUSTOM_nodamage,"qwer::Ontarget"
-CUSTOM_setpos,"qwer::Onpos"
-CUSTOM_self,"qwer::Onself"
+	CUSTOM_damage,"qwer::Ontarget"
+	CUSTOM_nodamage,"qwer::Ontarget"
+	CUSTOM_setpos,"qwer::Onpos"
+	CUSTOM_self,"qwer::Onself"
 ```
 
 and finally the npc script
@@ -157,14 +152,12 @@ Ontarget:
 	dispbottom "lv: "+ @useskilllv +" | target "+ @useskilltarget;
 	unittalk @useskilltarget, "from "+ strcharinfo(0);
 	end;
-	
 Onpos:	
 	dispbottom "lv: "+ @useskilllv +" | x: "+ @useskillx +" | y: "+ @useskilly;
 	end;
-	
-Onself:	dispbottom "lv: "+ @useskilllv;
+Onself:
+	dispbottom "lv: "+ @useskilllv;
 	end;
-	
 OnPCStatCalcEvent:	
 	skill CUSTOM_damage, 1;
 	skill CUSTOM_nodamage, 1;

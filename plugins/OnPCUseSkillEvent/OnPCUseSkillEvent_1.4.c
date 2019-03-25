@@ -184,7 +184,7 @@ void read_skillevent(void) {
 		else if ( skillid > 0 )
 			skillname = skill->get_name(skillid);
 
-		struct event_data* ev = (struct event_data*)strdb_get(npc->ev_db, event);
+		struct event_data *ev = (struct event_data*)strdb_get(npc->ev_db, event);
 		if ( ev == NULL || ev->nd == NULL ) {
 			ShowWarning( "OnPCUseSkillEvent: NPC label "CL_WHITE"%s"CL_RESET" does not found on skill "CL_WHITE"%s(%d)"CL_RESET" entry no."CL_WHITE"%d"CL_RESET" in '"CL_WHITE"%s"CL_RESET"'.\n", event, skillname, skillid, i, confpath );
 			continue;

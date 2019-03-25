@@ -214,6 +214,94 @@ fuh !
 so, yes, this is basically making a new skill, so read this wiki on how to make a new skill  
 [Adding_new_skills](http://herc.ws/wiki/Adding_new_skills)
 
+---
+
 ### Frequently Asked Question
 [Why some skill ID doesn't work ?](http://herc.ws/board/topic/4925-help-skills-adding-custom-passive/)  
-more to come ....
+```
+    On 3/17/2014 at 5:45 AM, AnnieRuru said:
+
+    the problem is because of http://herc.ws/board/topic/512-skill-id-processing-overhaul/
+    hercules implement the skill ID reading in such a way that its harder to add more skill ID ( to save memory )
+    so we have to use the skill ID that is within the range of the gap that gravity not using
+```
+see this inside skill_get_index function
+```c
+	//[Ind/Hercules] GO GO GO LESS! - http://herc.ws/board/topic/512-skill-id-processing-overhaul/
+	else if( skill_id > 1019 && skill_id < 8001 ) {
+		if( skill_id < 2058 ) // 1020 - 2000 are empty
+			skill_id = 1020 + skill_id - 2001;
+		else if( skill_id < 2549 ) // 2058 - 2200 are empty - 1020+57
+			skill_id = (1077) + skill_id - 2201;
+		else if ( skill_id < 3036 ) // 2549 - 3000 are empty - 1020+57+348
+			skill_id = (1425) + skill_id - 3001;
+		else if ( skill_id < 5044 ) // 3036 - 5000 are empty - 1020+57+348+35
+			skill_id = (1460) + skill_id - 5001;
+		else
+			ShowWarning("skill_get_index: skill id '%d' is not being handled!\n",skill_id);
+	}
+```
+ 
+
+because eathena forum down, let me rephrase again what this modification does
+
+if the skill inf type is INF_ATTACK_SKILL (target enemy only) - Enemy: true
+- kill the unit with *unitkill
+- zap another player's health with *heal -1000, 0;
+- apply curse status with *sc_start
+- make the target *unittalk ...
+- etc etc etc...
+
+if the skill inf type is INF_SUPPORT_SKILL (target friends and enemy) - Friend: true
+- check if the player is party members, give buff by *sc_start
+- check if the player is guild members, give buff by *sc_start during events
+- make the player show emotion
+- warp the target player to somewhere else
+- give players item/stat/cashpoints .... by *getitem/*statusup  ... *attachrid + #CASHPOINTS
+
+if the skill inf type is INF_GROUND_SKILL (target ground) - Place: true
+- use *monster script command to summon monsters
+- *makeitem to rain items ... skill level determine the item ID ...
+- create a temporary npc .... using duplicatenpc plugin
+- etc etc etc ...
+
+this is just things I can think of, basically you can do ANYTHING with any script commands available
+
+2nd thing is, when the skill type is INF_SUPPORT_SKILL, (Friend: true)  
+you have to hold shift to target players  
+this is client side limitation, require client hexing ... which I dunno how to do
+
+---
+
+### History
+
+**Question**: Why there is no OnPCUseSkillEvent label in the npc script, but using the title OnPCUseSkillEvent ?
+
+... eathena forum down
+
+because the original modification made during eathena was something like this
+```c
+OnPCUseSkillEvent:
+	switch ( @useskillid ) {
+	case 2991:
+		switch ( @useskilllv ) {
+		case 1:
+		case 2:
+		case 3:
+			...
+		}
+		break;
+	case 2992:
+		switch ( @useskilllv ) {
+			...
+		}
+		break;
+	...
+	default:
+		end;
+	}
+```
+which runs this label every time a player use ANY skill  
+and the original custom modification tax very heavily on server resources
+
+that's why now this (revamp) version only pick which skill ID to run, along with your configurable event label

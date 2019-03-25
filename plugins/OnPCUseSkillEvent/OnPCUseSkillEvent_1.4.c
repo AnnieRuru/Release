@@ -3,7 +3,7 @@
 //===== By: ==================================================
 //= AnnieRuru
 //===== Current Version: =====================================
-//= 1.4
+//= 1.4a
 //===== Compatible With: ===================================== 
 //= Hercules 2019-03-25
 //===== Description: =========================================
@@ -27,7 +27,7 @@
 HPExport struct hplugin_info pinfo = {
 	"OnPCUseSkillEvent",
 	SERVER_TYPE_MAP,
-	"1.4",
+	"1.4a",
 	HPM_VERSION,
 };
 
@@ -222,7 +222,7 @@ void read_skillevent(void) {
 			VECTOR_PUSH( selfskill, selfskill_ );
 			break;
 		default:
-			ShowWarning( "OnPCUseSkillEvent: Unsupport inf type "CL_WHITE"%d"CL_RESET" on skill ID "CL_WHITE"%d"CL_RESET" entry no."CL_WHITE"%d"CL_RESET" in '"CL_WHITE"%s"CL_RESET"'.\n", flag, skillid, i, confpath );
+			ShowWarning( "OnPCUseSkillEvent: Unsupport inf type "CL_WHITE"%d"CL_RESET" on skill "CL_WHITE"%s(%d)"CL_RESET" entry no."CL_WHITE"%d"CL_RESET" in '"CL_WHITE"%s"CL_RESET"'.\n", flag, skillname, skillid, i, confpath );
 		}
 	}
 

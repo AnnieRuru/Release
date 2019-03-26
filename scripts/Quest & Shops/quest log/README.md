@@ -36,6 +36,8 @@ see https://github.com/HerculesWS/Hercules/blob/stable/db/quest_db.conf#L45-L50
 
 ![screen2019Hercules031.jpg](https://raw.githubusercontent.com/AnnieRuru/customs/master/screenshots/screen2019Hercules031.jpg)
 
+![screen2019Hercules044.jpg](https://raw.githubusercontent.com/AnnieRuru/customs/master/screenshots/screen2019Hercules044.jpg)
+
 
 and I want to remind this is just a sample script  
 usually make for source modification on quest log system (now is 3rd time I think ?)
@@ -70,6 +72,8 @@ self explain ...
 
 ![screen2019Hercules032.jpg](https://raw.githubusercontent.com/AnnieRuru/customs/master/screenshots/screen2019Hercules032.jpg)
 
+![screen2019Hercules045.jpg](https://raw.githubusercontent.com/AnnieRuru/customs/master/screenshots/screen2019Hercules045.jpg)
+
 <details>
 <summary>Revision History</summary>
 
@@ -79,3 +83,62 @@ self explain ...
 - add achievement system
 
 </details>
+
+---
+```lua
+	[109991] = {
+		UI_Type = 0,
+		group = "CHATTING",
+		major = 4,
+		minor = 0,
+		title = "Tavern Helper",
+		content = {
+			summary = "Visit the Tavern Master",
+			details = "Visit the Tavern Master in Prontera."
+		},
+		resource = {
+			[1] = { text = "Acolyte Trouble" },
+			[2] = { text = "Gemstone shortage" },
+			[3] = { text = "Poring Problem" },
+			[4] = { text = "Hand over the Artifact" },
+			[5] = { text = "Shining Rocker" }
+		},
+		reward = { title = 991 },
+		score = 5
+	},
+```
+```lua
+	[109992] = {
+		UI_Type = 1,
+		group = "GOAL_ACHIEVE",
+		major = 6,
+		minor = 0,
+		title = "Complete Daily Quest for 30 times",
+		content = {
+			summary = "Complete Daily Quest",
+			details = "Complete Daily Quest for 30 times and you can earn some nice rewards!"
+		},
+		resource = {
+			[1] = { text = "Collect Daily Items 30 times", count = 30 },
+			[2] = { text = "Complete Daily Quest 30 times", count = 30 }
+		},
+		reward = { title = 992, item = 513 },
+		score = 30
+	},
+```
+UI_TYPE
+- display a bar like in the daily quest screenshot
+- 0: in the [resource], doesn't support [count]
+- 1: support [count]
+
+group:
+- read from data\texture\À¯ÀúÀÎÅÍÆäÀÌ½º\achievement
+![](https://raw.githubusercontent.com/AnnieRuru/customs/master/screenshots/goal_achieve.png)
+
+major
+- 1: General tab
+- 2: Adventure tab
+- 3: Battle tab
+- 4: Quest tab
+- 5: Memorial tab
+- 6: Feat tab 

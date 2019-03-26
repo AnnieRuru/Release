@@ -1,0 +1,216 @@
+function	script	F_MesItemInfo	{
+	.@item = getarg(0);
+	.@itemname$ = getitemname(.@item);
+	if (.@itemname$ == "null")
+		.@itemname$ = "Unknown Item";
+	if (PACKETVER >= 20150729)
+		return sprintf("<ITEM>%s<INFO>%d</INFO></ITEM>", .@itemname$, .@item);
+	else if (PACKETVER >= 20130130)
+		return sprintf("<ITEMLINK>%s<INFO>%d</INFO></ITEMLINK>", .@itemname$, .@item);
+	else
+		return .@itemname$;
+}
+
+//===== Hercules Script ======================================
+//= Sample Daily Quest Log
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.1
+//===== Compatible With: ===================================== 
+//= Hercules 2019-03-26
+//===== Description: =========================================
+//= Daily Quest Log System
+//= 1. Daily Item Giver - can take item everyday
+//= 2. Daily Quest Hunt - hunt poring everyday
+//===== Topic ================================================
+//= http://herc.ws/board/topic/7218-sample-questlog-script/
+//===== Additional Comments: =================================  
+//= Note : the daily item giver should be done with attendance system ... though
+//============================================================
+
+/*	Hercules\db\quest_db.conf
+{
+	Id: 49917
+	Name: "Daily Item Giver"
+},
+{
+	Id: 49918
+	Name: "Daily Hunting"
+	Targets: (
+	{
+		MobId: 1002
+		Count: 10
+	},
+	)
+},
+{
+	Id: 49919
+	Name: "Daily Hunting (Cooldown)"
+},
+*/
+
+/*	client\system\OngoingQuestInfoList_Sakray.lub
+	[49917] = {
+		Title = "Daily Item Giver",
+		IconName = "ico_dq.bmp",
+		Description = {
+			"Claim Freebies Everyday !",
+			"by <NAVI>Daily Quest<INFO>prontera,155,185,</INFO></NAVI>"
+		},
+		Summary = "Gain Freebies Everyday",
+		NpcSpr = "1_F_MARIA",
+		NpcNavi = "prontera",
+		NpcPosX = 155,
+		NpcPosY = 185,
+		RewardItemList = {
+			{ ItemID = 512, ItemNum = 1 }
+		}
+	},
+	[49918] = {
+		Title = "Daily Hunting",
+		IconName = "ico_dq.bmp",
+		Description = {
+			"Hunt Poring Everyday !",
+			"by <NAVI>Daily Quest<INFO>prontera,155,185,</INFO></NAVI>"
+		},
+		Summary = "Hunt Poring Everyday",
+		NpcSpr = "1_F_MARIA",
+		NpcNavi = "prontera",
+		NpcPosX = 155,
+		NpcPosY = 185,
+		RewardEXP = "1000",
+		RewardJEXP = "1000",
+	},
+	[49919] = {
+		Title = "Daily Hunting (Cooldown)",
+		IconName = "ico_dq.bmp",
+		Description = {
+			"Hunt Poring Everyday !",
+			"by <NAVI>Daily Quest<INFO>prontera,155,185,</INFO></NAVI>"
+		},
+		Summary = "Hunt Poring Everyday (Cooldown)",
+		NpcSpr = "1_F_MARIA",
+		NpcNavi = "prontera",
+		NpcPosX = 155,
+		NpcPosY = 185,
+		RewardEXP = "1000",
+		RewardJEXP = "1000",
+	},
+*/
+
+/*	Hercules\db\re\achievement_db.conf
+{
+	Id: 109992
+	Name: "XXXRO Regular"
+	Type: "ACH_ACHIEVEMENT_RANK"
+	Objectives: {
+		*1: {
+			Description: "Collect Daily Items 30 times"
+			Goal: 30
+		}
+		*2: {
+			Description: "Complete Daily Quest 30 times"
+			Goal: 30
+		}
+	}
+	Rewards: {
+		TitleId: 992
+		Items: {
+			Banana: 1
+		}
+	}
+	Points: 30
+},
+*/
+
+/*	client\System\achievement_list.lub
+	[109992] = {
+		UI_Type = 1,
+		group = "GOAL_ACHIEVE",
+		major = 6,
+		minor = 0,
+		title = "Complete Daily Quest for 30 times",
+		content = {
+			summary = "Complete Daily Quest",
+			details = "Complete Daily Quest for 30 times and you can earn some nice rewards!"
+		},
+		resource = {
+			[1] = { text = "Collect Daily Items 30 times", count = 30 },
+			[2] = { text = "Complete Daily Quest 30 times", count = 30 }
+		},
+		reward = { title = 992, item = 513 },
+		score = 30
+	},
+*/
+
+/*	client\data\LuaFiles514\Lua Files\datainfo\titletable.lub
+	[992] = "XXXRO Regular",
+*/
+
+/*
+prontera,150,185,5	script	10 times(debug)	1_F_MARIA,{
+	achievement_progress 109992, 1, 10, 1;
+	achievement_progress 109992, 2, 10, 1;
+	end;
+}
+
+prontera,152,185,5	script	reset quest(debug)	1_F_MARIA,{
+	if ( questprogress(49917) )
+		erasequest 49917;
+	if ( questprogress(49918) )
+		erasequest 49918;
+	if ( questprogress(49919) )
+		erasequest 49919;
+	end;
+}
+*/
+
+prontera,155,185,5	script	Daily Quest	1_F_MARIA,{
+	mes .npcname$;
+	if ( !questprogress(49917) || questprogress(49917,PLAYTIME) == 2 ) {
+		mesf "An %s a day, kick the doctor away !", F_MesItemInfo(Apple);
+		if ( questprogress(49917) )
+			erasequest 49917;
+		setquest 49917, getcalendartime(0,0);
+		achievement_progress 109992, 1, 1, 1;
+		getitem Apple, 1;
+		next;
+		mes .npcname$;
+	}
+	if ( questprogress(49918,PLAYTIME) == 2 ) {
+		mes "Your Daily Hunting Quest has expired.";
+		erasequest 49918;
+		next;
+	}
+	else if ( questprogress(49918,HUNTING) == 2 ) {
+		mes "You completed the challenge !";
+		erasequest 49918;
+		setquest 49919, getcalendartime(0,0);
+		achievement_progress 109992, 2, 1, 1;
+		dispbottom "complete";
+		getexp 1000,1000;
+		close;
+	}
+	else if ( questprogress(49918,HUNTING) == 1 ) {
+		mes "You still haven't complete the challenge yet";
+		close;
+	}
+	mes "Want to do Daily hunting Quest ?";
+	next;
+	if ( select( "Yes", "No" ) == 2 ) close;
+	mes .npcname$;
+	if ( questprogress(49919,PLAYTIME) == 1 ) {
+		mes "Please wait until the next 12am.";
+		close;
+	}
+	mes "Go and hunt 10 porings";
+	setquest 49918, getcalendartime(0,0);
+	if ( questprogress(49919) )
+		erasequest 49919;
+	close;
+OnInit:
+	.npcname$ = "["+ strnpcinfo(NPC_NAME_VISIBLE) +"]";
+	questinfo QTYPE_DAILYQUEST, 2;
+	end;
+}

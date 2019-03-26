@@ -1,5 +1,8 @@
-### Download: 1.0
-sample script
+### Download: 1.1
+sample quest log
+
+### Download: 1.1
+sample daily quest
 
 ---------------------------------
 
@@ -50,12 +53,12 @@ usually make for source modification on quest log system (now is 3rd time I thin
 1.0 - script
 - update to new format
 
+1.1 - script
+- add achievement system
+
 </details>
 
 --------------------------
-
-### Download: 1.0
-script
 
 2 sample script for daily system
 
@@ -71,5 +74,8 @@ self explain ...
 <summary>Revision History</summary>
 
 1.0 - script
+
+1.1 - script
+- add achievement system
 
 </details>

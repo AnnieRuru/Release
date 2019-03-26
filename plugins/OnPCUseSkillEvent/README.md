@@ -4,8 +4,6 @@ finally today is the day I can release this to public
 ### Download : 1.5
 plugin
 
-remember that `@reloadskilldb` also can reload `conf/import/OnPCUseSkillEvent.conf` file
-
 original topic from [eathena](https://www.eathena.ws/board/index.php?showtopic=274088)
 
 <details>

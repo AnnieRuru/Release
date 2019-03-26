@@ -1,7 +1,7 @@
 After so many years of hearing rumor of this modification,  
 finally today is the day I can release this to public
 
-### Download : 1.4
+### Download : 1.5
 plugin
 
 remember that `@reloadskilldb` also can reload `conf/import/OnPCUseSkillEvent.conf` file
@@ -34,6 +34,9 @@ plugin
 - remove the 100 array limit by utilize VECTOR
 - drop CSV format and use Hercules standard libconfig format
 
+1.5 - plugin
+- remove the OnPCUseSkillEvent.conf file
+
 </details>
 
 ---
@@ -51,6 +54,7 @@ db/re/skill_db.conf
 	SkillType: {
 		Enemy: true
 	}
+	Event_Label: "qwer::Ontarget"
 },
 {
 	Id: 2992
@@ -61,6 +65,7 @@ db/re/skill_db.conf
 	SkillType: {
 		Friend: true
 	}
+	Event_Label: "qwer::Ontarget"
 },
 {
 	Id: 2993
@@ -71,6 +76,7 @@ db/re/skill_db.conf
 	SkillType: {
 		Place: true
 	}
+	Event_Label: "qwer::Onpos"
 },
 {
 	Id: 2994
@@ -81,7 +87,8 @@ db/re/skill_db.conf
 	SkillType: {
 		Self: true
 	}
-}, 
+	Event_Label: "qwer::Onself"
+},
 ```
 
 data/luafiles514/lua files/skillinfoz/skillinfolist.lub
@@ -162,29 +169,6 @@ data/luafiles514/lua files/skillinfoz/skilldescript.lub
 		"push these variables :-",
 		"'@useskilllv' for the skill level.",
 	}
-```
-
-conf/import/OnPCUseSkillEvent.conf
-```c
-OnPCUseSkillEvent: (
-{
-//	SkillID: 2991
-	SkillName: "CUSTOM_damage"
-	Event_Label: "qwer::Ontarget"
-},
-{
-	SkillName: "CUSTOM_nodamage"
-	Event_Label: "qwer::Ontarget"
-},
-{
-	SkillName: "CUSTOM_setpos"
-	Event_Label: "qwer::Onpos"
-},
-{
-	SkillName: "CUSTOM_self"
-	Event_Label: "qwer::Onself"
-},
-)
 ```
 
 and finally the npc script

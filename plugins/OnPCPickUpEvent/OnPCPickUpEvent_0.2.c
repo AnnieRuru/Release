@@ -3,7 +3,7 @@
 //===== By: ==================================================
 //= AnnieRuru
 //===== Current Version: =====================================
-//= 0.2
+//= 0.2a
 //===== Compatible With: ===================================== 
 //= Hercules 2019-03-27
 //===== Description: =========================================
@@ -27,7 +27,7 @@
 HPExport struct hplugin_info pinfo = {
 	"OnPCPickUpEvent",
 	SERVER_TYPE_MAP,
-	"0.1",
+	"0.2a",
 	HPM_VERSION,
 };
 
@@ -104,7 +104,7 @@ int pc_takeitem_overload( struct map_session_data *sd, struct flooritem_data *fi
 		safesnprintf( var, SCRIPT_VARNAME_LENGTH, "@pickup_card%d", i +1 );
 		pc->setreg( sd, reference_uid( script->add_str(var), 0 ), (int)fitem->item_data.card[i] );
 	}
-	for ( i = 0; i < MAX_SLOTS; ++i ) {
+	for ( i = 0; i < MAX_ITEM_OPTIONS; ++i ) {
 		safesnprintf( var, SCRIPT_VARNAME_LENGTH, "@pickup_opt_id%d", i +1 );
 		pc->setreg( sd, reference_uid( script->add_str(var), 0 ), (int)fitem->item_data.option[i].index );
 		safesnprintf( var, SCRIPT_VARNAME_LENGTH, "@pickup_opt_val%d", i +1 );

@@ -9,7 +9,7 @@
 //===== Description: =========================================
 //= invoke OnPCPickUpEvent whenever a player add/remove an item
 //===== Topic ================================================
-//= 
+//= http://herc.ws/board/topic/16660-trigger-onmobdrop-event/?do=findComment&comment=91041
 //===== Additional Comments: =================================  
 //= remember to use make the bound check, like @pickup_bound or *getitembound to prevent players drop the item again
 //============================================================

@@ -3,7 +3,7 @@
 //===== By: ==================================================
 //= AnnieRuru
 //===== Current Version: =====================================
-//= 0.1
+//= 0.1a
 //===== Compatible With: ===================================== 
 //= Hercules 2019-03-28
 //===== Description: =========================================
@@ -26,7 +26,7 @@
 HPExport struct hplugin_info pinfo = {
 	"guild_skill_notification",
 	SERVER_TYPE_MAP,
-	"0.1",
+	"0.1a",
 	HPM_VERSION,
 };
 
@@ -80,7 +80,7 @@ int skillnotok_post( int retVal, uint16 skill_id, struct map_session_data *sd ) 
 	for ( i = 0; i < cd->cursor; ++i ) {
 		if ( cd->entry[i] && cd->entry[i]->skill_id == GD_EMERGENCYCALL ) {
 			char msg[CHAT_SIZE_MAX];
-			int cooldown = (int)DIFF_TICK( timer->gettick(), cd->entry[i]->started );
+			int cooldown = DIFF_TICK32( timer->gettick(), cd->entry[i]->started );
 			int timeleft = ( ( cd->entry[i]->duration - cooldown ) / 1000 )+1;
 			if ( timeleft >= 60 ) {
 				int minutes = timeleft / 60;

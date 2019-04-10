@@ -3,7 +3,7 @@
 //===== By: ================================================
 //= Annieruru
 //===== Current Version: ===================================
-//= 0.1
+//= 0.1a
 //===== Compatible With: ===================================
 //= Hercules 2019-02-19
 //===== Description: =======================================
@@ -19,7 +19,7 @@ prontera,155,185,5	script	Hangman	1_F_MARIA,{
 	if ( .start ) goto L_start;
 	mes "input a word between 4~12 characters.";
 	next;
-	if ( input( .@input$, 4,99 ) ) {
+	if ( input( .@input$, 4,12 ) ) {
 		mes "please only input a word between 4~12 characters";
 		close;
 	}

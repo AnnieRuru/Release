@@ -1,4 +1,4 @@
-### Download: 1.7
+### Download: 1.8
 plugin
 
 --------------------------------
@@ -10,12 +10,12 @@ while the player can go hunting/questing/events
 @market "<Title>" "<Message>" <Color>
 ```
 
-create a market clone with a chat room titled -> "<Title>"  
-when players tries to join the chat room, it refuse the joining, but instead leave a message -> "<Message>"
+create a market clone with a chat room titled -> `"<Title>"`  
+when players tries to join the chat room, it refuse the joining, but instead leave a message -> `"<Message>"`
 
 with 1.4 update,  
 player can now choose their own favorite color for their AFK message  
-the <Color> field is optional
+the `<Color>` field is optional
 
 I was struggling to use array for the color list ...  
 but in the end, I guess the simplicity is the best  
@@ -29,8 +29,8 @@ so you guys can guess how to add in your own list easily
 kill the market clone without logging off
 
 
-when a GM do @killmonster @killmonster2, or *killmonster *kilmonsterall script command will not remove the clone  
-but @reloadscript, however, will remove it
+when a GM do `@killmonster` `@killmonster2`, or `*killmonster` `*kilmonsterall` script command will not remove the clone  
+but `@reloadscript`, however, will remove it
 
 
 feels like I just copy paste from the description <_<
@@ -91,5 +91,8 @@ patch
 
 1.7 - plugin
 - fix memory leak for not removing the chatroom
+
+1.8 - plugin
+- update to latest revision
 
 </details>

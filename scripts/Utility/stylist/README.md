@@ -1,6 +1,6 @@
 all right, I post up my custom stylist
 
-### Download: 1.5
+### Download: 1.6
 script
 
 
@@ -35,4 +35,8 @@ This means, the ID range for hair style is 0,1,2,3,4,5,11,12,13,14,15,16,17,18,2
 
 1.5 - script
 - fix a bug if the player start with style number 510, the server throw you infinite loop error
+
+1.6 - script
+- now the styles display number no longer shown to other players
+
 </details>

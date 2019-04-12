@@ -1,0 +1,45 @@
+//===== Hercules Patch =======================================
+//= ELECTRICSHOCKER
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= x.x
+//===== Compatible With: ===================================== 
+//= Hercules 2019-04-11
+//===== Description: =========================================
+//= Allow RA_ELECTRICSHOCKER to imprison boss monsters
+//===== Topic ================================================
+//= http://herc.ws/board/topic/16690-ranger-electric-shock/?do=findComment&comment=91215
+//===== Additional Comments: =================================
+//= 
+//============================================================
+
+ src/map/skill.c  | 2 --
+ src/map/status.c | 1 -
+ 2 files changed, 3 deletions(-)
+
+diff --git a/src/map/skill.c b/src/map/skill.c
+index 633a73d67..cf0aa23df 100644
+--- a/src/map/skill.c
++++ b/src/map/skill.c
+@@ -12934,8 +12934,6 @@ static int skill_unit_onplace_timer(struct skill_unit *src, struct block_list *b
+ 
+ 		case UNT_ELECTRICSHOCKER:
+ 			if( bl->id != ss->id ) {
+-				if( status_get_mode(bl)&MD_BOSS )
+-					break;
+ 				if( status->change_start(ss,bl,type,10000,sg->skill_lv,sg->group_id,0,0,skill->get_time2(sg->skill_id, sg->skill_lv), SCFLAG_FIXEDRATE) ) {
+ 					map->moveblock(bl, src->bl.x, src->bl.y, tick);
+ 					clif->fixpos(bl);
+diff --git a/src/map/status.c b/src/map/status.c
+index f06bb0330..630c72b6a 100644
+--- a/src/map/status.c
++++ b/src/map/status.c
+@@ -10574,7 +10574,6 @@ static bool status_is_boss_resist_sc(enum sc_type type)
+ 
+ 		// Ranger Effects
+ 		case SC_WUGBITE:
+-		case SC_ELECTRICSHOCKER:
+ 		case SC_MAGNETICFIELD:
+ 
+ 		// Masquerades

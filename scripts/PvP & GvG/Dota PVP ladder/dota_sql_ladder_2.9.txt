@@ -1,0 +1,530 @@
+/*
+create table pvpladder (
+	char_id int(11) not null default '0' primary key,
+	name varchar(30) not null default '',
+	streaks smallint(6) unsigned not null default '0',
+	kills smallint(6) unsigned not null default '0',
+	deaths smallint(6) unsigned not null default '0',
+	streaktime datetime
+) engine = myisam;
+
+create table ownladder (
+	guild_id int(11) not null default '0' primary key,
+	name varchar(24) not null default '',
+	currentown smallint(6) unsigned not null default '0',
+	highestown smallint(6) unsigned not null default '0',
+	owntime datetime
+) engine = myisam; 
+*/
+
+//===== eAthena Script =======================================================
+//= PVP ladder script with dota announcement ( SQL only )
+//===== By: ==================================================================
+//= ~AnnieRuru~
+//===== Current Version: =====================================================
+//= 2.9
+//===== Compatible With: =====================================================
+//= eAthena SQL 14279, with MySQL 5.1
+//===== Description: =========================================================
+//= PVP ladder store in SQL table
+//= plus anti-sit-killer feature
+//===== Topic ================================================================
+//= http://www.eathena.ws/board/index.php?showtopic=177918
+//===== Additional Comments: =================================================
+//= still don't have modify value option, will be done ... in next year ...
+//============================================================================
+
+//	add all the maps that you want this script to trigger ... all pvp and event maps perhaps ?
+//	but if you already enable "all" maps, then can comment all these
+guild_vs1	mapflag	loadevent
+guild_vs2	mapflag	loadevent
+guild_vs3	mapflag	loadevent
+guild_vs4	mapflag	loadevent
+guild_vs5	mapflag	loadevent
+
+-	script	DOTAPVP	-1,{
+OnInit:
+// Config
+	set .sound, 1; // soundeffect : 0 - disable, 1 - play soundeffect to all players on map, 2 - play soundeffect to an area around the killer, 3 - play soundeffect to killer only
+	set .announce, 0; // announce to : 0 - global, 1 - map
+	set .announcemap, 1; // announce the map name in the announcement ? : 0 - off, 1 - on
+
+	set .announcekill, 0; // announce who pawn who's head : 0 - off, 1 - on
+	set .msg_die, 0; // show message who kill you when die : 0 - off, 1 - on
+	set .msg_kill, 0; // show message you kill who when killed someone : 0 - off, 1 - on
+
+	set .gmnokill, 0; // GMs are not suppose to kill players. A GM with <this number> level or higher will do nothing. IF set to 60, GM60 and above kill any player will not get anything : 0 - off
+
+	set .killingspree, 3;
+	set .dominating, 4;
+	set .megakill, 5;
+	set .unstoppable, 6;
+	set .wickedsick, 7;
+	set .monsterkill, 8;
+	set .godlike, 9;
+	set .holyshit, 10;
+	set .continue, 1; // after beyond-godlike, every <this number> kills will make announcement again
+
+	set .owned, 5; // how many times the party/guild has to kill to announce ownage
+	set .owncontinue, 1; // after ownage, every <this number> party/guild cumulative kills will make ownage announce again
+
+	set .min_gm_menu, 90; // minimum level of GM can use the GM menu on ladder npc
+
+	set .showtotal, 20; // show the length of ladder. Note : Maximum value = 128
+	set .showpage, 10;	// set the views per page. Note : Maximum value = 128
+	set .loweststreak, 3; // mininum streak count allow to show in highest streak ladder. Default 3 means must at least have killing spree streak to display in ladder
+	set .lowestownage, 5; // mininum ownage count allow to show in longest ownage ladder. Default 5 means must at least have 5 ownage counts to display in ladder
+
+	setarray .maptrigger$, // only these maps will trigger this script
+	//	"all", // uncomment this to allow load all maps
+		"guild_vs1",
+		"guild_vs2",
+		"guild_vs3",
+		"guild_vs4",
+		"guild_vs5";
+
+//	anti-sit-killer system
+	// a player must kill another player with this minimum <this number> base level to get the announcement and in the ladder.
+	// Otherwise only have streak ended announcement and killed player's streak reset.
+	// Its possible for a level 1 novice to kill a level 99 player and he/she will still get in the ladder
+	// but a level 99 kill a level 1 player will get nothing
+	// 0 - off this system ( default is 55, pk setting )
+	set .lvltokill, 0;
+
+	// when a player kill another same player <this number> times in a row, the player is warp back to save point.
+	// and the player's streak, kills, and ownage count will deduct accordingly
+	// 0 - off this system
+	set .counttopunish, 6;
+
+	// minimum level range to kill another player
+	// eg. when set to 20, player level 99 needs to kill another player with minimum level of 79 to get announcement and increase the kill rank.
+	// but a player with base level 50 kills a level 99 will also get the announcement
+	// higher base level cannot kill lower level, but lower level can kill higher level
+	// 0 - off this system
+	set .minlvlrange, 0;
+
+
+// Config ends ------------------------------------------------------------------------------------------
+
+//	to prevent bug happen
+	if ( .announce < 0 || .announce > 1 ) set .announce, 0;
+	if ( .continue < 1 ) set .continue, 1;
+	if ( .owncontinue < 1 ) set .owncontinue, 1;
+	if ( .gmnokill <= 0 ) set .gmnokill, 100;
+	if ( .lvltokill <= 1 ) set .lvltokill, 0;
+	if ( .counttopunish <= 1 ) set .counttopunish, 0;
+	set .maptriggersize, getarraysize(.maptrigger$);
+	end;
+
+//	script start.
+OnPCKillEvent:
+	if ( getgmlevel() >= .gmnokill ) end;
+	getmapxy .@map$, .@x, .@y, 0;
+	if ( .maptrigger$ != "all" ) {
+		for ( set .@i, 0; .@i < .maptriggersize; set .@i, .@i +1 ) {
+			if ( .@map$ == .maptrigger$[.@i] ) break;
+		}
+		if ( .@i == .maptriggersize ) end;
+	}
+	attachrid killedrid;
+	if ( killerrid != getcharid(3) && ( .msg_die || .msg_kill ) ) {
+		if ( .msg_die ) message strcharinfo(0),"You have been killed by "+ rid2name(killerrid);
+		if ( .msg_kill ) message rid2name(killerrid),"You just killed "+ strcharinfo(0);
+	}
+	if ( @PlayersKilledStreak >= .holyshit )
+		set .@streakname$,"Beyond Godlike";
+	else if ( @PlayersKilledStreak >= .godlike )
+		set .@streakname$,"Godlike";
+	else if ( @PlayersKilledStreak >= .monsterkill )
+		set .@streakname$,"Monster Kill";
+	else if ( @PlayersKilledStreak >= .wickedsick )
+		set .@streakname$,"Wicked Sick";
+	else if ( @PlayersKilledStreak >= .unstoppable )
+		set .@streakname$,"Unstoppable";
+	else if ( @PlayersKilledStreak >= .megakill )
+		set .@streakname$,"Mega-kill";
+	else if ( @PlayersKilledStreak >= .dominating )
+		set .@streakname$,"Dominating";
+	else if ( @PlayersKilledStreak >= .killingspree )
+		set .@streakname$,"Killing Spree";
+	if ( @PlayersKilledStreak >= .killingspree && killerrid == getcharid(3) )
+		announce strcharinfo(0) +" has ended "+( (sex)?"him":"her" )+" own "+ .@streakname$ +"["+ @PlayersKilledStreak +"] streak "+( (.announcemap)?("at "+ .@map$):""),16|.announce;
+	else if ( @PlayersKilledStreak >= .killingspree )
+		announce rid2name(killerrid) +" has ended "+ strcharinfo(0) +"'s "+ .@streakname$ +"["+ @PlayersKilledStreak +"] streak "+( (.announcemap)?("at "+ .@map$):""),16|.announce;
+	else if ( .announcekill && killerrid != getcharid(3) )
+		announce rid2name(killerrid) +" has pawned "+ strcharinfo(0) +"'s head "+( (.announcemap)?("at "+ .@map$):""),16|.announce;
+	set @PlayersKilledStreak,0;
+	set @dota_sql_deaths, @dota_sql_deaths +1;
+	set @dota_multikills,0;
+	query_sql "replace into pvpladder values ( "+ getcharid(0) +", '"+ escape_sql(strcharinfo(0)) +"', "+ @dota_sql_streaks +", "+ @dota_sql_kills +", "+ @dota_sql_deaths +", from_unixtime("+ @dota_sql_streaktime +") )";
+	set .@killed_gid, getcharid(2);
+	if ( .@killed_gid ) {
+		setd ".dota_sql_"+ .@killed_gid +"_c", 0;
+		if ( getd(".dota_sql_"+ .@killed_gid +"_h") )
+			query_sql "replace into ownladder values ( "+ .@killed_gid +", '"+ escape_sql(getguildname(.@killed_gid)) +"', "+ getd(".dota_sql_"+ .@killed_gid +"_c") +", "+ getd(".dota_sql_"+ .@killed_gid +"_h") +", from_unixtime("+ getd(".dota_sql_"+ .@killed_gid +"_t") +") )";
+	}
+	if ( killerrid == getcharid(3) || baselevel < .lvltokill ) end;
+	if ( .minlvlrange ) set .@killedlvl, baselevel;
+	attachrid killerrid;
+	if ( .minlvlrange && .@killedlvl + .minlvlrange < baselevel ) end;
+	if ( .counttopunish ) {
+		if ( @sitkillminute != gettime(2) ) {
+			deletearray @sitkillid, 128;
+			deletearray @sitkilltimes, 128;
+			set @sitkillminute, gettime(2);
+		}
+		set .@sitkillsize, getarraysize(@sitkillid);
+		for ( set .@i,0; .@i < .@sitkillsize; set .@i, .@i +1 ) {
+			if ( @sitkillid[.@i] != killedrid ) continue;
+			else {
+				set @sitkilltimes[.@i], @sitkilltimes[.@i] +1 ;
+				if ( @sitkilltimes[.@i] >= .counttopunish ) {
+					warp "SavePoint",0,0;
+					announce strcharinfo(0) +" , Stop killing "+ rid2name(killedrid) + " !!!",0;
+					debugmes strcharinfo(0) +" is sit-killing "+ rid2name(killedrid) +" for "+ @sitkilltimes[.@i] + " times";
+					logmes "is sit-killing "+ rid2name(killedrid) +" for "+ @sitkilltimes[.@i] +" times";
+					if ( @PlayersKilledStreak == @dota_sql_streaks ) {
+						set @dota_sql_streaks, @dota_sql_streaks +1 - .counttopunish;
+						set @dota_sql_streaktime, gettimetick(2);
+					}
+					set @PlayersKilledStreak, @PlayersKilledStreak +1 - .counttopunish;
+					set @dota_sql_kills, @dota_sql_kills +1 - .counttopunish;
+					query_sql "replace into pvpladder values ( "+ getcharid(0) +", '"+ escape_sql(strcharinfo(0)) +"', "+ @dota_sql_streaks +", "+ @dota_sql_kills +", "+ @dota_sql_deaths +", from_unixtime("+ @dota_sql_streaktime +") )";
+					set .@killer_gid, getcharid(2);
+					if ( .@killer_gid ) {
+						if ( getd(".dota_sql_"+ .@killer_gid +"_c") == getd(".dota_sql_"+ .@killer_gid +"_h") ) {
+							setd ".dota_sql_"+ .@killer_gid +"_h", getd(".dota_sql_"+ .@killer_gid +"_h") +1 - .counttopunish;
+							setd ".dota_sql_"+ .@killer_gid +"_t", gettimetick(2);
+						}
+						setd (".dota_sql_"+ .@killer_gid +"_c"), getd(".dota_sql_"+ .@killer_gid +"_c") +1 - .counttopunish;
+						query_sql "replace into ownladder values ( "+ .@killer_gid +", '"+ escape_sql(getguildname(.@killer_gid)) +"', "+ getd(".dota_sql_"+ .@killer_gid +"_c") +", "+ getd(".dota_sql_"+ .@killer_gid +"_h") +", from_unixtime("+ getd(".dota_sql_"+ .@killer_gid +"_t") +") )";
+					}
+					end;
+				}
+				break;
+			}
+		}
+		if ( .@i == .@sitkillsize ) {
+			set @sitkillid[.@i], killedrid;
+			set @sitkilltimes[.@i], 1;
+		}
+	}
+	set @PlayersKilledStreak, @PlayersKilledStreak +1 ;
+	set @dota_sql_kills, @dota_sql_kills +1 ;
+	if ( @PlayersKilledStreak > @dota_sql_streaks ) {
+		set @dota_sql_streaks, @PlayersKilledStreak;
+		set @dota_sql_streaktime, gettimetick(2);
+	}
+	query_sql "replace into pvpladder values ( "+ getcharid(0) +", '"+ escape_sql(strcharinfo(0)) +"', "+ @dota_sql_streaks +", "+ @dota_sql_kills +", "+ @dota_sql_deaths +", from_unixtime("+ @dota_sql_streaktime +") )";
+	if ( @PlayersKilledStreak == .killingspree )
+		setarray .@streakname$,"killingspree.wav","is on a KILLING SPREE","!";
+	else if ( @PlayersKilledStreak == .dominating )
+		setarray .@streakname$,"dominating.wav","is DOMINATING","!";
+	else if ( @PlayersKilledStreak == .megakill )
+		setarray .@streakname$,"megakill.wav","has a MEGA KILL","!";
+	else if ( @PlayersKilledStreak == .unstoppable )
+		setarray .@streakname$,"unstoppable.wav","is UNSTOPPABLE","!!";
+	else if ( @PlayersKilledStreak == .wickedsick )
+		setarray .@streakname$,"wickedsick.wav","is WICKED SICK","!!";
+	else if ( @PlayersKilledStreak == .monsterkill )
+		setarray .@streakname$,"monsterkill.wav","has a MONSTER KILL","!!";
+	else if ( @PlayersKilledStreak == .godlike )
+		setarray .@streakname$,"godlike.wav","is GODLIKE","!!!";
+	else if ( @PlayersKilledStreak >= .holyshit && ( (@PlayersKilledStreak - .holyshit) % .continue == 0 ) )
+		setarray .@streakname$,"holyshit.wav","is BEYOND GODLIKE",". Someone KILL "+( (sex)?"HIM":"HER" ) +"!!!!!!";
+	if ( .@streakname$[1] != "" ) {
+		announce strcharinfo(0) +" "+ .@streakname$[1] +"["+ @PlayersKilledStreak +"] "+( (.announcemap)?("at "+ .@map$):"") + .@streakname$[2],16|.announce;
+		if ( .sound == 1 ) soundeffectall .@streakname$[0],0,.@map$;
+		else if ( .sound == 2 ) soundeffectall .@streakname$[0],0;
+		else if ( .sound == 3 ) soundeffect .@streakname$[0],0;
+	}
+	set @dota_multikills, @dota_multikills + 1;
+	deltimer "DOTAPVP::OnStreakReset";
+	addtimer 18000,"DOTAPVP::OnStreakReset";
+	set .@killer_gid, getcharid(2);
+	if ( .@killer_gid && .@killer_gid != .@killed_gid ) {
+		setd ".dota_sql_"+ .@killer_gid +"_c", getd(".dota_sql_"+ .@killer_gid +"_c") +1 ;
+		if ( getd(".dota_sql_"+ .@killer_gid +"_c") > getd(".dota_sql_"+ .@killer_gid +"_h") ) {
+			setd ".dota_sql_"+ .@killer_gid +"_h", getd(".dota_sql_"+ .@killer_gid +"_c");
+			setd ".dota_sql_"+ .@killer_gid +"_t", gettimetick(2);
+		}
+		query_sql "replace into ownladder values ( "+ .@killer_gid +", '"+ escape_sql(getguildname(.@killer_gid)) +"', "+ getd(".dota_sql_"+ .@killer_gid +"_c") +", "+ getd(".dota_sql_"+ .@killer_gid +"_h") +", from_unixtime("+ getd(".dota_sql_"+ .@killer_gid +"_t") +") )";
+	}
+	set .@dota_multikills, @dota_multikills;
+	set .@origin, getcharid(3);
+	sleep 1500;
+	if ( .@killer_gid && .@killer_gid != .@killed_gid && getd(".dota_sql_"+ .@killer_gid +"_c") >= .owned && ( ( getd(".dota_sql_"+ .@killer_gid +"_c") - .owned ) % .owncontinue == 0 ) ) {
+		if ( .announce ) mapannounce .@map$, "The guild ["+ getguildname(.@killer_gid) +"] is OWNING["+ getd(".dota_sql_"+ .@killer_gid +"_c") +"] !!!",16;
+		else announce "The guild ["+ getguildname(.@killer_gid) +"] is OWNING["+ getd(".dota_sql_"+ .@killer_gid +"_c") +"] !!!",16;
+		if ( .sound == 1 ) soundeffectall "ownage.wav",0,.@map$;
+		else if ( .sound == 2 ) soundeffectall "ownage.wav",0;
+		else if ( .sound == 3 && attachrid(.@origin) ) soundeffect "ownage.wav",0;
+	}
+	sleep 1250;
+	if ( !attachrid(.@origin) ) end;
+	if ( .@dota_multikills == 2 ) {
+		if ( .announce ) mapannounce .@map$, strcharinfo(0) +" just got a Double Kill !",16;
+		else announce strcharinfo(0) +" just got a Double Kill !",16;
+		if ( .sound == 1 ) soundeffectall "doublekill.wav",0,.@map$;
+		else if ( .sound == 2 ) soundeffectall "doublekill.wav",0;
+		else if ( .sound == 3 ) soundeffect "doublekill.wav",0;
+	}
+	else if ( .@dota_multikills == 3 ) {
+		if ( .announce ) mapannounce .@map$, strcharinfo(0) +" just got a Triple Kill !!!",16;
+		else announce strcharinfo(0) +" just got a Triple Kill !!!",16;
+		if ( .sound == 1 ) soundeffectall "triplekill.wav",0,.@map$;
+		else if ( .sound == 2 ) soundeffectall "triplekill.wav",0;
+		else if ( .sound == 3 ) soundeffect "triplekill.wav",0;
+	}
+	else if ( .@dota_multikills == 4 ) {
+		if ( .announce ) mapannounce .@map$, strcharinfo(0) +" just got a Ultra Kill !!!",16;
+		else announce strcharinfo(0) +" just got a Ultra Kill !!!",16;
+		if ( .sound == 1 ) soundeffectall "ultrakill.wav",0,.@map$;
+		else if ( .sound == 2 ) soundeffectall "ultrakill.wav",0;
+		else if ( .sound == 3 ) soundeffect "ultrakill.wav",0;
+	}
+	else if ( .@dota_multikills >= 5 ) {
+		if ( .announce ) mapannounce .@map$, strcharinfo(0) +" is on a Rampage !!!",16;
+		else announce strcharinfo(0) +" is on a Rampage !!!",16;
+		if ( .sound == 1 ) soundeffectall "rampage.wav",0,.@map$;
+		else if ( .sound == 2 ) soundeffectall "rampage.wav",0;
+		else if ( .sound == 3 ) soundeffect "rampage.wav",0;
+	}
+	end;
+OnStreakReset:
+	set @dota_multikills, 0;
+	end;
+OnWhisperGlobal:
+	if ( @spam_dotapvp + 3 >= gettimetick(2) ) // 3 seconds interval so player don spam this command
+		end;
+	set @spam_dotapvp, gettimetick(2);
+	if ( @dota_sql_kills == 0 && @dota_sql_deaths == 0 )
+		query_sql "select kills, deaths, streaks, unix_timestamp(streaktime) from pvpladder where char_id = "+ getcharid(0), @dota_sql_kills, @dota_sql_deaths, @dota_sql_streaks, @dota_sql_streaktime;
+	if ( @dota_sql_kills || @dota_sql_deaths ) {
+		dispbottom "Your current Streak      : "+ @PlayersKilledStreak;
+		dispbottom "Your total Kills               : "+ @dota_sql_kills;
+		dispbottom "Your total Deaths          : "+ @dota_sql_deaths;
+		dispbottom "Your highest Streak      : "+ @dota_sql_streaks;
+		query_sql "select date_format( from_unixtime("+ @dota_sql_streaktime +"),'%a %e/%c/%y %r')", .@time1$;
+		dispbottom "Your highest Streak on : "+ .@time1$;
+	}
+	else
+		dispbottom "You are not in the pvp ladder yet.";
+	if ( getcharid(2) ) {
+		if ( getd(".dota_sql_"+ getcharid(2) +"_h") == 0 ) {
+			query_sql "select currentown, highestown, unix_timestamp(owntime) from ownladder where guild_id = "+ getcharid(2), .@c, .@h, .@t;
+			setd ".dota_sql_"+ getcharid(2) +"_c", .@c;
+			setd ".dota_sql_"+ getcharid(2) +"_h", .@h;
+			setd ".dota_sql_"+ getcharid(2) +"_t", .@t;
+		}
+		if ( getd(".dota_sql_"+ getcharid(2) +"_h") ) {
+			dispbottom "Your guild current Own      : "+ getd(".dota_sql_"+ getcharid(2) +"_c");
+			dispbottom "Your guild highest Own      : "+ getd(".dota_sql_"+ getcharid(2) +"_h");
+			query_sql "select date_format( from_unixtime("+ getvariableofnpc( getd(".dota_sql_"+ getcharid(2) +"_t"), "DOTAPVP" ) +"),'%a %e/%c/%y %r')", .@time2$;
+			dispbottom "Your guild highest Own on : "+ .@time2$;
+		}
+		else
+			dispbottom "Your guild is not in the ladder yet.";
+	}
+	end;
+OnPCLoginEvent:
+	if ( .maptrigger$ != "all" ) end;
+OnPCLoadMapEvent:
+	if ( @dota_sql_kills == 0 && @dota_sql_deaths == 0 ) {
+		if ( .maptrigger$ != "all" ) {
+			getmapxy .@map$, .@x, .@y, 0;
+			for ( set .@i, 0; .@i < .maptriggersize; set .@i, .@i +1 ) {
+				if ( .@map$ == .maptrigger$[.@i] ) break;
+			}
+			if ( .@i == .maptriggersize ) end;
+		}
+		query_sql "select kills, deaths, streaks, unix_timestamp(streaktime) from pvpladder where char_id = "+ getcharid(0), @dota_sql_kills, @dota_sql_deaths, @dota_sql_streaks, @dota_sql_streaktime;
+	}
+	if ( getcharid(2) && getd(".dota_sql_"+ getcharid(2) +"_h") == 0 ) {
+		query_sql "select currentown, highestown, unix_timestamp(owntime) from ownladder where guild_id = "+ getcharid(2), .@c, .@h, .@t;
+		setd ".dota_sql_"+ getcharid(2) +"_c", .@c;
+		setd ".dota_sql_"+ getcharid(2) +"_h", .@h;
+		setd ".dota_sql_"+ getcharid(2) +"_t", .@t;
+	}
+	end;
+}
+
+prontera,166,188,5	script	PvP-StatsViewer	57,{
+	set .@npcname$, strnpcinfo(0);
+	while (1) {
+		mes "["+ .@npcname$ +"]";
+		mes "Hello "+ strcharinfo(0) +"...";
+		mes "If you want to I can show you your PVP stats.";
+		next;
+		switch ( select ( "Most Kills","Highest Streak","Longest Ownage","Own Information","Explanation" ) ) {
+			case 1:
+				set .@nb, query_sql("select name, kills, deaths from pvpladder order by kills desc limit "+ getvariableofnpc(.showtotal,"DOTAPVP"), .@name$, .@kills, .@deaths);
+				if ( .@nb == 0 ) {
+					mes "["+ .@npcname$ +"]";
+					mes "The ladder currently is empty.";
+					next;
+				}
+				for ( set .@j,0; .@j < .@nb; set .@j, .@j + getvariableofnpc(.showpage,"DOTAPVP") ) {
+					mes "["+ .@npcname$ +"]";
+					for ( set .@i, .@j; .@i < (getvariableofnpc(.showpage,"DOTAPVP") + .@j) && .@i < .@nb; set .@i, .@i + 1 ) {
+						mes "^996600"+ (.@i+1) +": ^006699"+ .@name$[.@i] +" ^00AA00["+ .@kills[.@i] +"] ^FF0000<"+ .@deaths[.@i] +">^000000";
+					}
+					next;
+				}
+				break;
+			case 2:
+				set .@nb, query_sql("select name, streaks, date_format(streaktime,'%a %e/%c/%y %r') from pvpladder where streaks >= "+ getvariableofnpc(.loweststreak,"DOTAPVP") +" order by streaks desc limit "+ getvariableofnpc(.showtotal,"DOTAPVP"), .@name$, .@streak, .@time$);
+				if ( .@nb == 0 ) {
+					mes "["+ .@npcname$ +"]";
+					mes "The ladder currently is empty.";
+					next;
+				}
+				for ( set .@j,0; .@j < .@nb; set .@j, .@j + getvariableofnpc(.showpage,"DOTAPVP") ) {
+					mes "["+ .@npcname$ +"]";
+					for ( set .@i, .@j; .@i < (getvariableofnpc(.showpage,"DOTAPVP") + .@j) && .@i < .@nb; set .@i, .@i + 1 ) {
+						mes "^996600"+ (.@i+1) +": ^006699"+ .@name$[.@i] +" ^70AC11{"+ .@streak[.@i] +"} ^000000on :";
+						mes "    ^EE8800"+ .@time$[.@i] +"^000000";
+					}
+					next;
+				}
+				break;
+			case 3:
+				set .@nb, query_sql("select name, highestown, date_format(owntime,'%a %e/%c/%y %r') from ownladder where highestown >= "+ getvariableofnpc(.lowestownage,"DOTAPVP") +" order by highestown desc limit "+ getvariableofnpc(.showtotal,"DOTAPVP"), .@name$, .@owned, .@time$);
+				if ( .@nb == 0 ) {
+					mes "["+ .@npcname$ +"]";
+					mes "The ladder currently is empty.";
+					next;
+				}
+				for ( set .@j,0; .@j < .@nb; set .@j, .@j + getvariableofnpc(.showpage,"DOTAPVP") ) {
+					mes "["+ .@npcname$ +"]";
+					for ( set .@i, .@j; .@i < (getvariableofnpc(.showpage,"DOTAPVP") + .@j) && .@i < .@nb; set .@i, .@i + 1 ) {
+						mes "^996600"+ (.@i+1) +": ^006699"+ .@name$[.@i] +" ^00AAAA("+ .@owned[.@i] +") ^000000on :";
+						mes "    ^EE8800"+ .@time$[.@i] +"^000000";
+					}
+					next;
+				}
+				break;
+			case 4:
+				if ( @dota_sql_kills == 0 && @dota_sql_deaths == 0 )
+					query_sql "select kills, deaths, streaks, unix_timestamp(streaktime), date_format(streaktime,'%a %e/%c/%y %r') from pvpladder where char_id = "+ getcharid(0), @dota_sql_kills, @dota_sql_deaths, @dota_sql_streaks, @dota_sql_streaktime, .@time1$;
+				mes "["+ .@npcname$ +"]";
+				if ( @dota_sql_kills == 0 && @dota_sql_deaths == 0 )
+					mes "You not yet kill any player.";
+				else {
+					mes "Your Current Streak : ^70AC11{"+ @PlayersKilledStreak +"}^000000";
+					mes "Your Total Kills : ^00AA00["+ @dota_sql_kills +"]^000000";
+					mes "Your Death Counts : ^FF0000<"+ @dota_sql_deaths +">^000000";
+					if ( @dota_sql_kills || @dota_sql_streaks ) {
+						mes "Highest Streak was ^70AC11{"+ @dota_sql_streaks +"}^000000 on :";
+						query_sql "select date_format( from_unixtime("+ @dota_sql_streaktime +"),'%a %e/%c/%y %r')", .@time1$;
+						mes "    ^EE8800"+ .@time1$ +"^000000";
+					}
+				}
+				next;
+				if ( getcharid(2) ) {
+					if ( getvariableofnpc( getd(".dota_sql_"+ getcharid(2) +"_h"), "DOTAPVP" ) == 0 ) {
+						query_sql "select currentown, highestown, unix_timestamp(owntime) from ownladder where guild_id = "+ getcharid(2), .@c, .@h, .@t;
+						set getvariableofnpc( getd(".dota_sql_"+ getcharid(2) +"_c"), "DOTAPVP" ), .@c;
+						set getvariableofnpc( getd(".dota_sql_"+ getcharid(2) +"_h"), "DOTAPVP" ), .@h;
+						set getvariableofnpc( getd(".dota_sql_"+ getcharid(2) +"_t"), "DOTAPVP" ), .@t;
+					}
+					mes "["+ .@npcname$ +"]";
+					if ( getvariableofnpc( getd(".dota_sql_"+ getcharid(2) +"_h"), "DOTAPVP" ) == 0 ) {
+						mes "Your guild not yet kill any player.";
+					} else {
+						mes "Your guild name : ^006699"+ strcharinfo(2) +"^000000";
+						mes "Current Owning  : ^00AAAA("+ getvariableofnpc( getd(".dota_sql_"+ getcharid(2) +"_c"), "DOTAPVP" ) +")^000000";
+						mes "Longest Ownage was ^00AAAA("+ getvariableofnpc( getd(".dota_sql_"+ getcharid(2) +"_h"), "DOTAPVP" ) + ")^000000 on :";
+						query_sql "select date_format( from_unixtime("+ getvariableofnpc( getd(".dota_sql_"+ getcharid(2) +"_t"), "DOTAPVP" ) +"),'%a %e/%c/%y %r')", .@time2$;
+						mes "    ^EE8800"+ .@time2$ +"^000000";
+					}
+					next;
+				}
+				break;
+			case 5:
+				mes "["+ .@npcname$ +"]";
+				mes "Explanation for Most Kills:";
+				mes " ";
+				mes "^996600Rank. ^006699NAME ^00AA00[Total Kills] ^FF0000<Deaths>^000000";
+				mes " ";
+				mes "--------------------------------";
+				mes " ";
+				mes "The ^00AA00Kills^000000 added when a player kills another player.";
+				mes " ";
+				mes "^FF0000Deaths^000000 count increase when a player killed by another player, or suicide (eg: Grand Cross).";
+				mes " ";
+				mes "A player killed by monsters, homunculus or pets will not add the kills or deaths count.";
+				next;
+				mes "["+ .@npcname$ +"]";
+				mes "Explanation for Highest Streak:";
+				mes " ";
+				mes "^996600Rank. ^006699NAME ^70AC11{Highest Streak} ^000000on :";
+				mes "    ^EE8800TIME^000000";
+				mes " ";
+				mes "--------------------------------";
+				mes " ";
+				mes "The ^70AC11Streak^000000 are added every time a player kills another player. It will reset upon log out, killed by another player, or suicide (eg: Sacrifice).";
+				mes " ";
+				mes "Then it record in the server the ^EE8800TIME^000000 when that player got that highest streak.";
+				mes " ";
+				mes "A player killed by monsters, homunculus or pets will not reset the streak.";
+				mes " ";
+				mes "--------------------------------";
+				mes " ";
+				mes "The numbers of straight kills to get these announcements are :";
+				mes "^70AC11"+ getvariableofnpc(.killingspree,"DOTAPVP") +"^000000 : Killing Spree";
+				mes "^70AC11"+ getvariableofnpc(.dominating,"DOTAPVP") +"^000000 : Dominating";
+				mes "^70AC11"+ getvariableofnpc(.megakill,"DOTAPVP") +"^000000 : Mega Kill";
+				mes "^70AC11"+ getvariableofnpc(.unstoppable,"DOTAPVP") +"^000000 : Unstoppable";
+				mes "^70AC11"+ getvariableofnpc(.wickedsick,"DOTAPVP") +"^000000 : Wicked Sick";
+				mes "^70AC11"+ getvariableofnpc(.monsterkill,"DOTAPVP") +"^000000 : Monster Kill";
+				mes "^70AC11"+ getvariableofnpc(.godlike,"DOTAPVP") +"^000000 : Godlike";
+				mes "^70AC11"+ getvariableofnpc(.holyshit,"DOTAPVP") +"^000000 : Beyond Godlike";
+				next;
+				mes "["+ .@npcname$ +"]";
+				mes "Explanation for Longest Ownage:";
+				mes " ";
+				mes "^996600Rank. ^006699NAME ^00AAAA(Longest Ownage) ^000000on :";
+				mes "    ^EE8800TIME^000000";
+				mes " ";
+				mes "--------------------------------";
+				mes " ";
+				mes "The ^00AAAAOwnage^000000 added every time any guild members killed another player that doesn't belong to his/her guild. It will reset when any of the guild member was killed by ANY player, including his/her guild member.";
+				mes " ";
+				mes "Then it record in the server the ^EE8800TIME^000000 when the guild got that longest ownage.";
+				mes " ";
+				mes "If the server went under maintainance, the current ownage will survive after the server restart.";
+				mes " ";
+				mes "Any guild member killed by monster, homunculus or pets will not reset the ownage count.";
+				next;
+				if ( getvariableofnpc(.lvltokill,"DOTAPVP") ) {
+					mes "["+ .@npcname$ +"]";
+					mes "You must kill another player with minimum base level of "+ getvariableofnpc(.lvltokill,"DOTAPVP") +", in order to get an announcement or get in the ladder.";
+					mes " ";
+					mes "It's possible for a base level 1 novice kills a base level 99 player and still can get in the ladder.";
+					mes "However when a player level 99 kills a level 1 novice will get nothing.";
+					next;
+				}
+				if ( getvariableofnpc(.counttopunish,"DOTAPVP") ) {
+					mes "["+ .@npcname$ +"]";
+					mes "Some noob players try to kill the same person over and over again in hope of getting his/her name appear in the ladder.";
+					mes "However if you trying to do the same thing on this ladder, your name will announce to the public, and your action will be recorded into the server to notify the GMs.";
+					next;
+				}
+				if ( getvariableofnpc(.minlvlrange,"DOTAPVP") ) {
+					mes "["+ .@npcname$ +"]";
+					mes "When you kill another player thats lower base level than you, the base level gap between you and that player must not more than "+ getvariableofnpc(.minlvlrange,"DOTAPVP") +".";
+					mes " ";
+					if ( getvariableofnpc(.minlvlrange,"DOTAPVP") >= 200)
+						mes "In other words, if your base level is 500, the player you killed must be at least level "+( 500 - getvariableofnpc(.minlvlrange,"DOTAPVP") )+" then only you will get the announcement and in the ladder.";
+					else if ( getvariableofnpc(.minlvlrange,"DOTAPVP") >= 70)
+						mes "In other words, if your base level is 255, the player you killed must be at least level "+( 255 - getvariableofnpc(.minlvlrange,"DOTAPVP") )+" then only you will get the announcement and in the ladder.";
+					else
+						mes "In other words, if your base level is 99, the player you killed must be at least level "+( 99 - getvariableofnpc(.minlvlrange,"DOTAPVP") )+" then only you will get the announcement and in the ladder.";
+					mes "Higher base level kills lower level gets nothing, however lower level player kills higher level will get the announcement.";
+					next;
+				}
+				break;
+		}
+	}
+}

@@ -29,7 +29,7 @@ create table ownladder (
 //= PVP ladder store in SQL table
 //= plus anti-sit-killer feature
 //===== Topic ================================================================
-//= 
+//= https://herc.ws/board/topic/18871-dota-pvp-ladder/
 //===== Additional Comments: =================================================
 //= still don't have modify value option, will be done ... SOON !!!
 //= optimized query_sql execution from 4 times to just twice in every single way

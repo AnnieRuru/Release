@@ -42,9 +42,7 @@ int market_clone_companion = 0; // set to 1 to enable
 #include "map/npc.h"
 #include "map/chat.h"
 #include "map/clif.h"
-#include "map/guild.h"
 #include "common/memmgr.h"
-#include "common/socket.h"
 #include "plugins/HPMHooking.h"
 #include "common/HPMDataCheck.h"
 

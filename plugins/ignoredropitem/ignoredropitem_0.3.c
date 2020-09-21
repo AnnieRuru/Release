@@ -49,8 +49,10 @@ static inline int itemtype(int type)
 }
 
 int buildin_dropflooritem_flagcheck(struct block_list *bl, va_list ap) {
-	struct map_session_data *tsd = BL_CAST(BL_PC, bl);
-	struct player_data *ssd = getFromMSD(tsd, 0);
+	struct map_session_data *sd = BL_CAST(BL_PC, bl);
+	if (sd == NULL)
+		return;
+	struct player_data *ssd = getFromMSD(sd, 0);
 	struct flooritem_data *fitem = va_arg(ap, struct flooritem_data *);
 	
 	struct packet_dropflooritem p;
@@ -79,7 +81,7 @@ int buildin_dropflooritem_flagcheck(struct block_list *bl, va_list ap) {
 #endif
 
 	if (ssd->ignoredropitemflag == 0)
-		clif->send(&p, sizeof(p), &tsd->bl, SELF);
+		clif->send(&p, sizeof(p), &sd->bl, SELF);
 	return true;
 }
 

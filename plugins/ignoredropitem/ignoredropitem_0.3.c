@@ -11,7 +11,7 @@
 //===== Topic ================================================
 //= https://herc.ws/board/topic/18873-urgent-request-ignoredropseeitems/
 //===== Additional Comments: =================================  
-//= yeah, windows compiler sucks
+//= yeah, windows compiler sucks, doesn't detect possible null value
 //============================================================
 
 #include "common/hercules.h"
@@ -49,9 +49,9 @@ static inline int itemtype(int type)
 }
 
 int buildin_dropflooritem_flagcheck(struct block_list *bl, va_list ap) {
+	nullpo_ret(bl);
+	Assert_ret(bl->type == BL_PC);
 	struct map_session_data *sd = BL_CAST(BL_PC, bl);
-	if (sd == NULL)
-		return;
 	struct player_data *ssd = getFromMSD(sd, 0);
 	struct flooritem_data *fitem = va_arg(ap, struct flooritem_data *);
 	

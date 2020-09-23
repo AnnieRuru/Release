@@ -1,0 +1,206 @@
+//	https://rathena.org/board/topic/125939-looking-for-a-tournament-npc-sytem-pt-vs-pt/
+
+-	script	PartyVsParty	FAKE_NPC,{
+OnInit:
+	.eventlasting = 60; // 60 seconds
+
+	bindatcmd "startmatch", strnpcinfo(3)+"::OnWarStart";
+	setarray .available_type$, " ^00FF00Available^000000", " ^FF0000Unavailable^000000", " ^FF0000Offline^000000";
+	setmapflag "guild_vs3", mf_battleground, 2;
+	end;
+OnWarStart:
+	if (.start) {
+		mes "The match is in progress ...";
+		mes "The current score is "+ .partyAscore +":"+ .partyBscore;
+		mes "Terminate ?";
+		next;
+		if (select("No", "Yes") == 1) close;
+		if (select("Yes", "No") == 2) close;
+		.skip = true;
+		awake strnpcinfo(0);
+		close;
+	}
+	mes "Welcome, what do you want to do?";
+	callsub L_display_party_members, .partyA;
+	callsub L_display_party_members, .partyB;
+	next;
+	switch(select("Select Party A", "Select Party B", "Start Match")) {
+	case 1:
+		.partyA = callsub(L_select_party, "A", .partyA, .partyB);
+		goto OnWarStart;
+	case 2:
+		.partyB = callsub(L_select_party, "B", .partyB, .partyA);
+		goto OnWarStart;
+	case 3:
+		.@conditions = 0;
+		.@conditions += callsub(L_check_party_conditions, .partyA, "A");
+		.@conditions += callsub(L_check_party_conditions, .partyB, "B");
+		if (.@conditions < 2)
+			goto OnWarStart;
+		else
+			goto L_start;
+	}
+	close;
+L_display_party_members:
+	if (!getarg(0))
+		mes "Party A = ^FF0000None^000000";
+	else {
+		mes "Party A = "+ getpartyname(.partyA);
+		getpartymember getarg(0), 0;
+		getpartymember getarg(0), 1;
+		getpartymember getarg(0), 2;
+		.@origin = getcharid(3);
+		.@online = .@unavailable = 0;
+		for (.@i = 0; .@i < $@partymembercount; ++.@i) {
+			if (isloggedin($@partymemberaid[.@i], $@partymembercid[.@i])) {
+				attachrid $@partymemberaid[.@i];
+				if (getmapflag(strcharinfo(3), mf_nowarp)) {
+					.@type[.@i] = 1;
+					++.@online;
+					++.@unavailable;
+				}
+				else {
+					.@type[.@i] = 0;
+					++.@online;
+				}
+			}
+			else
+				.@type[.@i] = 2;
+		}
+		attachrid .@origin;
+		mes "Online = "+ .@online +((.@unavailable)? ", Unavailable = "+ .@unavailable : "");
+		for (.@i = 0; .@i < $@partymembercount; ++.@i)
+			mes "- "+ $@partymembername$[.@i] + .available_type$[.@type[.@i]];
+	}
+	return;
+L_select_party:
+	mes "input a player name";
+	input .@tmp$;
+	if (getcharid(3, .@tmp$) == 0) {
+		mes "player not available";
+		next;
+		return getarg(1);
+	}
+	.@partyid = getcharid(1, .@tmp$);
+	if (!.@partyid) {
+		mes "that player doesn't have a party";
+		next;
+		return getarg(1);
+	}
+	if (.@partyid == getarg(2)) {
+		mes "that player is a member on the other party";
+		next;
+		return getarg(1);
+	}
+	mes "are you sure you want the party";
+	mes getpartyname(.@partyid) +" as Party "+ getarg(0) +"?";
+	next;
+	if (select("Yes","No") == 2)
+		return getarg(1);
+	return .@partyid;
+L_check_party_conditions:
+	if (!getarg(0)) {
+		mes "Party"+ getarg(1) +" hasn't been configure";
+		next;
+		return 0;
+	}
+	getpartymember getarg(0), 0;
+	getpartymember getarg(0), 1;
+	getpartymember getarg(0), 2;
+	.@origin = getcharid(3);
+	for (.@i = 0; .@i < $@partymembercount; ++.@i) {
+		if (isloggedin($@partymemberaid[.@i], $@partymembercid[.@i])) {
+			attachrid $@partymemberaid[.@i];
+			++.@online;
+			if (getmapflag(strcharinfo(3), mf_nowarp))
+				.@index[.@c++] = .@i;
+		}
+	}
+	attachrid .@origin;
+	if (!.@online) {
+		mes "Party"+ getarg(1) +" don't have any players online at the moment";
+		next;
+		return 0;
+	}
+	if (.@c > 0) {
+		mes "Party"+ getarg(1) +" has "+ .@c +" party members not ready, still attending on other event maps";
+		for (.@i = 0; .@i < .@c; ++.@i)
+			mes "- "+ $@partymembername$[.@index[.@i]];
+		next;
+		return 0;
+	}
+	return 1;
+L_register_bg_party:
+	getpartymember getarg(0), 1;
+	getpartymember getarg(0), 2;
+	for (.@i = 0; .@i < $@partymembercount; ++.@i) {
+		if (isloggedin($@partymemberaid[.@i], $@partymembercid[.@i])) {
+			bg_join getarg(4), "guild_vs3", getarg(2), getarg(3), $@partymembercid[.@i];
+			set getarg(1), getarg(1) +1;
+		}
+	}
+	return;
+L_start:
+	.start = true;
+	announce "Party Vs Party : ["+ getpartyname(.partyA) +"] VS ["+ getpartyname(.partyB) +"]", bc_all;
+	.partyAid = bg_create( "guild_vs3", 13,50, strnpcinfo(0)+"::OnpartyAQuit", strnpcinfo(0)+"::OnpartyADead" );
+	.partyBid = bg_create( "guild_vs3", 86,50, strnpcinfo(0)+"::OnpartyBQuit", strnpcinfo(0)+"::OnpartyBDead" );
+	callsub L_register_bg_party, .partyA, .partyAscore, 13,50, .partyAid;
+	callsub L_register_bg_party, .partyB, .partyBscore, 86,50, .partyBid;
+	bg_updatescore "guild_vs3", .partyAscore, .partyBscore;
+	setwall "guild_vs3", 19,55, 12, DIR_SOUTH, false, "partyvspartyA";
+	setwall "guild_vs3", 80,55, 12, DIR_SOUTH, false, "partyvspartyB";
+	sleep 3000;
+	for (.@i = 5; .@i > 0; --.@i) {
+		mapannounce "guild_vs3", "["+ .@i +"]", bc_map;
+		if (!.skip) sleep 1000;
+	}
+	mapannounce "guild_vs3", "Start!", bc_map;
+	delwall "partyvspartyA";
+	delwall "partyvspartyB";
+	if (!.skip) sleep .eventlasting * 1000;
+	if ( .partyAscore > .partyBscore ) {
+		mapannounce "guild_vs3", "Party ["+ getpartyname(.partyA) +"] is victorious!", bc_map;
+		callsub L_Reward, .partyAid;
+	}
+	else if ( .partyBscore > .partyAscore ) {
+		mapannounce "guild_vs3", "Party ["+ getpartyname(.partyB) +"] is victorious!", bc_map;
+		callsub L_Reward, .partyBid;
+	}
+	else
+		mapannounce "guild_vs3", "- The match has ended in a draw! -", bc_map;
+	bg_warp .partyAid, "prontera",152,178;
+	bg_warp .partyBid, "prontera",154,178;
+	bg_destroy .partyAid;
+	bg_destroy .partyBid;
+	.start = .skip =  false;
+	.partyAscore = .partyBscore = 0;
+	end;
+L_Reward:
+	bg_get_data getarg(0), 1;
+	for ( .@i = 0; .@i < $@arenamemberscount; ++.@i )
+		getitem 512, 1, $@arenamembers[.@i];
+	return;
+OnpartyADead:  callsub L_Dead, .partyAscore;
+OnpartyBDead: callsub L_Dead, .partyBscore;
+L_Dead:
+	set getarg(0), getarg(0) -1;
+	bg_updatescore "guild_vs3", .partyAscore, .partyBscore;
+	bg_leave;
+	if (!getarg(0)) {
+		.skip = true;
+		awake strnpcinfo(0);
+	}
+	end;
+OnpartyAQuit:  callsub L_Quit, .partyAscore;
+OnpartyBQuit: callsub L_Quit, .partyBscore;
+L_Quit:
+	set getarg(0), getarg(0) -1;
+	bg_updatescore "guild_vs3", .partyAscore, .partyBscore;
+	percentheal 100, 100;
+	if (!getarg(0)) {
+		.skip = true;
+		awake strnpcinfo(0);
+	}
+	end;
+}

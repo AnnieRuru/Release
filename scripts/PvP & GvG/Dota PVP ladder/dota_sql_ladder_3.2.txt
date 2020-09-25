@@ -20,7 +20,7 @@ create table ownladder (
 ) engine = myisam; 
 */
 
-//===== eAthena Script =======================================================
+//===== Hercules Script ======================================================
 //= PVP ladder script with dota announcement
 //===== By: ==================================================================
 //= AnnieRuru

@@ -1,0 +1,61 @@
+// https://rathena.org/board/topic/126009-deadbloody-branch-timer/
+
+ src/map/mob.cpp  |  9 +++++++++
+ src/map/mob.hpp  |  1 +
+ src/map/unit.cpp | 11 +++++++++++
+ 3 files changed, 21 insertions(+)
+
+diff --git a/src/map/mob.cpp b/src/map/mob.cpp
+index 3e0b54f37..686c30ac1 100644
+--- a/src/map/mob.cpp
++++ b/src/map/mob.cpp
+@@ -708,6 +708,15 @@ int mob_once_spawn(struct map_session_data* sd, int16 m, int16 x, int16 y, const
+ 			//"I understand the "Aggressive" part, but the "Can Move" and "Can Attack" is just stupid" - Poki#3
+ 			sc_start4(NULL,&md->bl, SC_MODECHANGE, 100, 1, 0, MD_AGGRESSIVE|MD_CANATTACK|MD_CANMOVE|MD_ANGRY, 0, 60000);
+ 	}
++	
++	if (md != NULL) {
++		if (mob_id < 0) {
++			md->special_state.deadbranch = 1;
++			md->deletetimer = add_timer(gettick()+5000,mob_timer_delete,md->bl.id,0);
++		}
++		else
++			md->special_state.deadbranch = 0;
++	}
+ 
+ 	return (md) ? md->bl.id : 0; // id of last spawned mob
+ }
+diff --git a/src/map/mob.hpp b/src/map/mob.hpp
+index 5b47b8c6f..37921599c 100644
+--- a/src/map/mob.hpp
++++ b/src/map/mob.hpp
+@@ -189,6 +189,7 @@ struct mob_data {
+ 		unsigned int size : 2; //Small/Big monsters.
+ 		enum mob_ai ai; //Special ai for summoned monsters.
+ 		unsigned int clone : 1;/* is clone? 1:0 */
++		unsigned int deadbranch : 1; /* summon from branch */
+ 	} special_state; //Special mob information that does not needs to be zero'ed on mob respawn.
+ 	struct s_MobState {
+ 		unsigned int aggressive : 1; //Signals whether the mob AI is in aggressive mode or reactive mode. [Skotlex]
+diff --git a/src/map/unit.cpp b/src/map/unit.cpp
+index 15632f201..b42668a1d 100644
+--- a/src/map/unit.cpp
++++ b/src/map/unit.cpp
+@@ -2420,6 +2420,17 @@ int unit_attack(struct block_list *src,int target_id,int continuous)
+ 	if(ud->attacktimer != INVALID_TIMER)
+ 		return 0;
+ 
++	if (target_id != 0) {
++		struct block_list *target_bl = map_id2bl(target_id);
++		if (target_bl->type == BL_MOB) {
++			struct mob_data *md = map_id2md(target_id);
++			if (md->special_state.deadbranch == 1 && md->deletetimer != INVALID_TIMER) {
++				delete_timer(md->deletetimer, mob_timer_delete);
++				md->deletetimer = add_timer(gettick() + 5000, mob_timer_delete, md->bl.id, 0);
++			}
++		}
++	}
++
+ 	// New action request received, delete previous action request if not executed yet
+ 	if(ud->stepaction || ud->steptimer != INVALID_TIMER)
+ 		unit_stop_stepaction(src);

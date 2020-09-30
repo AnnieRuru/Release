@@ -1,4 +1,4 @@
-### Download: 1.8
+### Download: 1.9
 plugin
 
 tested with
@@ -57,5 +57,8 @@ noitem_20151030
 1.8 - plugin
 - fix duplicate entry by ShowWarning
 - add missing IT_AMMO item type deny
+
+1.9 - plugin
+- fix memory leak when do multiple `@loadnpc`
 
 </details>

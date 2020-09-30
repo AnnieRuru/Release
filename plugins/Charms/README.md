@@ -1,7 +1,4 @@
-nonono ... don't worry  
-this plugin DOES NOT DUP ITEM, trust me :P
-
-### Download: 1.3
+### Download: 1.4
 plugin
 
 tested with
@@ -65,5 +62,8 @@ because I copy paste most of his stuffs
 1.3 - plugin
 - update to latest revision
 - add nochams mapflag to deny giving item bonus
+
+1.4 - plugin
+- fix memory leak when do multiple `@loadnpc`
 
 </details>

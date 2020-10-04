@@ -1,0 +1,72 @@
+//===== rAthena Patch ========================================
+//= deadbranch_timerdelete
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.2
+//===== Compatible With: ===================================== 
+//= rAthena 2020-10-04
+//===== Description: =========================================
+//= If the mob doesn't been hit for 5mins after spawning, they were automatically die without loot
+//===== Topic ================================================
+//= https://rathena.org/board/topic/118103-how-to-following-npc/?do=findComment&comment=357066
+//===== Additional Comments: =================================
+//= I tested with 5000 = 5 seconds, change them into 60000 
+//============================================================
+
+ src/map/battle.cpp | 8 ++++++++
+ src/map/mob.cpp    | 9 +++++++++
+ src/map/mob.hpp    | 1 +
+ 3 files changed, 18 insertions(+)
+
+diff --git a/src/map/battle.cpp b/src/map/battle.cpp
+index d81ac68b6..6e8e331b5 100644
+--- a/src/map/battle.cpp
++++ b/src/map/battle.cpp
+@@ -8409,6 +8409,14 @@ int battle_check_target( struct block_list *src, struct block_list *target,int f
+ 	else if( state&BCT_ENEMY && strip_enemy && state&(BCT_SELF|BCT_PARTY|BCT_GUILD) )
+ 		state&=~BCT_ENEMY;
+ 
++	if (target->type == BL_MOB) {
++		struct mob_data *md = BL_CAST(BL_MOB, target);
++		if (md->special_state.deadbranch == 1 && md->deletetimer != INVALID_TIMER) {
++			delete_timer(md->deletetimer, mob_timer_delete);
++			md->deletetimer = add_timer(gettick() + 5000, mob_timer_delete, md->bl.id, 0);
++		}
++	}
++
+ 	return (flag&state)?1:-1;
+ }
+ /*==========================================
+diff --git a/src/map/mob.cpp b/src/map/mob.cpp
+index 3e0b54f37..c6aa9fe9f 100644
+--- a/src/map/mob.cpp
++++ b/src/map/mob.cpp
+@@ -709,6 +709,15 @@ int mob_once_spawn(struct map_session_data* sd, int16 m, int16 x, int16 y, const
+ 			sc_start4(NULL,&md->bl, SC_MODECHANGE, 100, 1, 0, MD_AGGRESSIVE|MD_CANATTACK|MD_CANMOVE|MD_ANGRY, 0, 60000);
+ 	}
+ 
++	if (md != NULL) {
++		if (mob_id < 0) {
++			md->special_state.deadbranch = 1;
++			md->deletetimer = add_timer(gettick()+5000,mob_timer_delete,md->bl.id,0);
++		}
++		else
++			md->special_state.deadbranch = 0;
++	}
++
+ 	return (md) ? md->bl.id : 0; // id of last spawned mob
+ }
+ 
+diff --git a/src/map/mob.hpp b/src/map/mob.hpp
+index 5b47b8c6f..37921599c 100644
+--- a/src/map/mob.hpp
++++ b/src/map/mob.hpp
+@@ -189,6 +189,7 @@ struct mob_data {
+ 		unsigned int size : 2; //Small/Big monsters.
+ 		enum mob_ai ai; //Special ai for summoned monsters.
+ 		unsigned int clone : 1;/* is clone? 1:0 */
++		unsigned int deadbranch : 1; /* summon from branch */
+ 	} special_state; //Special mob information that does not needs to be zero'ed on mob respawn.
+ 	struct s_MobState {
+ 		unsigned int aggressive : 1; //Signals whether the mob AI is in aggressive mode or reactive mode. [Skotlex]

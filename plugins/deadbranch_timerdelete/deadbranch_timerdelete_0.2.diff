@@ -9,9 +9,9 @@
 //===== Description: =========================================
 //= If the mob doesn't been hit for 5mins after spawning, they were automatically die without loot
 //===== Topic ================================================
-//= https://rathena.org/board/topic/118103-how-to-following-npc/?do=findComment&comment=357066
+//= https://rathena.org/board/topic/126009-deadbloody-branch-timer/#comment-386950
 //===== Additional Comments: =================================
-//= I tested with 5000 = 5 seconds, change them into 60000 
+//= I tested with 5000 = 5 seconds, change them into 60000
 //============================================================
 
  src/map/battle.cpp | 8 ++++++++

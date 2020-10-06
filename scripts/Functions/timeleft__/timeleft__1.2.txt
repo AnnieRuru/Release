@@ -19,18 +19,18 @@
 
 function	script	timeleft__	{
 	.@left = getarg(0);
-	if ( .@left <= 0 )
+	if (.@left <= 0)
 		return getarg(0);
 	.@day = .@left / 86400;
 	.@hour = .@left % 86400 / 3600;
 	.@min = .@left % 3600 / 60;
 	.@sec = .@left % 60;
-	if ( .@day )
-		return sprintf( _$( "%d day %d hour" ), .@day, .@hour );
-	else if ( .@hour )
-		return sprintf( _$( "%d hour %d min" ), .@hour, .@min );
-	else if ( .@min )
-		return sprintf( _$( "%d min %d sec" ), .@min, .@sec );
+	if (.@day)
+		return sprintf(_$("%d day %d hour"), .@day, .@hour);
+	else if (.@hour)
+		return sprintf(_$("%d hour %d min"), .@hour, .@min);
+	else if (.@min)
+		return sprintf(_$("%d min %d sec"), .@min, .@sec);
 	else
-		return sprintf( _$( "%d sec" ), .@sec );
+		return sprintf(_$("%d sec"), .@sec);
 }

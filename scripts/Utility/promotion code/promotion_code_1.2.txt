@@ -1,0 +1,1385 @@
+//===== Hercules Script ======================================
+//= Promotion Code
+//===== By: ==================================================
+//= LIL TROLL (he has became a legacy for making this bug script)
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.2
+//===== Compatible With: ===================================== 
+//= Hercules 2020-10-10
+//===== Description: =========================================
+//= GM promote a gibberish code on social media,
+//= then player enter the gibberish code to claim the item
+//===== Topic ================================================
+//= https://herc.ws/board/topic/18975-promotional-code/
+//===== Additional Comments: =================================  
+//= I don't want to see any members bring up that script again
+//============================================================
+
+/*
+CREATE TABLE `promotion_code` (
+	`id` INT PRIMARY KEY AUTO_INCREMENT,
+	`code` VARCHAR(70),
+	`start_date` DATETIME,
+	`expire_date` DATETIME,
+	`claim_limit` INT,
+	`group_id` INT,
+	`baselevel` INT,
+	`has_claimed` INT,
+	KEY (`code`),
+	KEY (`start_date`),
+	KEY (`expire_date`),
+	KEY (`has_claimed`),
+	KEY (`claim_limit`)
+) ENGINE = InnoDB CHARACTER SET latin1 COLLATE latin1_general_cs AUTO_INCREMENT = 1;
+
+CREATE TABLE `promotion_code_item` (
+	`id` INT,
+	`item_id` INT,
+	`amount` INT,
+	KEY (`id`)
+) ENGINE = MyISAM;
+
+CREATE TABLE `promotion_code_log` (
+	`id` INT,
+	`char_name` VARCHAR(24),
+	`action_date` DATETIME,
+	`type` TINYINT,
+    `original_value` VARCHAR(70),
+    `modify_value` VARCHAR(70),
+	KEY (`id`)
+) ENGINE = MyISAM;
+
+CREATE TABLE `promotion_code_claim` (
+	`account_id` INT,
+	`id` INT,
+	`claimed_date` DATETIME,
+	KEY(`account_id`),
+	KEY(`id`)
+) ENGINE = MyISAM;
+*/
+
+function	script	timeleft__	{
+	.@left = getarg(0);
+	if (.@left <= 0)
+		return getarg(0);
+	.@day = .@left / 86400;
+	.@hour = .@left % 86400 / 3600;
+	.@min = .@left % 3600 / 60;
+	.@sec = .@left % 60;
+	if (.@day)
+		return sprintf(_$("%d day %d hour"), .@day, .@hour);
+	else if (.@hour)
+		return sprintf(_$("%d hour %d min"), .@hour, .@min);
+	else if (.@min)
+		return sprintf(_$("%d min %d sec"), .@min, .@sec);
+	else
+		return sprintf(_$("%d sec"), .@sec);
+}
+
+-	script	Promotion_Code	FAKE_NPC,{
+OnInit:
+	.main_page_view_limit = 20;
+	.item_size_limit = 5;
+	.wild_card_name_search_limit = 20;
+	.list_all_per_page = 20; // when list all players who claimed the code, how many should you list in a single page
+
+//	If you have trust issue with other GMs, never turn this on because the log can be remove permanently -> no trace left
+//	however if you love to do clean up periodically AND don't have any issue with other GMs, you can remove the log to save hard disk space on your server, and possibly return result faster due to smaller database
+	.can_remove_log = false;
+
+	setarray .ord$, "1","2","3","4","5","6","7","8","9","0",
+		"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z",
+		"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z";
+	.ord_size = getarraysize(.ord$);
+	setarray .days_in_a_month[1], 31,29,31,30,31,30,31,31,30,31,30,31;
+	.start_date_menu_hour$ = "Next 12am:Next 1am:Next 2am:Next 3am:Next 4am:Next 5am:Next 6am:Next 7am:Next 8am:Next 9am:Next 10am:Next 11am:Next 12pm:Next 1pm:Next 2pm:Next 3pm:Next 4pm:Next 5pm:Next 6pm:Next 7pm:Next 8pm:Next 9pm:Next 10pm:Next 11pm";
+	.end_date_menu_hour$ = "12am:1am:2am:3am:4am:5am:6am:7am:8am:9am:10am:11am:12pm:1pm:2pm:3pm:4pm:5pm:6pm:7pm:8pm:9pm:10pm:11pm";
+	.start_date_menu_weekday$ = "Next Sunday:Next Monday:Next Tuesday:Next Wednesday:Next Thursday:Next Friday:Next Saturday";
+//	.end_date_menu_weekday$ = "Sunday:Monday:Tuesday:Wednesday:Thursday:Friday:Saturday";
+
+	bindatcmd "code", strnpcinfo(NPC_NAME_UNIQUE)+"::OnCode", 99,99;
+	bindatcmd "claim", strnpcinfo(NPC_NAME_UNIQUE)+"::OnClaim";
+
+	query_sql "SELECT COUNT(1) FROM `promotion_code` WHERE `start_date` < NOW() AND `expire_date` > NOW()", .@expire_count;
+	for (.@i = 0; .@i < .@expire_count; ++.@i)
+		donpcevent strnpcinfo(NPC_NAME_UNIQUE)+"::OnCountdownExpire";
+	query_sql "SELECT COUNT(1) FROM `promotion_code` WHERE `start_date` > NOW()", .@dormant_count;
+	for (.@i = 0; .@i < .@dormant_count; ++.@i)
+		donpcevent strnpcinfo(NPC_NAME_UNIQUE)+"::OnCountdownStart";
+	.offset_expire = 0;
+	.offset_start = 0;
+	end;
+OnCountdownExpire:
+	query_sql "SELECT `code`, UNIX_TIMESTAMP(`start_date`), UNIX_TIMESTAMP(`expire_date`) FROM `promotion_code` WHERE `start_date` < NOW() AND `expire_date` > NOW() LIMIT 1 OFFSET "+(.offset_expire++), .@code$, .@start_unixtime, .@expire_unixtime;
+	announce "The Promotional Code ["+ .@code$ +"] has activated. Type '@claim' to claim your Promotional Code now!", bc_all;
+	if ((.@expire_unixtime - gettimetick(2)) >= 2147000)
+		end;
+	sleep (.@expire_unixtime - gettimetick(2)) *1000;
+	announce "The Promotional Code ["+ .@code$ +"] has expired.", bc_all;
+	end;
+OnCountdownStart:
+	query_sql "SELECT `code`, UNIX_TIMESTAMP(`start_date`), UNIX_TIMESTAMP(`expire_date`) FROM `promotion_code` WHERE `start_date` < NOW() AND `expire_date` > NOW() LIMIT 1 OFFSET "+(.offset_start++), .@code$, .@start_unixtime, .@expire_unixtime;
+	if (.@start_unixtime > gettimetick(2) && (.@start_unixtime - gettimetick(2)) >= 2147000)
+		end;
+	sleep (.@start_unixtime - gettimetick(2)) *1000;
+	announce "The Promotional Code ["+ .@code$ +"] has activated. Type '@claim' to claim your Promotional Code now!", bc_all;
+	if ((.@expire_unixtime - gettimetick(2)) >= 2147000)
+		end;
+	sleep (.@expire_unixtime - gettimetick(2)) *1000;
+	announce "The Promotional Code ["+ .@code$ +"] has expired.", bc_all;
+	end;
+OnClaim:
+	.@nb = query_sql("SELECT `id`, `code`, `has_claimed`, `claim_limit`, `group_id`, `baselevel` FROM `promotion_code` WHERE `start_date` < NOW() AND `expire_date` > NOW()", .@id, .@code$, .@claimed, .@limit, .@group_id, .@baselevel);
+	mes "[Promotional-Code]";
+	mes " ";
+	if (!.@nb) {
+		mes "There are no Promo code available at the moment.";
+		close;
+	}
+	for (.@i = 0; .@i < .@nb; ++.@i) {
+		if (.@limit[.@i])
+			mes (.@i +1)+". "+ .@code$[.@i] +" ["+ .@claimed[.@i] +"/"+ .@limit[.@i] +"]";
+		else
+			mes (.@i +1)+". "+ .@code$[.@i];
+	}
+	next;
+	for (.@i = 0; .@i < .@nb; ++.@i)
+		.@menu$ += (.@i +1)+". "+ .@code$[.@i] +":";
+	.@s = select("I want to input code manually", .@menu$) -2;
+	if (.@s == -1) {
+		input .@tmp$;
+		.@i = 0;
+		while (.@i < .@nb && .@tmp$ != .@code$[.@i]) ++.@i;
+		if (.@i == .@nb) {
+			mes "This code isn't available.";
+			close;
+		}
+		.@s = .@i;
+	}
+	mes "[Promotional-Code]";
+	mes " ";
+	mesf "%s", .@code$[.@s];
+	if (.@limit[.@s])
+		mes "Claimed ["+ .@claimed[.@s] +"/"+ .@limit[.@s] +"]";
+	if (.@baselevel[.@s] > 1)
+		mes " - Require BaseLevel "+ .@baselevel[.@s];
+	if (.@group_id[.@s])
+		mes " - VIP only";
+	.@item_size = query_sql("SELECT `item_id`, `amount` FROM `promotion_code_item` WHERE `id` = "+ .@id[.@s], .@item_id, .@item_amount);
+	for (.@i = 0; .@i < .@item_size; ++.@i)
+		mesf "%dx %s", .@item_amount[.@i], F_MesItemInfo(.@item_id[.@i]);
+	if (.@limit[.@s] && .@claimed[.@s] >= .@limit[.@s]) {
+		mes "The claim limit has reached.";
+		close;
+	}
+	if (BaseLevel < .@baselevel[.@s]) {
+		mes "Your BaseLevel is too low.";
+		close;
+	}
+	if (getgroupid() < .@group_id[.@s]) {
+		mes "Please buy the VIP package to earn this Promotion Code.";
+		close;
+	}
+	next;
+	select "Claim";
+	mes "[Promotional-Code]";
+	mes " ";
+	if (!checkweight2(.@item_id, .@item_amount)) {
+		mes "You can't carry all these items.";
+		mes "Store some of your items and try again.";
+		close;
+	}
+	query_sql "SELECT UNIX_TIMESTAMP(`expire_date`), `has_claimed`, `claim_limit` FROM `promotion_code` WHERE `id` = "+ .@id[.@s], .@expire_unixtime_, .@claimed_, .@limit_; // race condition
+	if (gettimetick(2) >= .@expire_unixtime_) {
+		mes "This Promotion code has just expired";
+		close;
+	}
+	if (.@limit_ && .@claimed_ >= .@limit_) {
+		mes "The claim limit has just reached.";
+		close;
+	}
+	if (query_sql("SELECT 1 FROM `promotion_code_claim` WHERE `account_id` = "+ getcharid(CHAR_ID_ACCOUNT) +" AND `id` = "+ .@id[.@s], .@dummy)) {
+		mes "You have already claimed this code.";
+		close;
+	}
+	for (.@i = 0; .@i < .@item_size; ++.@i)
+		getitembound .@item_id[.@i], .@item_amount[.@i], IBT_ACCOUNT;
+	query_sql "INSERT INTO `promotion_code_claim` VALUES ("+ getcharid(CHAR_ID_ACCOUNT) +", "+ .@id[.@s] +", NOW())";
+	if (.@limit[.@s])
+		query_sql "UPDATE `promotion_code` SET `has_claimed` = `has_claimed` +1 WHERE `id` = "+ .@id[.@s];
+	mes "You've claim the Promotion Code successfully !";
+	close;
+OnCode:
+	while (true) {
+		mes "[Promotional-Code GM-Menu]";
+		mes " ";
+		.@nb = query_sql("SELECT `id`, `code`, `has_claimed`, `claim_limit` FROM `promotion_code` ORDER BY `id` DESC LIMIT "+ .main_page_view_limit, .@id, .@code$, .@claimed, .@limit);
+		if (!.@nb)
+			mes "No Promotion Code Created yet.";
+		else
+			for (.@i = 0; .@i < .@nb; ++.@i) {
+				if (.@limit[.@i])
+					mesf "%i. %s [%d/%d]", .@id[.@i], .@code$[.@i], .@claimed[.@i], .@limit[.@i];
+				else
+					mesf "%i. %s", .@id[.@i], .@code$[.@i];
+			}
+		next;
+		switch(select(
+			"Create Promotion Code",
+			"View Promotion Code",
+			"View Past Promotion Code")) {
+		deletearray .@id;
+		deletearray .@code$;
+		deletearray .@limit;
+		deletearray .@claimed;
+		case 1:
+			.@baselevel = 1;
+			while (true) {
+				mes "[Promotional-Code Creation]";
+				mes "Code -> "+ .@code$;
+				mes "Start Date -> "+ .@start_date$;
+				mes "Expire Date -> "+ .@expire_date$;
+				mes "Duration -> "+ ((.@expire_unixtime && .@start_unixtime)? timeleft__(.@expire_unixtime - .@start_unixtime) :"");
+				mes " ";
+				mes "Claim Limit -> "+ F_InsertComma(.@claim_limit);
+				mes "Group ID -> "+ .@group_id;
+				mes "BaseLevel -> "+ .@baselevel;
+				mes " ";
+				if (!.@item_size)
+					mes "No item configure yet";
+				else
+					for (.@i = 0; .@i < .@item_size; ++.@i)
+						mesf "%d. %dx %s", .@i +1, .@item_amount[.@i], F_MesItemInfo(.@item_id[.@i]);
+				next;
+				switch(select(
+					"Code -> "+ .@code$,
+					"Start Date -> "+ replacestr(.@start_date$, ":", ";"),
+					"Expire Date -> "+ replacestr(.@expire_date$, ":", ";"),
+					"Claim Limit -> "+ F_InsertComma(.@claim_limit),
+					"Group ID -> "+ .@group_id,
+					"BaseLevel -> "+ .@baselevel,
+					"Edit Item Reward ["+ .@item_size +"]",
+					"Complete Setup")) {
+				case 1:
+					mes "[Promotional-Code Creation]";
+					mes " ";
+					mes "Code: "+ .@code$;
+					next;
+					if (getstrlen(.@code$))
+						.@s = select("Edit Code", "Regenerate Code", "Back");
+					else
+						.@s = select("Create Manually", "Generate Code", "Back");
+					switch(.@s) {
+					case 1:
+						mes "[Promotional-Code Creation]";
+						mes " ";
+						mes "Input the Code";
+						mes " ";
+						mes "Only 0~9, A~Z, a~z and -";
+						mes "- <= minus symbol.";
+						next;
+						input .@tmp$;
+						if (.@tmp$ ~! "^[0-9A-Za-z-]+$") {
+							mes "[Promotional-Code Creation]";
+							mes " ";
+							mes "Invalid Code";
+							next;
+							break;
+						}
+						if (query_sql("SELECT 1 FROM `promotion_code` WHERE `code` = '"+ escape_sql(.@tmp$) +"'", .@dummy)) {
+							mes "[Promotional-Code Creation]";
+							mes " ";
+							mes "This Code has been used.";
+							next;
+							break;
+						}
+						.@code$ = .@tmp$;
+						break;
+					case 2:
+						mes "[Promotional-Code Creation]";
+						mes " ";
+						mes "What is the length of the code ?";
+						next;
+						if (input(.@length, 1, 70) < 0)
+							break;
+						do {
+							.@tmp$ = "";
+							for (.@i = 0; .@i < .@length; ++.@i)
+								.@tmp$ += .ord$[rand(.ord_size)];
+						} while (query_sql("SELECT 1 FROM `promotion_code` WHERE `code` = '"+ escape_sql(.@tmp$) +"'", .@dummy));
+						.@code$ = .@tmp$;
+					default:
+					}
+					break;
+				case 2:
+					mes "[Promotional-Code Creation]";
+					mes " ";
+					mes "Start Date : "+ .@start_date$;
+					next;
+					switch(select(
+						"Input SQL Date Format",
+						"Choose when to start in near future",
+						"NOW",
+						"Back")) {
+					case 1:
+						callsub L_Input_SQL_Date_Format, .@start_unixtime, .@start_date$, 0;
+						break;
+					case 2:
+						switch(select(
+							"in Hours",
+							"in Days",
+							"in Weekday",
+							"Back")) {
+						case 1:
+							.@hour = select(.start_date_menu_hour$) -1;
+							.@start_unixtime = getcalendartime(.@hour, 0);
+							query_sql "SELECT FROM_UNIXTIME("+ .@start_unixtime +")", .@start_date$;
+							break;
+						case 2:
+							mes "[Promotional-Code Creation]";
+							mes " ";
+							mes "Input the Day of the month (1~31)";
+							next;
+							if (input(.@tmp, 1, 31) < 0)
+								break;
+							.@hour = select(.end_date_menu_hour$) -1;
+							.@start_unixtime = getcalendartime(.@hour, 0, .@tmp);
+							query_sql "SELECT FROM_UNIXTIME("+ .@start_unixtime +")", .@start_date$;
+							break;
+						case 3:
+							.@weekday = select(.start_date_menu_weekday$) -1;
+							.@hour = select(.end_date_menu_hour$) -1;
+							.@start_unixtime = getcalendartime(.@hour, 0, -1, .@weekday);
+							query_sql "SELECT FROM_UNIXTIME("+ .@start_unixtime +")", .@start_date$;
+						case 4:
+						}
+						break;
+					case 3:
+						query_sql "SELECT NOW(), UNIX_TIMESTAMP(NOW())", .@start_date$, .@start_unixtime;
+					default:
+					}
+					break;
+				case 3:
+					mes "[Promotional-Code Creation]";
+					mes " ";
+					if (!.@start_unixtime) {
+						mes "Configure the Start Date first.";
+						next;
+						break;
+					}
+					mes "Expire Date : "+ .@expire_date$;
+					next;
+					switch(select(
+						"Input SQL Date Format",
+						"Choose how long it last",
+						"Back")) {
+					case 1:
+						callsub L_Input_SQL_Date_Format, .@expire_unixtime, .@expire_date$, .@start_unixtime;
+						break;
+					case 2:
+						.@s = select("in Hours", "in Days") -1;
+						setarray .@type$[0], "Hour", "Day";
+						mes "[Promotional-Code Creation]";
+						mes " ";
+						mesf "How many %s ?", .@type$[.@s];
+						next;
+						if (input(.@tmp, 1, 100000) < 0)
+							break;
+						query_sql "SELECT DATE_ADD('"+ .@start_date$ +"', INTERVAL "+ .@tmp +" "+ .@type$[.@s] +") AS `expire_timestamp`, (SELECT UNIX_TIMESTAMP(`expire_timestamp`))", .@expire_date$, .@expire_unixtime;
+					default:
+					}
+					break;
+				case 4:
+					mes "[Promotional-Code Creation]";
+					mes " ";
+					mes "Claim Limit: "+ F_InsertComma(.@claim_limit);
+					mes " ";
+					mes "Each accoount can only claim once.";
+					mes "If set this to 100, only the first 100 players who act fast enough to claim this code will get the rewards.";
+					mes "Please gauge the amount accordingly to the size of your server population.";
+					mes " ";
+					mes "Set to 0 as unlimited claim";
+					mes "... until Expire Date";
+					next;
+					input .@claim_limit, 0, 1000000000;
+					break;
+				case 5:
+					mes "[Promotional-Code Creation]";
+					mes " ";
+					mes "Group ID: "+ .@group_id;
+					mes " ";
+					mes "Set to 0 means everybody can claim.";
+					mes "Set to 1 means Super Player and above can claim. (VIP system)";
+					mes "Refer to conf/groups.conf for more information.";
+					next;
+					input .@group_id, 0, 99;
+					break;
+				case 6:
+					mes "[Promotional-Code Creation]";
+					mes " ";
+					mes "BaseLevel: "+ .@baselevel;
+					mes " ";
+					mes "An ideal way to reward only dedicated players on your server.";
+					mes " ";
+					mes "Note: As the item are account bound, players still can claim using high level characters and use storage to transfer to low level character.";
+					mes "To prevent the item use by low levels, the item has to add 'EquipLv' field in item_db.conf";
+					next;
+					input .@baselevel, 1, MAX_LEVEL;
+					break;
+				case 7:
+					do {
+						while(true) {
+							mes "[Promotional-Code Creation]";
+							mes " ";
+							if (!.@item_size)
+								mes "No item configure yet";
+							else
+								for (.@i = 0; .@i < .@item_size; ++.@i)
+									mesf "%d. %dx %s", .@i +1, .@item_amount[.@i], F_MesItemInfo(.@item_id[.@i]);
+							next;
+							.@menu$ = "";
+							for (.@i = 0; .@i < .@item_size; ++.@i)
+								.@menu$ += (.@i +1)+". "+ .@item_amount[.@i] +"x "+ getitemname(.@item_id[.@i]) +":";
+							.@menu$ += (.@item_size == .item_size_limit)? ":" : "Add Item:";
+							.@menu$ += "Back";
+							.@item_menu_select = select(.@menu$) -1;
+							if (.@item_menu_select == .@item_size +1)
+								break;
+							else if (.@item_menu_select == .@item_size) {
+								mes "[Promotional-Code Creation]";
+								mes " ";
+								mes "Input Item ID";
+								next;
+								if (input(.@tmp_id, 1, MAX_ITEM_ID) < 0)
+									break;
+								mes "[Promotional-Code Creation]";
+								mes " ";
+								.@i = 0;
+								while (.@i < .@item_size && .@tmp_id != .@item_id[.@i]) ++.@i;
+								if (.@i < .@item_size) {
+									mesf "This Item %s is repeated.", F_MesItemInfo(.@tmp_id);
+									next;
+									break;
+								}	
+								if (getitemname(.@tmp_id) == "null") {
+									mes "This Item ID doesn't exist.";
+									next;
+									break;
+								}
+								mes "Input Item amount";
+								next;
+								if (input(.@tmp_amount, 1, 30000) < 0)
+									break;
+								.@item_id[.@item_size] = .@tmp_id;
+								.@item_amount[.@item_size] = .@tmp_amount;
+								++.@item_size;
+							}
+							else {
+								mes "[Promotional-Code Creation]";
+								mes " ";
+								mesf "Select No.%d %dx %s", .@item_menu_select +1, .@item_amount[.@item_menu_select], F_MesItemInfo(.@item_id[.@item_menu_select]);
+								next;
+								if (select("Remove", "Back") == 2)
+									break;
+								deletearray .@item_id[.@item_menu_select], 1;
+								deletearray .@item_amount[.@item_menu_select], 1;
+								--.@item_size;
+							}
+						}
+					} while (.@item_menu_select < .@item_size +1);
+					break;
+				default:
+					mes "[Promotional-Code Creation]";
+					mes " ";
+					.@false_condition = 0;
+					if (!getstrlen(.@code$)) {
+						mes "Code not yet generate.";
+						++.@false_condition;
+					}
+					if (!.@start_unixtime) {
+						mes "Start Date not yet configure.";
+						++.@false_condition;
+					}
+					if (!.@expire_unixtime) {
+						mes "Expire Date not yet configure.";
+						++.@false_condition;
+					}
+					if (!.@item_size) {
+						mes "No item configure yet.";
+						++.@false_condition;
+					}
+					if (.@start_unixtime > .@expire_unixtime) {
+						mes "Expire Date cannot earlier than Start Date.";
+						++.@false_condition;
+					}
+					if (.@false_condition) {
+						next;
+						break;
+					}
+					query_sql "INSERT INTO `promotion_code` VALUES (NULL, '"+ escape_sql(.@code$) +"', '"+ .@start_date$ +"', '"+ .@expire_date$ +"', "+ .@claim_limit +", "+ .@group_id +", "+ .@baselevel +", 0)";
+					query_sql "INSERT INTO `promotion_code_log` VALUES (LAST_INSERT_ID(), '"+ escape_sql(strcharinfo(PC_NAME)) +"', NOW(), 0, NULL, NULL)";
+					for (.@i = 0; .@i < .@item_size; ++.@i)
+						.@query_value$[.@i] = "(LAST_INSERT_ID(), "+ .@item_id[.@i] +", "+ .@item_amount[.@i] +")";
+					query_sql "INSERT INTO `promotion_code_item` VALUES "+ implode(.@query_value$, ",");
+					mes "Promotion Code create successfully.";
+					close2;
+					detachrid;
+					if (.@start_unixtime > gettimetick(2)) {
+						if ((.@start_unixtime - gettimetick(2)) >= 2147000)
+							end;
+						else
+							sleep (.@start_unixtime - gettimetick(2)) *1000;
+					}
+					announce "The Promotional Code ["+ .@code$ +"] has activated. Type '@claim' to claim your Promotional Code now!", bc_all;
+					if ((.@expire_unixtime - gettimetick(2)) >= 2147000)
+						end;
+					sleep (.@expire_unixtime - gettimetick(2)) *1000;
+					announce "The Promotional Code ["+ .@code$ +"] has expired.", bc_all;
+					end;
+				}
+			}
+			end; // shouldn't reach
+		case 2:
+			.@nb = query_sql("SELECT `id`, `code`, `has_claimed`, `claim_limit`, UNIX_TIMESTAMP(`start_date`), UNIX_TIMESTAMP(`expire_date`) FROM `promotion_code` WHERE `expire_date` > NOW() ORDER BY `id`", .@id, .@code$, .@claimed, .@limit, .@start_unixtime, .@expire_unixtime);
+			mes "[Promotional-Code Edit]";
+			mes " ";
+			if (!.@nb) {
+				mes "There are no active or dormant Promotion Code.";
+				next;
+				break;
+			}
+			for (.@i = 0; .@i < .@nb; ++.@i) {
+				if (.@limit[.@i])
+					mes .@id[.@i] +". "+ .@code$[.@i] +" ["+ .@claimed[.@i] +"/"+ .@limit[.@i] +"]";
+				else
+					mes .@id[.@i] +". "+ .@code$[.@i];
+				if (.@start_unixtime[.@i] < gettimetick(2)) {
+					mes "   Status -> Active";
+					mes "   Expire in -> "+ timeleft__(.@expire_unixtime[.@i] - gettimetick(2));
+				}
+				else {
+					mes "   Status -> Dormant";
+					mes "   Start in -> "+ timeleft__(.@start_unixtime[.@i] - gettimetick(2));
+				}
+				mes " ";
+			}
+			next;
+			.@menu$ = "";
+			for (.@i = 0; .@i < .@nb; ++.@i)
+				.@menu$ += .@id[.@i] +". "+ .@code$[.@i] +":";
+			.@s = select(.@menu$) -1;
+			query_sql "SELECT *, UNIX_TIMESTAMP(`start_date`), UNIX_TIMESTAMP(`expire_date`) FROM `promotion_code` WHERE `id` = "+ .@id[.@s], .@id, .@code$, .@start_date$, .@expire_date$, .@limit, .@group_id, .@baselevel, .@claimed, .@start_unixtime, .@expire_unixtime;
+			.@item_size = query_sql("SELECT `item_id`, `amount` FROM `promotion_code_item` WHERE `id` = "+ .@id, .@item_id, .@item_amount);
+			mes "[Promotional-Code View]";
+			mes "ID -> "+ .@id;
+			mes "Code -> "+ .@code$;
+			mes "Start Date -> "+ .@start_date$;
+			mes "Expire Date -> "+ .@expire_date$;
+			mes "Duration -> "+ timeleft__(.@expire_unixtime - .@start_unixtime);
+			mes " ";
+			mes "Claim Limit -> "+ F_InsertComma(.@limit);
+			mes "Group ID -> "+ .@group_id;
+			mes "BaseLevel -> "+ .@baselevel;
+			mes " ";
+			for (.@i = 0; .@i < .@item_size; ++.@i)
+				mes .@item_amount[.@i] +"x "+ F_MesItemInfo(.@item_id[.@i]);
+			if (.@limit) {
+				mes " ";
+				mes "Claimed -> ["+ .@claimed +"/"+ .@limit +"]";
+			}
+			next;
+			switch(select(
+				"View Log of GM edits",
+				"Close this Promotion Code",
+				((.@start_unixtime >= gettimetick(2))? "Edit this Promotion Code" : ""),
+				((.@start_unixtime < gettimetick(2))? "Check the player has claimed this code" : ""),
+				((.@start_unixtime < gettimetick(2))? "List all players has claimed this code" : ""))) {
+			case 1:
+				mes "[Promotional-Code View]";
+				mes " ";
+				callsub L_View_Log, .@id;
+				next;
+				break;
+			case 2:
+				mes "[Promotional-Code Closure]";
+				mes " ";
+				if (gettimetick(2) >= .@expire_unixtime) {
+					mes "This Promotion code has just expired";
+					next;
+					break;
+				}
+				if (gettimetick(2) < .@start_unixtime) {
+					mes "This Promotion code has yet to be activate.";
+					mes " ";
+				}
+				mes "Are you sure you want to close this Promotion Code ?";
+				mes "WARNING !! This action cannot be reverse !!";
+				next;
+				if (select("No", "Yes") == 1) break;
+				if (gettimetick(2) < .@start_unixtime)
+					query_sql "UPDATE `promotion_code` SET `start_date` = NOW(), `expire_date` = NOW() WHERE `id` = "+ .@id;
+				else
+					query_sql "UPDATE `promotion_code` SET `expire_date` = NOW() WHERE `id` = "+ .@id;
+				query_sql "INSERT INTO `promotion_code_log` VALUES ("+ .@id +", '"+ escape_sql(strcharinfo(PC_NAME)) +"', NOW(), 1, NULL, NULL)";
+				mes "[Promotional-Code Closure]";
+				mes " ";
+				mes "This Promotion Code is now closed.";
+				next;
+				break;
+			case 3:
+				mes "[Promotional-Code Edit]";
+				mes " ";
+				if (gettimetick(2) >= .@expire_unixtime) {
+					mes "This Promotion code has just expired";
+					next;
+					break;
+				}
+				if (gettimetick(2) >= .@start_unixtime) {
+					mes "This Promotion code is currently active.";
+					mes "This feature is only for Promotion Code that are still in dormant/ not yet active.";
+					mes " ";
+					mes "The only action you can do is close this Promotion Code";
+					if (.can_remove_log)
+						mes "and delete it later.";
+					next;
+					break;
+				}
+				mes "ID -> "+ .@id;
+				mes "Code -> "+ .@code$;
+				mes "Start Date -> "+ .@start_date$;
+				mes "Expire Date -> "+ .@expire_date$;
+				mes "Duration -> "+ timeleft__(.@expire_unixtime - .@start_unixtime);
+				mes " ";
+				mes "Claim Limit -> "+ F_InsertComma(.@limit);
+				mes "Group ID -> "+ .@group_id;
+				mes "BaseLevel -> "+ .@baselevel;
+				mes " ";
+				for (.@i = 0; .@i < .@item_size; ++.@i)
+					mes .@item_amount[.@i] +"x "+ F_MesItemInfo(.@item_id[.@i]);
+				next;
+				switch(select(
+					"Edit Code",
+					"Edit Start Date",
+					"Edit Expire Date",
+					"Edit Claim Limit",
+					"Edit Group ID",
+					"Edit BaseLevel",
+					"Add Item",
+					"Remove Item",
+					"Back")) {
+				case 1:
+					if (select("Edit Code Manually", "Regenerate Code", "Back") == 3) {
+						break;
+					} else if (@menu == 2) {
+						mes "[Promotional-Code Edit]";
+						mes " ";
+						mes "Input the Code";
+						mes " ";
+						mes "Only 0~9, A~Z, a~z and -";
+						mes "- <= minus symbol.";
+						next;
+						input .@tmp$;
+						if (.@tmp$ ~! "^[0-9A-Za-z-]+$") {
+							mes "[Promotional-Code Edit]";
+							mes " ";
+							mes "Invalid Code";
+							next;
+							break;
+						}
+						if (query_sql("SELECT 1 FROM `promotion_code` WHERE `code` = '"+ escape_sql(.@tmp$) +"'", .@dummy)) {
+							mes "[Promotional-Code Edit]";
+							mes " ";
+							mes "This Code has been used.";
+							next;
+							break;
+						}
+					} else {
+						mes "[Promotional-Code Edit]";
+						mes " ";
+						mes "What is the length of the code ?";
+						next;
+						if (input(.@length, 1, 70) < 0)
+							break;
+						do {
+							.@tmp$ = "";
+							for (.@i = 0; .@i < .@length; ++.@i)
+								.@tmp$ += .ord$[rand(.ord_size)];
+						} while (query_sql("SELECT 1 FROM `promotion_code` WHERE `code` = '"+ escape_sql(.@tmp$) +"'", .@dummy));
+					}
+					if (callsub(L_sudden_start_noedit, .@start_unixtime))
+						break;
+					query_sql "UPDATE `promotion_code` SET `code` = '"+ escape_sql(.@tmp$) +"' WHERE `id` = "+ .@id;
+					query_sql "INSERT INTO `promotion_code_log` VALUES ("+ .@id +", '"+ escape_sql(strcharinfo(PC_NAME)) +"', NOW(), 2, '"+ escape_sql(.@code$) +"', '"+ escape_sql(.@tmp$) +"')";
+					.@log = true;
+					break;
+				case 2:
+					mes "[Promotional-Code Edit]";
+					mes " ";
+					mes "Start Date : "+ .@start_date$;
+					next;
+					.@original_start_date$ = .@start_date$;
+					switch(select(
+						"Input SQL Date Format",
+						"Choose when to start in near future",
+						"NOW",
+						"Back")) {
+					case 1:
+						callsub L_Input_SQL_Date_Format, .@start_unixtime, .@start_date$, 0;
+						if (.@start_unixtime >= .@expire_unixtime) {
+							mes "[Promotional-Code Edit]";
+							mes " ";
+							mes "You can't set the Start Date later than Expire Date.";
+							next;
+							break;
+						}
+						if (callsub(L_sudden_start_noedit, .@start_unixtime))
+							break;
+						query_sql "UPDATE `promotion_code` SET `start_date` = '"+ escape_sql(.@start_date$) +"' WHERE `id` = "+ .@id;
+						query_sql "INSERT INTO `promotion_code_log` VALUES ("+ .@id +", '"+ escape_sql(strcharinfo(PC_NAME)) +"', NOW(), 3, '"+ escape_sql(.@original_start_date$) +"', '"+ escape_sql(.@start_date$) +"')";
+						.@log = true;
+						break;
+					case 2:
+						switch(select(
+							"in Hours",
+							"in Days",
+							"in Weekday")) {
+						case 1:
+							.@hour = select(.start_date_menu_hour$) -1;
+							.@start_unixtime = getcalendartime(.@hour, 0);
+							break;
+						case 2:
+							mes "[Promotional-Code Edit]";
+							mes " ";
+							mes "Input the Day of the month (1~31)";
+							next;
+							if (input(.@tmp, 1, 31) < 0)
+								break;
+							.@hour = select(.end_date_menu_hour$) -1;
+							.@start_unixtime = getcalendartime(.@hour, 0, .@tmp);
+							break;
+						case 3:
+							.@weekday = select(.start_date_menu_weekday$) -1;
+							.@hour = select(.end_date_menu_hour$) -1;
+							.@start_unixtime = getcalendartime(.@hour, 0, -1, .@weekday);
+						}
+						if (.@start_unixtime >= .@expire_unixtime) {
+							mes "[Promotional-Code Edit]";
+							mes " ";
+							mes "You can't set the Start Date later than Expire Date.";
+							next;
+							break;
+						}
+						if (callsub(L_sudden_start_noedit, .@start_unixtime))
+							break;
+						query_sql "UPDATE `promotion_code` SET `start_date` = FROM_UNIXTIME("+ .@start_unixtime +") WHERE `id` = "+ .@id;
+						query_sql "INSERT INTO `promotion_code_log` VALUES ("+ .@id +", '"+ escape_sql(strcharinfo(PC_NAME)) +"', NOW(), 3, '"+ escape_sql(.@original_start_date$) +"', FROM_UNIXTIME("+ .@start_unixtime +"))";
+						.@log = true;
+						break;
+					case 3:
+						if (callsub(L_sudden_start_noedit, .@start_unixtime))
+							break;
+						query_sql "UPDATE `promotion_code` SET `start_date` = NOW() WHERE `id` = "+ .@id;
+						query_sql "INSERT INTO `promotion_code_log` VALUES ("+ .@id +", '"+ escape_sql(strcharinfo(PC_NAME)) +"', NOW(), 3, '"+ escape_sql(.@original_start_date$) +"', NOW())";
+						.@log = true;
+						break;
+					default:
+					}
+					break;
+				case 3:
+					mes "[Promotional-Code Edit]";
+					mes " ";
+					mes "Expire Date : "+ .@expire_date$;
+					next;
+					.@original_expire_date$ = .@expire_date$;
+					switch(select(
+						"Input SQL Date Format",
+						"Choose how long it last",
+						"Back")) {
+					case 1:
+						callsub L_Input_SQL_Date_Format, .@expire_unixtime, .@expire_date$, .@start_unixtime;
+						if (.@expire_unixtime < .@start_unixtime) {
+							mes "[Promotional-Code Edit]";
+							mes " ";
+							mes "You can't set the Expire Date earlier than Start Date.";
+							next;
+							break;
+						}
+						if (callsub(L_sudden_start_noedit, .@start_unixtime))
+							break;
+						query_sql "UPDATE `promotion_code` SET `expire_date` = '"+ escape_sql(.@expire_date$) +"' WHERE `id` = "+ .@id;
+						query_sql "INSERT INTO `promotion_code_log` VALUES ("+ .@id +", '"+ escape_sql(strcharinfo(PC_NAME)) +"', NOW(), 4, '"+ escape_sql(.@original_expire_date$) +"', '"+ escape_sql(.@expire_date$) +"')";
+						.@log = true;
+						break;
+					case 2:
+						.@s = select("in Hours", "in Days") -1;
+						setarray .@type$[0], "Hour", "Day";
+						mes "[Promotional-Code Edit]";
+						mes " ";
+						mesf "How many %s ?", .@type$[.@s];
+						next;
+						if (input(.@tmp, 1, 100000) < 0)
+							break;
+						if (callsub(L_sudden_start_noedit, .@start_unixtime))
+							break;
+						query_sql "UPDATE `promotion_code` SET `expire_date` = DATE_ADD('"+ .@start_date$ +"', INTERVAL "+ .@tmp +" "+ .@type$[.@s] +") WHERE `id` = "+ .@id;
+						query_sql "INSERT INTO `promotion_code_log` VALUES ("+ .@id +", '"+ escape_sql(strcharinfo(PC_NAME)) +"', NOW(), 4, '"+ escape_sql(.@original_expire_date$) +"', DATE_ADD('"+ .@start_date$ +"', INTERVAL "+ .@tmp +" "+ .@type$[.@s] +"))";
+						.@log = true;
+						break;
+					default:
+					}
+					break;
+				case 4:
+					mes "[Promotional-Code Edit]";
+					mes " ";
+					mes "Claim Limit: "+ F_InsertComma(.@claim_limit);
+					mes " ";
+					mes "Each accoount can only claim once.";
+					mes "If set this to 100, only the first 100 players who act fast enough to claim this code will get the rewards.";
+					mes "Please gauge the amount accordingly to the size of your server population.";
+					mes " ";
+					mes "Set to 0 as unlimited claim";
+					mes "... until Expire Date";
+					next;
+					input .@tmp, 0, 1000000000;
+					if (callsub(L_sudden_start_noedit, .@start_unixtime))
+						break;
+					query_sql "UPDATE `promotion_code` SET `claim_limit` = "+ .@tmp +" WHERE `id` = "+ .@id;
+					query_sql "INSERT INTO `promotion_code_log` VALUES ("+ .@id +", '"+ escape_sql(strcharinfo(PC_NAME)) +"', NOW(), 5, '"+ .@claim_limit +"', '"+ .@tmp +"')";
+					.@log = true;
+					break;
+				case 5:
+					mes "[Promotional-Code Edit]";
+					mes " ";
+					mes "Group ID: "+ .@group_id;
+					mes " ";
+					mes "Set to 0 means everybody can claim.";
+					mes "Set to 1 means Super Player and above can claim. (VIP system)";
+					mes "Refer to conf/groups.conf for more information.";
+					next;
+					input .@tmp, 0, 99;
+					if (callsub(L_sudden_start_noedit, .@start_unixtime))
+						break;
+					query_sql "UPDATE `promotion_code` SET `group_id` = "+ .@tmp +" WHERE `id` = "+ .@id;
+					query_sql "INSERT INTO `promotion_code_log` VALUES ("+ .@id +", '"+ escape_sql(strcharinfo(PC_NAME)) +"', NOW(), 6, '"+ .@group_id +"', '"+ .@tmp +"')";
+					.@log = true;
+					break;
+				case 6:
+					mes "[Promotional-Code Edit]";
+					mes " ";
+					mes "BaseLevel: "+ .@baselevel;
+					mes " ";
+					mes "An ideal way to reward only dedicated players on your server.";
+					mes " ";
+					mes "Note: As the item are account bound, players still can claim using high level characters and use storage to transfer to low level character.";
+					mes "To prevent the item use by low levels, the item has to add 'EquipLv' field in item_db.conf";
+					next;
+					input .@tmp, 1, MAX_LEVEL;
+					if (callsub(L_sudden_start_noedit, .@start_unixtime))
+						break;
+					query_sql "UPDATE `promotion_code` SET `group_id` = "+ .@tmp +" WHERE `id` = "+ .@id;
+					query_sql "INSERT INTO `promotion_code_log` VALUES ("+ .@id +", '"+ escape_sql(strcharinfo(PC_NAME)) +"', NOW(), 7, '"+ .@baselevel +"', '"+ .@tmp +"')";
+					.@log = true;
+					break;
+				case 7:
+					mes "[Promotional-Code Edit]";
+					mes " ";
+					if (.@item_size >= .item_size_limit) {
+						mes "You can't add any more items into this Promotion Code.";
+						next;
+						break;
+					}
+					for (.@i = 0; .@i < .@item_size; ++.@i)
+						mesf "%d. %dx %s", .@i +1, .@item_amount[.@i], F_MesItemInfo(.@item_id[.@i]);
+					mes " ";
+					mes "Input the Item ID";
+					next;
+					if (input(.@tmp_id, 1, MAX_ITEM_ID) < 0)
+						break;
+					mes "[Promotional-Code Edit]";
+					mes " ";
+					.@i = 0;
+					while (.@i < .@item_size && .@tmp_id != .@item_id[.@i]) ++.@i;
+					if (.@i < .@item_size) {
+						mesf "This Item %s is repeated.", F_MesItemInfo(.@tmp_id);
+						next;
+						break;
+					}	
+					if (getitemname(.@tmp_id) == "null") {
+						mes "This Item ID doesn't exist.";
+						next;
+						break;
+					}
+					mes "Input Item amount";
+					next;
+					if (input(.@tmp_amount, 1, 30000) < 0)
+						break;
+					if (callsub(L_sudden_start_noedit, .@start_unixtime))
+						break;
+					query_sql "INSERT INTO `promotion_code_item` VALUES ("+ .@id +", "+ .@tmp_id +", "+ .@tmp_amount +")";
+					query_sql "INSERT INTO `promotion_code_log` VALUES ("+ .@id +", '"+ escape_sql(strcharinfo(PC_NAME)) +"', NOW(), 8, '"+ .@tmp_amount +"', '"+ .@tmp_id +"')";
+					.@log = true;
+					break;
+				case 8:
+					mes "[Promotional-Code Edit]";
+					mes " ";
+					if (.@item_size == 1) {
+						mes "You can't remove the only last item in a Promotion Code.";
+						next;
+						break;
+					}
+					for (.@i = 0; .@i < .@item_size; ++.@i)
+						mesf "%d. %dx %s", .@i +1, .@item_amount[.@i], F_MesItemInfo(.@item_id[.@i]);
+					next;
+					.@menu$ = "";
+					for (.@i = 0; .@i < .@item_size; ++.@i)
+						.@menu$ += (.@i +1)+". "+ .@item_amount[.@i] +"x "+ getitemname(.@item_id[.@i]) +":";
+					.@s = select(.@menu$ +"Back") -1;
+					if (.@s == .@item_size)
+						break;
+					if (callsub(L_sudden_start_noedit, .@start_unixtime))
+						break;
+					query_sql "DELETE FROM `promotion_code_item` WHERE `id` = "+ .@id +" AND `item_id` = "+ .@item_id[.@s] +" AND `amount` = "+ .@item_amount[.@s];
+					query_sql "INSERT INTO `promotion_code_log` VALUES ("+ .@id +", '"+ escape_sql(strcharinfo(PC_NAME)) +"', NOW(), 9, '"+ .@item_amount[.@s] +"', '"+ .@item_id[.@s] +"')";
+					.@log = true;
+					break;
+				default:
+				}
+				if (.@log == true) {
+					mes "[Promotional-Code Edit]";
+					mes "Promotional-Code Edit Successfully";
+					mesf "%sYour action has been log.%s", F_MesColor(C_RED), F_MesColor(C_BLACK);
+					.@log = false;
+					next;
+				}
+				break;
+			case 4:
+				callsub L_check_player_claimed, .@id, "Checker";
+				break;
+			case 5:
+				callsub L_list_player_claimed, .@id, "Checker";
+			}
+			break;
+		case 3:
+			.@nb = query_sql("SELECT `id`, `code`, `has_claimed`, `claim_limit`, `start_date`, `expire_date` FROM `promotion_code` WHERE `expire_date` <= NOW() ORDER BY `id`", .@id, .@code$, .@claimed, .@limit, .@start_date$, .@expire_date$);
+			mes "[Promotional-Code Retired]";
+			mes " ";
+			if (!.@nb) {
+				mes "There are no retired Promotion Code.";
+				next;
+				break;
+			}
+			for (.@i = 0; .@i < .@nb; ++.@i) {
+				if (.@limit[.@i])
+					mes .@id[.@i] +". "+ .@code$[.@i] +" ["+ .@claimed[.@i] +"/"+ .@limit[.@i] +"]";
+				else
+					mes .@id[.@i] +". "+ .@code$[.@i];
+				mes "   Start Date -> "+ .@start_date$[.@i];
+				mes "   Expire Date -> "+ .@expire_date$[.@i];
+				mes " ";
+			}
+			next;
+			.@menu$ = "";
+			for (.@i = 0; .@i < .@nb; ++.@i)
+				.@menu$ += .@id[.@i] +". "+ .@code$[.@i] +":";
+			.@s = select(.@menu$) -1;
+			query_sql "SELECT *, UNIX_TIMESTAMP(`expire_date`) - UNIX_TIMESTAMP(`start_date`) FROM `promotion_code` WHERE `id` = "+ .@id[.@s], .@id, .@code$, .@start_date$, .@expire_date$, .@limit, .@group_id, .@baselevel, .@claimed, .@duration;
+			.@item_size = query_sql("SELECT `item_id`, `amount` FROM `promotion_code_item` WHERE `id` = "+ .@id, .@item_id, .@item_amount);
+			mes "[Promotional-Code Retired]";
+			mes "ID -> "+ .@id;
+			mes "Code -> "+ .@code$;
+			mes "Start Date -> "+ .@start_date$;
+			mes "Expire Date -> "+ .@expire_date$;
+			mes "Duration -> "+ timeleft__(.@duration);
+			mes " ";
+			mes "Claim Limit -> "+ F_InsertComma(.@limit);
+			mes "Group ID -> "+ .@group_id;
+			mes "BaseLevel -> "+ .@baselevel;
+			mes " ";
+			for (.@i = 0; .@i < .@item_size; ++.@i)
+				mes .@item_amount[.@i] +"x "+ F_MesItemInfo(.@item_id[.@i]);
+			next;
+			switch(select(
+				"View Log of GM edits",
+				"Check the player has claimed this code",
+				"List all players has claimed this code",
+				(.can_remove_log)? F_MesColor(C_RED) +"Remove"+ F_MesColor(C_BLACK) : "")) {
+			case 1:
+				mes "[Promotional-Code Retired]";
+				mes " ";
+				callsub L_View_Log, .@id;
+				next;
+				break;
+			case 2:
+				callsub L_check_player_claimed, .@id, "Retired";
+				break;
+			case 3:
+				callsub L_list_player_claimed, .@id, "Retired";
+				break;
+			case 4:
+				if (!.can_remove_log)
+					break;
+				mes "[Promotional-Code Removal]";
+				mes " ";
+				mes "Are you sure you really want to remove entire history of this promotion code ?";
+				mes "Once removed, there are no way for you or your GM team to view the logs and action of this particular Promotion Code.";
+				next;
+				if (select("I change my mind", "Confirm") == 1)
+					break;
+				query_sql "DELETE FROM `promotion_code_claim` WHERE `id` = "+ .@id;
+				query_sql "DELETE FROM `promotion_code_log` WHERE `id` = "+ .@id;
+				query_sql "DELETE FROM `promotion_code_item` WHERE `id` = "+ .@id;
+				query_sql "DELETE FROM `promotion_code` WHERE `id` = "+ .@id;
+				mes "[Promotional-Code Removal]";
+				mes " ";
+				mes "Promotion Code Removed Successfully.";
+				next;
+				break;
+			}
+		}
+		deletearray .@id;
+		deletearray .@code$;
+		deletearray .@claimed;
+		deletearray .@limit;
+		deletearray .@start_date$;
+		deletearray .@expire_date$;
+		deletearray .@ongoing;
+		deletearray .@item_id;
+		deletearray .@item_amount;
+		deletearray .@name$;
+		deletearray .@aid;
+		deletearray .@type;
+		deletearray .@type$;
+		deletearray .@original_value$;
+		deletearray .@modify_value$;
+		.@group_id = 0;
+		.@baselevel = 0;
+		.@duration = 0;
+		.@start_unixtime = 0;
+		.@expire_unixtime = 0;
+		.@item_size = 0;
+		.@hour = 0;
+		.@weekday = 0;
+		.@log = 0;
+		.@online = 0;
+		.@original_start_date$ = "";
+		.@original_expire_date$ = "";
+		.@page = 0;
+	}
+	end; // shouldn't reach
+L_Input_SQL_Date_Format:
+	mes "[Promotional-Code Creation]";
+	mes " ";
+	mes "Input SQL Date Format. Example";
+	mes "YYYYY-MM-DD HH::mm:ss";
+	if (getarg(0)) {
+		mes "Currently -> "+ getarg(1);
+	} else {
+		query_sql "SELECT NOW()", .@time$;
+		mes "NOW -> "+ .@time$;
+	}
+	next;
+	input .@tmp$;
+	if (.@tmp$ ~= "^(\\d{4,4})-(\\d{2,2})-(\\d{2,2}) (\\d{2,2}):(\\d{2,2}):(\\d{2,2})$");
+	else {
+		mes "[Promotional-Code Creation]";
+		mes " ";
+		mes "Invalid format.";
+		mes " ";
+		mes "Hour:Minute:Second has to add extra zeroes";
+		mes "Example: 2020-01-01 00:00:00";
+		next;
+		return;
+	}
+	if (atoi($@regexmatch$[1]) < gettime(GETTIME_YEAR)) {
+		mes "[Promotional-Code Creation]";
+		mes " ";
+		mes "Can't input Year before this year.";
+		next;
+		return;
+	}
+	.@input_month = atoi($@regexmatch$[2]);
+	.@input_day = atoi($@regexmatch$[3]);
+	if (.@input_month > DECEMBER) {
+		mes "[Promotional-Code Creation]";
+		mes " ";
+		mes "Can't input Month more than 12.";
+		next;
+		return;
+	}
+	if (.@input_day > 31) {
+		mes "[Promotional-Code Creation]";
+		mes " ";
+		mes "Can't input Day more than 31.";
+		next;
+		return;
+	}
+	if (.@input_day > .days_in_a_month[.@input_month]) {
+		mes "[Promotional-Code Creation]";
+		mes " ";
+		mesf "That month doesn't have %d days.", .@input_day;
+		next;
+		return;
+	}
+	if (atoi($@regexmatch$[4]) >= 24) {
+		mes "[Promotional-Code Creation]";
+		mes " ";
+		mes "Can't input Hour more than 23.";
+		next;
+		return;
+	}
+	if (atoi($@regexmatch$[5]) >= 60) {
+		mes "[Promotional-Code Creation]";
+		mes " ";
+		mes "Can't input Minute more than 59.";
+		next;
+		return;
+	}
+	if (atoi($@regexmatch$[6]) >= 60) {
+		mes "[Promotional-Code Creation]";
+		mes " ";
+		mes "Can't input Second more than 59.";
+		next;
+		return;
+	}				
+	query_sql "SELECT UNIX_TIMESTAMP('"+ escape_sql(.@tmp$) +"')", .@tmp;
+	if (!.@tmp) {
+		mes "[Promotional-Code Creation]";
+		mes " ";
+		mes "That date doesn't exist.";
+		next;
+		return;
+	}
+	if (.@tmp < gettimetick(2)) {
+		mes "[Promotional-Code Creation]";
+		mes " ";
+		mes "Can't input a date from the past.";
+		next;
+		return;
+	}
+	if (getarg(2) != false && getarg(2) > .@tmp) {
+		mes "[Promotional-Code Creation]";
+		mes " ";
+		mes "The Expire Date cannot set before Start Date.";
+		next;
+		return;
+	}
+	set getarg(0), .@tmp;
+	set getarg(1), .@tmp$;
+	return;
+L_sudden_start_noedit:
+	if (gettimetick(2) >= getarg(0)) {
+		mes "This Promotion code has activated.";
+		mes "No more Edit Allowed";
+		next;
+		return true;
+	}
+	else
+		return false;
+L_View_Log:
+	.@nb = query_sql("SELECT `char_name`, `action_date`, `type`, `original_value`, `modify_value` FROM `promotion_code_log` WHERE `id` = "+ getarg(0), .@name$, .@action_date$, .@type, .@original_value$, .@modify_value$);
+	for (.@i = 0; .@i < .@nb; ++.@i) {
+		switch(.@type[.@i]) {
+		default:
+			mes .@name$[.@i] +" Created on";
+			mes .@action_date$[.@i];
+			break;
+		case 1:
+			mes .@name$[.@i] +" Closed on";
+			mes .@action_date$[.@i];
+			break;
+		case 2:
+			mes .@name$[.@i] +" Edit the Code";
+			mes "From "+ .@original_value$[.@i];
+			mes "Into "+ .@modify_value$[.@i] +" on";
+			mes .@action_date$[.@i];
+			break;
+		case 3:
+			mes .@name$[.@i] +" Edit the Start Date";
+			mes "From "+ .@original_value$[.@i];
+			mes "Into "+ .@modify_value$[.@i] +" on";
+			mes .@action_date$[.@i];
+			break;
+		case 4:
+			mes .@name$[.@i] +" Edit the Expire Date";
+			mes "From "+ .@original_value$[.@i];
+			mes "Into "+ .@modify_value$[.@i] +" on";
+			mes .@action_date$[.@i];
+			break;
+		case 5:
+			mes .@name$[.@i] +" Edit the Claim Limit";
+			mes "From "+ .@original_value$[.@i];
+			mes "Into "+ .@modify_value$[.@i] +" on";
+			mes .@action_date$[.@i];
+			break;
+		case 6:
+			mes .@name$[.@i] +" Edit the Group ID";
+			mes "From "+ .@original_value$[.@i];
+			mes "Into "+ .@modify_value$[.@i] +" on";
+			mes .@action_date$[.@i];
+			break;
+		case 7:
+			mes .@name$[.@i] +" Edit the BaseLevel";
+			mes "From "+ .@original_value$[.@i];
+			mes "Into "+ .@modify_value$[.@i] +" on";
+			mes .@action_date$[.@i];
+			break;
+		case 8:
+			mes .@name$[.@i] +" Add an Item";
+			mes .@original_value$[.@i] +"x "+ F_MesItemInfo(atoi(.@modify_value$[.@i])) +" on";
+			mes .@action_date$[.@i];
+			break;
+		case 9:
+			mes .@name$[.@i] +" Delete an Item";
+			mes .@original_value$[.@i] +"x "+ F_MesItemInfo(atoi(.@modify_value$[.@i])) +" on";
+			mes .@action_date$[.@i];
+			break;
+		}
+		mes " ";
+	}
+	return;
+L_check_player_claimed:
+	mesf "[Promotional-Code %s]", getarg(1);
+	mes " ";
+	mes "Choose a type to search for the player";
+	next;
+	switch(select(
+		"Name",
+		"Character ID",
+		"Account ID",
+		"wild card Name search")) {
+	case 1:
+		mesf "[Promotional-Code %s]", getarg(1);
+		mes " ";
+		mes "Input the player name.";
+		next;
+		if (input(.@tmp$, 4,23))
+			break;
+		mesf "[Promotional-Code %s]", getarg(1);
+		mes " ";
+		.@aid = getcharid(CHAR_ID_ACCOUNT, .@tmp$);
+		if (.@aid) {
+			.@name$ = rid2name(.@aid);
+			.@online = true;
+		} else if (!query_sql("SELECT `account_id` FROM `char` WHERE `name` = '"+ escape_sql(.@tmp$) +"'", .@aid)) {
+			mes "This name doesn't exist.";
+			next;
+			break;
+		}
+		mes "This player is "+((.@online)? "online":"offline");
+		if (query_sql("SELECT 1 FROM `promotion_code_claim` WHERE `account_id` = "+ .@aid +" AND `id` = "+ getarg(0), .@dummy))
+			mes "This player has claimed this Promotion Code";
+		else
+			mes "This player hasn't claim this Promotion Code";
+		next;
+		break;
+	case 2:
+		mesf "[Promotional-Code %s]", getarg(1);
+		mes " ";
+		mes "Input the Character ID.";
+		next;
+		if (input(.@cid, 1, 2000000000))
+			break;
+		mesf "[Promotional-Code %s]", getarg(1);
+		mes " ";
+		if (!query_sql("SELECT `account_id`, `online` FROM `char` WHERE `char_id` = "+ .@cid, .@aid, .@online)) {
+			mes "This Character ID doesn't exist.";
+			next;
+			break;
+		}
+		mes "This player is "+((.@online)? "online":"offline");
+		if (query_sql("SELECT 1 FROM `promotion_code_claim` WHERE `account_id` = "+ .@aid +" AND `id` = "+ getarg(0), .@dummy))
+			mes "This player has claimed this Promotion Code";
+		else
+			mes "This player hasn't claim this Promotion Code";
+		next;
+		break;
+	case 3:
+		mesf "[Promotional-Code %s]", getarg(1);
+		mes " ";
+		mes "Input the Account ID.";
+		next;
+		if (input(.@aid, 1, 2000000000))
+			break;
+		mesf "[Promotional-Code %s]", getarg(1);
+		mes " ";
+		if (!query_sql("SELECT `online` FROM `char` WHERE `account_id` = "+ .@aid, .@online)) {
+			mes "This Account ID doesn't exist.";
+			next;
+			break;
+		}
+		mes "This player is "+((.@online)? "online":"offline");
+		if (query_sql("SELECT 1 FROM `promotion_code_claim` WHERE `account_id` = "+ .@aid +" AND `id` = "+ getarg(0), .@dummy))
+			mes "This player has claimed this Promotion Code";
+		else
+			mes "This player hasn't claim this Promotion Code";
+		next;
+		break;
+	case 4:
+		mesf "[Promotional-Code %s]", getarg(1);
+		mes "Wild Card Name Search.";
+		mes "use % Percent symbol to search unknown character names";
+		mes " ";
+		mes "Example: 'mickey%'";
+		mes "will include 'mickey mouse', 'mickey cat', 'mickey dog'";
+		mes "means anything that start with 'mickey'";
+		mes " ";
+		mes "Example: '%mickey'";
+		mes "will include 'has mickey', 'a mickey', 'stupid mickey'";
+		mes "means anything that ends with 'mickey'";
+		mes " ";
+		mes "Example: '%a%'";
+		mes "will include name that has the letter 'a' in it";
+		mes " ";
+		mes "The maximum limit of return result is "+ .wild_card_name_search_limit;
+		next;
+		input .@tmp$;
+		mesf "[Promotional-Code %s]", getarg(1);
+		mes " ";
+		.@query$  = "SELECT `name`, `account_id` AS `aid`, `online`, (SELECT `id` from `promotion_code_claim` WHERE `account_id` = `aid` AND `id` = "+ getarg(0) +")";
+		.@query$ += "FROM `char` WHERE `name` LIKE '"+ escape_sql(.@tmp$) +"' LIMIT "+ .wild_card_name_search_limit;
+		.@nb = query_sql(.@query$, .@name$, .@aid, .@online, .@id);
+		if (!.@nb) {
+			mes "This search doesn't return any result";
+			next;
+			break;
+		}
+		for (.@i = 0; .@i < .@nb; ++.@i) {
+			mes (.@i +1)+". "+ .@name$[.@i] +" ["+ ((.@online[.@i])? "online":"offline") +"]";
+			if (.@id[.@i])
+				mes "has claimed this Promotion Code";
+			else
+				mes "hasn't claim this Promotion Code";
+		}
+		next;
+		break;
+	}
+	return;
+L_list_player_claimed:
+	mesf "[Promotional-Code %s]", getarg(1);
+	query_sql "SELECT COUNT(1) FROM `promotion_code_claim` WHERE `id` = "+ getarg(0), .@count;
+	if (!.@count) {
+		mes "nobody has claim this code yet";
+		next;
+	} else {
+		mes .@count +" players has claimed this code.";
+	}
+	while (true) {
+		.@nb = query_sql("SELECT `account_id` AS `aid`, (SELECT `name` FROM `char` WHERE `account_id` = `aid` LIMIT 1) FROM `promotion_code_claim` WHERE `id` = "+ getarg(0) +" LIMIT "+ .list_all_per_page +" OFFSET "+(.list_all_per_page * .@page), .@aid, .@name$);
+		if (!.@nb) {
+			mesclear;
+			break;
+		}
+		for (.@i = 0; .@i < .@nb; ++.@i)
+			mes (.@page * .list_all_per_page + .@i +1)+". "+ .@name$[.@i];
+		if (select("Next", "Back to Main Menu") == 2) {
+			mesclear;
+			break;
+		}
+		mesclear;					
+		++.@page;
+		mesf "[Promotional-Code %s]", getarg(1);
+		mes .@count +" players has claimed this code.";
+	}
+	return;
+}

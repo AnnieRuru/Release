@@ -1,0 +1,113 @@
+//===== Hercules Script ======================================
+//= Card Seller A-Z
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.2
+//===== Compatible With: ===================================== 
+//= Hercules 2020-10-10
+//===== Description: =========================================
+//= Sells all cards dropped by mobs, grouped alphabetically.
+//===== Topic ================================================
+//= http://herc.ws/board/topic/16586-card-seller-a-z/
+//===== Additional Comments: =================================
+//= Use Hercules NPC Trader, with functions
+//============================================================
+
+prontera,155,177,5	script	Card Seller	1_F_MARIA,{
+	mes "Welcome to card seller ... meh lazy to say";
+	next;
+	if (select("Normal Cards", "Mini-boss Cards", "MVP Cards") == 1) {
+		.@s = select(.alphabet_menu$) -1;
+		close2;
+		openshop "card_mob#"+ .alphabet$[.@s];
+		dispbottom sprintf(_$("You currently have %d %s."), countitem(Monster_Ticket_), F_ITEML(Monster_Ticket_)), C_SPRINGGREEN;
+		end;
+	}
+	close2;
+	if (@menu == 2) {
+		openshop "card_mob#miniboss";
+		dispbottom sprintf(_$("You currently have %d %s."), countitem(Mini_Boss_Ticket), F_ITEML(Mini_Boss_Ticket)), C_SPRINGGREEN;
+	}
+	else {
+		openshop "card_mob#MVP";
+		dispbottom sprintf(_$("You currently have %d %s."), countitem(MVP_Ticket), F_ITEML(MVP_Ticket)), C_SPRINGGREEN;
+	}
+	end;
+OnInit:
+	.@query$  = "SELECT DISTINCT LEFT(`name_japanese`, 1) ";
+	.@query$ += "FROM `item_db` RIGHT JOIN `mob_db` ON `item_db`.`id` = `mob_db`.`dropcardid` ";
+	.@query$ += "WHERE ~`mode` & 32 AND `type` = 6 GROUP BY `name_japanese` ORDER BY 1";
+	.@total = query_sql(.@query$, .alphabet$);
+	for ( .@i = 0; .@i < .@total; ++.@i )
+		.alphabet_menu$ += .alphabet$[.@i] +" Cards:";
+	end;
+}
+
+function	script	F_CardSeller_Init	{
+	tradertype NST_BARTER;
+	.@type$ = strnpcinfo(NPC_NAME_HIDDEN);
+	if (.@type$ == "miniboss") {
+		.@query$  = "SELECT `item_db`.`id` ";
+		.@query$ += "FROM `item_db` RIGHT JOIN `mob_db` ON `item_db`.`id` = `mob_db`.`dropcardid` ";
+		.@query$ += "WHERE `mode` & 32 AND `type` = 6 AND `mexp` = 0 ";
+		.@query$ += "AND `item_db`.`id` NOT IN ";
+		.@query$ +=   "(SELECT `item_db`.`id` FROM `item_db` RIGHT JOIN `mob_db` ON `item_db`.`id` = `mob_db`.`dropcardid` WHERE ~`mode` & 32 AND `type` = 6) ";
+		.@query$ += "AND `item_db`.`id` NOT IN ";
+		.@query$ +=   "(SELECT `item_db`.`id` FROM `item_db` RIGHT JOIN `mob_db` ON `item_db`.`id` = `mob_db`.`dropcardid` WHERE `mode` & 32 AND `type` = 6 AND `mexp` != 0) ";
+		.@query$ += "GROUP BY `item_db`.`id` ORDER BY `name_japanese`";
+		.@nb = query_sql(.@query$, .@id);
+		for (.@i = 0; .@i < .@nb; ++.@i)
+			sellitem .@id[.@i], 1, Mini_Boss_Ticket, 1;
+	}
+	else if (.@type$ == "MVP") {
+		.@query$  = "SELECT `item_db`.`id` ";
+		.@query$ += "FROM `item_db` RIGHT JOIN `mob_db` ON `item_db`.`id` = `mob_db`.`dropcardid` ";
+		.@query$ += "WHERE `mode` & 32 AND `type` = 6 AND `mexp` != 0 ";
+		.@query$ += "AND `item_db`.`id` NOT IN ";
+		.@query$ +=   "(SELECT `item_db`.`id` FROM `item_db` RIGHT JOIN `mob_db` ON `item_db`.`id` = `mob_db`.`dropcardid` WHERE ~`mode` & 32 AND `type` = 6) ";
+		.@query$ += "GROUP BY `item_db`.`id` ORDER BY `name_japanese`";
+		.@nb = query_sql(.@query$, .@id);
+		for ( .@i = 0; .@i < .@nb; ++.@i )
+			sellitem .@id[.@i], 1, MVP_Ticket, 1;
+	}
+	else {
+		.@query$  = "SELECT `item_db`.`id` ";
+		.@query$ += "FROM `item_db` RIGHT JOIN `mob_db` ON `item_db`.`id` = `mob_db`.`dropcardid` ";
+		.@query$ += "WHERE ~`mode` & 32 AND `type` = 6 AND LEFT(`name_japanese`, 1) = '"+ .@type$ +"' ";
+		.@query$ += "GROUP BY `name_japanese` ORDER BY `name_japanese`";
+		.@nb = query_sql(.@query$, .@id);
+		for ( .@i = 0; .@i < .@nb; ++.@i )
+			sellitem .@id[.@i], 1, Monster_Ticket_, 1;
+	}
+	end;
+}
+
+-	trader	card_mob#A	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#B	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#C	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#D	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#E	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#F	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#G	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#H	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#I	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#J	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#K	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#L	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#M	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#N	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#O	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#P	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#Q	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#R	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#S	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#T	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#U	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#V	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#W	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#X	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#Y	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#Z	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#miniboss	FAKE_NPC,{ OnInit: F_CardSeller_Init; }
+-	trader	card_mob#MVP	FAKE_NPC,{ OnInit: F_CardSeller_Init; }

@@ -1,0 +1,124 @@
+//===== Hercules Script ======================================
+//= Promotion Code Hourly announcement template
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= x.x
+//===== Compatible With: ===================================== 
+//= Hercules 2020-10-12
+//===== Description: =========================================
+//= just a mini-template to prove that timer can be trigger every hour and even within that hour
+//===== Topic ================================================
+//= https://herc.ws/board/topic/18975-promotional-code/
+//===== Additional Comments: =================================  
+//= maybe this should go into my blog
+//============================================================
+
+/*
+create table temp_ (
+`id` INT PRIMARY KEY AUTO_INCREMENT,
+`start` datetime,
+`expire` datetime
+) engine = innodb;
+*/
+
+function	script	timeleft__	{
+	.@left = getarg(0);
+	if (.@left <= 0)
+		return getarg(0);
+	.@day = .@left / 86400;
+	.@hour = .@left % 86400 / 3600;
+	.@min = .@left % 3600 / 60;
+	.@sec = .@left % 60;
+	if (.@day)
+		return sprintf(_$("%d day %d hour"), .@day, .@hour);
+	else if (.@hour)
+		return sprintf(_$("%d hour %d min"), .@hour, .@min);
+	else if (.@min)
+		return sprintf(_$("%d min %d sec"), .@min, .@sec);
+	else
+		return sprintf(_$("%d sec"), .@sec);
+}
+
+-	script	init	FAKE_NPC,{
+OnInit:
+	.___DEBUG_LINE___ = bc_all;
+	.oninit = true;
+OnMinute00:
+	query_sql "SELECT COUNT(1) FROM `temp_` WHERE `start` < NOW() AND `expire` >= NOW() AND LEFT(NOW(), 13) = LEFT(`expire`, 13)", .@expire_count;
+	announce ".@expire_count = "+ .@expire_count, .___DEBUG_LINE___;
+	for (.@i = 0; .@i < .@expire_count; ++.@i)
+		donpcevent strnpcinfo(NPC_NAME_UNIQUE)+"::OnCountdownExpire";
+	query_sql "SELECT COUNT(1) FROM `temp_` WHERE `start` >= NOW() AND LEFT(NOW(), 13) = LEFT(`start`, 13)", .@dormant_count;
+	announce ".@dormant_count = "+ .@dormant_count, .___DEBUG_LINE___;
+	for (.@i = 0; .@i < .@dormant_count; ++.@i)
+		donpcevent strnpcinfo(NPC_NAME_UNIQUE)+"::OnCountdownStart";
+	.offset_expire = 0;
+	.offset_start = 0;
+	.oninit = false;
+	end;
+	
+OnCountdownExpire:
+	query_sql "SELECT `id`, UNIX_TIMESTAMP(`start`), UNIX_TIMESTAMP(`expire`), `start`, `expire` FROM `temp_` WHERE `start` < NOW() AND `expire` >= NOW() AND LEFT(NOW(), 13) = LEFT(`expire`, 13) LIMIT 1 OFFSET "+(.offset_expire++), .@id$, .@start_unixtime, .@expire_unixtime, .@start$, .@expire$;
+	announce "OnCountdownExpire Counter = "+ .offset_expire, .___DEBUG_LINE___;
+	if (.oninit == true)
+		announce "The Promotional id ["+ .@id$ +"] has activated.", bc_all;
+	if (.@expire_unixtime > gettimetick(2))
+		sleep (.@expire_unixtime - gettimetick(2)) *1000;
+	announce "The Promotional id ["+ .@id$ +"] has expired.", bc_all;
+	end;
+OnCountdownStart:
+	query_sql "SELECT `id`, UNIX_TIMESTAMP(`start`), UNIX_TIMESTAMP(`expire`), `start`, `expire` FROM `temp_` WHERE `start` >= NOW() AND LEFT(NOW(), 13) = LEFT(`start`, 13) LIMIT 1 OFFSET "+(.offset_start++), .@id$, .@start_unixtime, .@expire_unixtime, .@start$, .@expire$;
+	announce "OnCountdownStart Counter = "+ .offset_start, .___DEBUG_LINE___;
+	if (.@start_unixtime > gettimetick(2))
+		sleep (.@start_unixtime - gettimetick(2)) *1000;
+	announce "The Promotional id ["+ .@id$ +"] has activated.", bc_all;
+	if (substr(.@expire$, 0, 12) != gettimestr("%Y-%m-%d %H", 20))
+		end;
+	sleep (.@expire_unixtime - gettimetick(2)) *1000;
+	announce "The Promotional id ["+ .@id$ +"] has expired.", bc_all;
+	end;
+}
+
+prontera,155,185,5	script	add	1_F_MARIA,{
+	mes "input start time";
+	query_sql "SELECT NOW()", .@now$;
+	mes .@now$;
+	mes gettimestr("%Y-%m-%d %H:%M:%S", 20);
+	next;
+	input .@start$;
+	if (.@start$ ~! "^(\\d{4,4})-(\\d{2,2})-(\\d{2,2}) (\\d{2,2}):(\\d{2,2}):(\\d{2,2})$") {
+		mes "Invalid format.";
+		close;
+	}
+	mes "input expire time";
+	query_sql "SELECT NOW()", .@now$;
+	mes .@now$;
+	mes gettimestr("%Y-%m-%d %H:%M:%S", 20);
+	next;
+	input .@expire$;
+	if (.@expire$ ~! "^(\\d{4,4})-(\\d{2,2})-(\\d{2,2}) (\\d{2,2}):(\\d{2,2}):(\\d{2,2})$") {
+		mes "Invalid format.";
+		close;
+	}
+	query_sql "SELECT UNIX_TIMESTAMP('"+ .@start$ +"'), UNIX_TIMESTAMP('"+ .@expire$ +"')", .@start_unix, .@expire_unix;
+	mes "start time in ->"+ timeleft__(.@start_unix - gettimetick(2));
+	mes "expire time in ->"+ timeleft__(.@expire_unix - gettimetick(2));
+	query_sql "INSERT INTO `temp_` VALUES (NULL, '"+ .@start$ +"', '"+ .@expire$ +"')";
+	mes substr(.@start$, 0, 12);
+	mes gettimestr("%Y-%m-%d %H", 20);
+	if (substr(.@start$, 0, 12) == gettimestr("%Y-%m-%d %H", 20))
+		mes "yeah right";
+	close2;
+	detachrid;
+	if (.@start_unix > gettimetick(2) && substr(.@start$, 0, 12) != gettimestr("%Y-%m-%d %H", 20))
+		end;
+	else if (.@start_unix > gettimetick(2))
+		sleep (.@start_unix - gettimetick(2)) *1000;
+	announce "The Code has activated.", bc_all;
+	if (substr(.@expire$, 0, 12) != gettimestr("%Y-%m-%d %H", 20))
+		end;
+	sleep (.@expire_unix - gettimetick(2)) *1000;
+	announce "The Code has expired.", bc_all;
+	end;
+}

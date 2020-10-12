@@ -1,0 +1,160 @@
+//===== rAthena Script =======================================
+//= Run and Hide
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.2
+//===== Compatible With: ===================================== 
+//= rAthena 2020-10-12
+//===== Description: =========================================
+//= Player has to run and stand next to a NPC to hide to survive
+//===== Topic ================================================
+//= https://rathena.org/board/topic/126202-run-and-hide-script/
+//===== Additional Comments: =================================  
+//= 
+//============================================================
+
+prontera,154,178,5	script	Run And Hide	1_F_MARIA,{
+	if (!.start) {
+		mes "no event atm";
+		close;
+	}
+	if (.start == 2) {
+		mes "event is running";
+		close;
+	}
+	if (.register_count >= .register_limit) {
+		mes "this event has reach the maximum player participations";
+		close;
+	}
+	if (!checkweight(.reward_itemid, .reward_itemamount)) {
+		mes "You are currently overweight, store some items to continue";
+		close;
+	}
+	percentheal 100,100;
+	warp "guild_vs5", 0,0;
+	.register_aid[.register_count++] = getcharid(3);
+	@runandhide_flag = false;
+	end;
+OnGMCommand:
+	if (getgmlevel() < 60) end;
+//OnClock0000: // put all your start timer here
+OnMinute00:
+	if (.start == 2)
+		callsub L_resetmap;
+	else if (.start == 1)
+		end;
+	disablenpc "Exit#runandhide";
+	announce "Run And Hide event registration start", bc_all;
+	.start = 1;
+	sleep 10000; // registration timer here
+	announce "Run And Hide event registration close", bc_all;
+	.start = 2;
+	if (.register_count < .register_min) {
+		announce "not enough participants for Run And Hide event", bc_all;
+		mapwarp "guild_vs5", .map$, .x, .y;
+		callsub L_resetmap;
+		end;
+	}
+	sleep 3000;
+	mapannounce "guild_vs5", "Find Something to Hide !!!!!", bc_all;
+	for (.@i = 1; .@i <= 6; ++.@i) {
+		setnpcdisplay "runandhide#"+ .@i, 1_SHADOW_NPC;
+		set getvariableofnpc(.runandhide_flag[.@i], "runandhide#main"), false;
+		getfreecell "guild_vs5", .@x, .@y;
+		movenpc "runandhide#"+ .@i, .@x, .@y;
+	}
+	sleep 10000; // time for players to hide
+	for (.@i = 0; .@i < .register_count; ++.@i) {
+		if (isloggedin(.register_aid[.@i])) {
+			attachrid .register_aid[.@i];
+			if (@runandhide_flag == false) {
+				unitkill .register_aid[.@i];
+				specialeffect2 EF_THUNDERSTORM;
+				deletearray .register_aid[.@i], 1;
+				--.@i;
+				--.register_count;
+			}
+			else {
+				setpcblock PCBLOCK_MOVE|PCBLOCK_SKILL, false;
+				setoption 0x2, false;
+				@runandhide_flag = false;
+			}
+		}
+		else {
+			deletearray .register_aid[.@i], 1;
+			--.@i;
+			--.register_count;
+		}
+	}
+	detachrid;
+	enablenpc "Exit#runandhide";
+	for (.@i = 1; .@i <= 6; ++.@i) {
+		setnpcdisplay "runandhide#"+ .@i, HIDDEN_WARP_NPC;
+		set getvariableofnpc(.runandhide_flag[.@i], "runandhide#main"), false;
+		movenpc "runandhide#"+ .@i, 0,0;
+	}
+	announce .register_count +" players survive the onslaught, visit the exit npc in the center to claim the reward.", bc_all;
+	end;	
+OnPCLogoutEvent:
+	if (.start != 2 || strcharinfo(3) != "guild_vs5") end;
+	while (.register_aid[.@i] != getcharid(3) && .@i < .register_count) ++.@i;
+	if (.@i == .register_count) end;
+	deletearray .register_aid[.@i], 1;
+	--.register_count;
+	warp "SavePoint", 0,0;
+	end;
+L_resetmap:
+	mapwarp "guild_vs5", .map$, .x, .y;
+	.start = 0;
+	deletearray .register_aid;
+	.register_count = 0;
+	disablenpc "Exit#runandhide";
+	return;
+OnInit:
+	getmapxy .map$, .x, .y, BL_NPC;
+	.register_min = 2; // minimum amount of players to start this event, or else it auto-abort
+	.register_limit = 100; // maximum amount of players able to participate in this event
+	.reward_itemid = 501;
+	.reward_itemamount = 1;
+	bindatcmd "runandhide", strnpcinfo(0)+"::OnGMCommand", 60,100;
+	disablenpc "Exit#runandhide";
+	end;
+}
+guild_vs5	mapflag	nosave	SavePoint
+guild_vs5	mapflag	nowarp
+guild_vs5	mapflag	nowarpto
+guild_vs5	mapflag	noteleport
+guild_vs5	mapflag	nomemo
+guild_vs5	mapflag	nopenalty
+guild_vs5	mapflag	nobranch
+guild_vs5	mapflag	noicewall
+
+guild_vs5,49,56,5	script	Exit#runandhide	112,{
+	mes "[Exit]";
+	mes "See ya.";
+	close2;
+	warp "Save",0,0;
+	getitem .reward_itemid, .reward_itemamount;
+	end;
+}
+
+-	script	runandhide#main	FAKE_NPC,{
+	end;
+OnTouch:
+	if (getvariableofnpc(.start, "Run And Hide") != 2) end;
+	.@npcid = atoi(strnpcinfo(2));
+	if (.runandhide_flag[.@npcid]) end;
+	setoption 0x2, true;
+	setpcblock PCBLOCK_MOVE|PCBLOCK_SKILL, true;
+	setnpcdisplay strnpcinfo(0), HIDDEN_WARP_NPC;
+	@runandhide_flag = true;
+	.runandhide_flag[.@npcid] = true;
+	end;
+}
+guild_vs5,0,0,0	duplicate(runandhide#main)	runandhide#1	1_SHADOW_NPC,2,2
+guild_vs5,0,0,0	duplicate(runandhide#main)	runandhide#2	1_SHADOW_NPC,2,2
+guild_vs5,0,0,0	duplicate(runandhide#main)	runandhide#3	1_SHADOW_NPC,2,2
+guild_vs5,0,0,0	duplicate(runandhide#main)	runandhide#4	1_SHADOW_NPC,2,2
+guild_vs5,0,0,0	duplicate(runandhide#main)	runandhide#5	1_SHADOW_NPC,2,2
+guild_vs5,0,0,0	duplicate(runandhide#main)	runandhide#6	1_SHADOW_NPC,2,2

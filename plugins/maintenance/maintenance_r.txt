@@ -1,0 +1,97 @@
+-	script	Server_Maintenance	-1,{
+OnTalk:
+	/***********************************/
+	/**/.npc$ = "[Server Maintenance]";
+	/**/.gm = 99; //Level GM
+	/**/.user$ = "root"; //root
+	/**/.password = 12345; //Password
+	/**********************************/
+
+	mes .npc$;
+	if ( getgmlevel() < .gm ) {
+		mes "Sorry but you don't have a permission";
+		close;
+	}
+	mes "Hello "+ strcharinfo(0) +".";
+	mes "Please enter the username:";
+	next;
+	input .@usr$;
+	mes .npc$;
+	mes "Please enter password";
+	next;
+	input .@psw;
+	mes .npc$;
+	if ( .@usr$ != .user$ || .@psw != .password ) {
+		mes "There was a problem with your login information!";
+		close;
+	}
+	mes "Current state of the server : "+( ($server_maintenance)? "^00FFFFON": "^FF0000OFF" )+"^000000.";
+	mes "Do you want to activate the server in maintenance mode?";
+	next;
+	if ( select( "Turn On", "Turn Off" ) == 1 ) {
+		mes .npc$;
+		if ( $server_maintenance == true ) {
+			mes "The server is already turn on maintenance mode";
+			close;
+		}
+		mes "Server in maintenance mode ^00ff7fenabled^000000";
+		donpcevent "#maintenance::OnStartMaintenance";
+		close;
+	} else {
+		mes .npc$;
+		if ( $server_maintenance == false ) {
+			mes "The server is already turn off maintenance mode";
+			close;
+		}
+		mes "Server in maintenance mode ^00ff7fdisabled^000000";
+		$server_maintenance = false;
+		close;
+	}
+	end;
+}
+prontera,150,185,5	duplicate(Server_Maintenance)	Server Maintenance	73
+
+-	script	#maintenance	-1,{
+OnInit:
+	bindatcmd "maintenance", "Server_Maintenance::OnTalk";
+	end;
+OnStartMaintenance:
+	.@one_sec = 1000; // just to debug this script
+	announce "The server will be temporarily closed for maintenance -- from 5 minutes", bc_all;
+	sleep 60 * .@one_sec;
+	announce "The server will be temporarily closed for maintenance -- from 4 minutes", bc_all;
+	sleep 60 * .@one_sec;
+	announce "The server will be temporarily closed for maintenance -- from 3 minutes", bc_all;
+	sleep 60 * .@one_sec;
+	announce "The server will be temporarily closed for maintenance -- from 2 minutes", bc_all;
+	sleep 60 * .@one_sec;
+	announce "The server will be temporarily closed for maintenance -- from 1 minutes", bc_all;
+	sleep 30 * .@one_sec;
+	announce "-- Server Shutdown in 30 seconds --", bc_all;
+	sleep 10 * .@one_sec;
+	announce "-- Server Shutdown in 20 seconds --", bc_all;
+	sleep 10 * .@one_sec;
+	announce "-- Server Shutdown in 10 seconds --", bc_all;
+	sleep 5 * .@one_sec;
+	announce "-- We will be back soon. Bye bye --", bc_all;
+	$server_maintenance = true;
+	addrid 0;
+	if ( getgmlevel() >= 99 ) end; // com'on ... wtf you kick another admin ?
+	if ( checkvending() & 2 ) end; // shouldn't kick @autotraders too ... hercules members complained in my topic
+	atcommand "@kick "+ strcharinfo(0);
+	end;
+OnPCLoginEvent:
+	if ( $server_maintenance == false )
+		end;
+	if ( getgmlevel() >= 99 ) {
+		message strcharinfo(0), "The server is currently in maintenance mode";
+		end;
+	}
+	mes "[^55aaffXXXRO Server^000000]";
+	mes "Sorry but the server is temporarily out of service,";
+	mes "for maintenance.";
+	mes "Please try again later!";
+	sleep2 5000;
+	atcommand "@kick "+ strcharinfo(0);
+	end;
+}

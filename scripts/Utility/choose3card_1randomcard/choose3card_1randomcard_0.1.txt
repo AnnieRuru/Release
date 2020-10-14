@@ -1,0 +1,55 @@
+//===== Hercules Script ======================================
+//= 3 cards of your choice = 1 random card
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: ===================================== 
+//= Hercules 2020-10-14
+//===== Description: =========================================
+//= also added no MVP card in the list
+//===== Topic ================================================
+//= none
+//===== Additional Comments: =================================  
+//= can't believe Patskie the one who made this first
+//============================================================
+
+prontera,151,183,6	script	Sample	1_F_MARIA,{
+	getinventorylist;
+	for (.@i = 0; .@i < @inventorylist_count; ++.@i) {
+		if (.check_card[@inventorylist_id[.@i]]) {
+			.@menu$ += getitemname(@inventorylist_id[.@i]) + ":";
+			.@card[@inventorylist_id[.@i]] = @inventorylist_amount[.@i];
+			.@index[.@c++] = .@i;
+			.@check_card_count += @inventorylist_amount[.@i];
+		}
+	}
+	if (.@check_card_count < 3) {
+		mes "You need at least 3 cards to deal with me.";
+		close;
+	}
+	mes "Please select 3 cards...";
+	.@c = 0;
+	for (.@i = 0; .@i < 3; ++.@i) {
+		.@s = select(.@menu$) -1;
+		.@card_chosen[.@c++] = .@tmp = @inventorylist_id[.@index[.@s]];
+		if (--.@card[.@tmp] == 0)
+			.@menu$ = replacestr(.@menu$, getitemname(.@tmp), "");
+		mes "> 1x " + F_MesItemInfo(.@tmp);
+	}
+	mes "Are you sure you want to trade these cards?";
+	if (select("~ Yes", "~ No") == 2) end;
+	for (.@i = 0; .@i < 3; ++.@i)
+		delitem .@card_chosen[.@i], 1;
+	.@get_cardid = .cardid[rand(.size)];
+	mes "You get "+ F_MesItemInfo(.@get_cardid);
+	getitem .@get_cardid, 1;
+	close;
+OnInit:
+	.@query$  = "SELECT `item_db`.`id` ";
+	.@query$ += "FROM `item_db` RIGHT JOIN `mob_db` ON `item_db`.`id` = `mob_db`.`DropCardid` ";
+	.@query$ += "WHERE (mode & 32) = 0 AND `DropCardid` != 0 AND `type` = 6 AND RIGHT(`name_japanese`, 4) = 'Card' GROUP BY 1";
+	.size = query_sql(.@query$, .cardid);
+	for (.@i = 0; .@i < .size; ++.@i)
+		.check_card[.cardid[.@i]] = true;
+}

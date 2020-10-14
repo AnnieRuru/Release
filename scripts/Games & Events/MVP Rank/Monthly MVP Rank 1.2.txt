@@ -1,0 +1,116 @@
+//===== Hercules Script ======================================
+//= Monthly MVP Rank
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.2
+//===== Compatible With: ===================================== 
+//= Hercules 2020-10-14
+//===== Description: =========================================
+//= MVP Ranking script, with sendmail the reward monthly
+//===== Topic ================================================
+//= http://herc.ws/board/topic/4552-mvp-ladder-script-enhancement/
+//===== Additional Comments: =================================  
+//= remember to change the reward item at setarray .@reward
+//============================================================
+
+/*
+CREATE TABLE `mvp_rank` {
+	`char_id` INT PRIMARY KEY,
+	`name` VARCHAR(23),
+	`kills` INT,
+	KEY(`kills`)
+} ENGINE = InnoDB;
+
+CREATE TABLE `mvp_rank_archive` (
+	`date` DATETIME,
+	`pos` TINYINT UNSIGNED,
+	`char_id` INT,
+	`name` VARCHAR(23),
+	`kills` INT,
+	PRIMARY KEY(`date`, `pos`)
+) ENGINE = MyISAM;
+*/
+
+prontera,158,183,3	script	MVP Ranking	1_F_MARIA,{
+	mes "[MVP Ranking]";
+	mes "Hello!";
+	mes "What are you doing here?";
+	next;
+	switch(select("Check rankings.", "My stats. ", "Previous Month ranking")) {
+	case 1:
+		mes "[MVP Ranking]";
+		mes "Rankings :->";
+		.@nb = query_sql("SELECT `name`, `kills` FROM `mvp_rank` ORDER BY `kills` DESC LIMIT 10", .@name$, .@kills);
+		if (!.@nb) {
+			mes "no entry";
+			close;
+		}
+		for (.@i = 0; .@i < .@nb; ++.@i)
+			mes (.@i +1)+". "+ .@name$[.@i] +" -> "+ .@kills[.@i] +" kills";
+		close;
+	case 2:
+		mes "[MVP Ranking]";
+		if (!query_sql("SELECT `kills`, 1+(SELECT COUNT(1) FROM `mvp_rank` t1 WHERE t1.`kills` > t2.`kills`) FROM `mvp_rank` t2 WHERE `char_id` = "+ getcharid(CHAR_ID_CHAR), .@kills, .@rank)) {
+			mes "You haven't kill MVP this month.";
+			close;
+		}
+		mes "You have killed "+ .@kills +" MVPs";
+		mes "Your Rank is No."+ .@rank;
+		close;
+	case 3:
+		mes "[MVP Ranking]";
+		mes "Last month ranking";
+		if (gettime(GETTIME_MONTH) > 10)
+			.@store_date$ = gettime(GETTIME_YEAR) +"-"+( gettime(GETTIME_MONTH) -1 )+"-00 00:00:00";
+		else if (gettime(GETTIME_MONTH) > 1)
+			.@store_date$ = gettime(GETTIME_YEAR) +"-0"+( gettime(GETTIME_MONTH) -1 )+"-00 00:00:00";
+		else
+			.@store_date$ = (gettime(GETTIME_YEAR) -1) +"-12-00 00:00:00";
+		.@nb = query_sql( "SELECT `name`, `kills` FROM `mvp_rank_archive` WHERE `date` = '"+ .@store_date$ +"' ORDER BY `pos`", .@name$, .@kills);
+		if (!.@nb) {
+			mes "no entry";
+			close;
+		}
+		for (.@i = 0; .@i < .@nb; ++.@i)
+			mes (.@i +1)+". "+ .@name$[.@i] +" -> "+ .@kills[.@i] +" kills";
+		close;
+	}
+	close;
+OnInit:
+	if (!$mvp_ladder_last_given) {
+		$mvp_ladder_last_given = atoi(gettime(GETTIME_YEAR) +""+ gettime(GETTIME_MONTH));
+		end;
+	}
+	else if ($mvp_ladder_last_given == atoi(gettime(GETTIME_YEAR) +""+ gettime(GETTIME_MONTH)))
+		end;
+	goto L_give;
+OnClock0000:
+	if (gettime(GETTIME_DAYOFMONTH) != 1) end;
+L_give:
+	$mvp_ladder_last_given = atoi(gettime(GETTIME_YEAR) +""+ gettime(GETTIME_MONTH));
+	.@nb = query_sql("SELECT `char_id`, `name`, `kills` FROM `mvp_rank` ORDER BY `kills` DESC LIMIT 10", .@cid, .@name$, .@kills);
+	if (!.@nb) end;
+	setarray .@reward, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510;
+	setarray .@amount, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1;
+	for (.@i = 0; .@i < .@nb; ++.@i)
+		rodex_sendmail .@cid[.@i], "[MVP Rank]", "MVP Rank Monthly Reward", "Congratulations for earning No. "+(.@i +1)+" position in MVP rank. Here is your reward.", 0, .@reward[.@i], .@amount[.@i];
+	if (gettime(GETTIME_MONTH) > 10)
+		.@store_date$ = gettime(GETTIME_YEAR) +"-"+( gettime(GETTIME_MONTH) -1 )+"-00 00:00:00";
+	else if (gettime(GETTIME_MONTH) > 1)
+		.@store_date$ = gettime(GETTIME_YEAR) +"-0"+( gettime(GETTIME_MONTH) -1 )+"-00 00:00:00";
+	else
+		.@store_date$ = (gettime(GETTIME_YEAR) -1) +"-12-00 00:00:00";
+	for (.@i = 0; .@i < .@nb; ++.@i)
+		.@store$[.@i] = "('"+ .@store_date$ +"', "+(.@i +1)+", "+ .@cid[.@i] +", '"+ escape_sql(.@name$[.@i]) +"', "+ .@kills[.@i] +")";
+	query_sql "INSERT INTO `mvp_rank_archive` VALUES "+ implode(.@store$, ",");
+	query_sql "TRUNCATE `mvp_rank`";
+	end;
+OnNPCKillEvent:
+	if (getmonsterinfo(killedrid, MOB_MVPEXP)) {
+		query_sql "INSERT INTO `mvp_rank` VALUES ("+ getcharid(CHAR_ID_CHAR) +", '"+ escape_sql(strcharinfo(PC_NAME)) +"', 1) ON DUPLICATE KEY UPDATE `name` = '"+ escape_sql(strcharinfo(PC_NAME)) +"', `kills` = `kills` +1";
+		query_sql "SELECT `kills` FROM `mvp_rank` WHERE `char_id` = "+ getcharid(CHAR_ID_CHAR), .@kills;
+		dispbottom "~ You've killed "+ .@kills +" MVP. ~";
+	}
+	end;
+}

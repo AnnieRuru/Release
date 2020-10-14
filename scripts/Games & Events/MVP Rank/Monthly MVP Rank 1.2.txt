@@ -82,9 +82,9 @@ OnInit:
 		$mvp_ladder_last_given = atoi(gettime(GETTIME_YEAR) +""+ gettime(GETTIME_MONTH));
 		end;
 	}
-	else if ($mvp_ladder_last_given == atoi(gettime(GETTIME_YEAR) +""+ gettime(GETTIME_MONTH)))
-		end;
-	goto L_give;
+	else if ($mvp_ladder_last_given != atoi(gettime(GETTIME_YEAR) +""+ gettime(GETTIME_MONTH)))
+		goto L_give;
+	end;
 OnClock0000:
 	if (gettime(GETTIME_DAYOFMONTH) != 1) end;
 L_give:

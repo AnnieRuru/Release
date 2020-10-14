@@ -1,0 +1,189 @@
+//===== rAthena Script =======================================
+//= Zeny in separate table
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.2
+//===== Compatible With: ===================================== 
+//= rAthena 2018-05-21
+//===== Description: =========================================
+//= Basic Account : Fee 1,000,000 (Player can only deposit up to 100m zeny per day and withdraw 10m per day.)
+//= Premium Account : Fee 5,000,000 (Deposit up to 1b zeny per day and withdraw 100m per day)
+//= Wicked Account : Fee 10,000,000 (Deposit up to 5b zeny per day and withdraw 1b per day)
+//===== Topic ================================================
+//= https://rathena.org/board/topic/115606-zeny-in-separate-table/
+//===== Additional Comments: =================================  
+//= 
+//============================================================
+
+/*
+create table `zeny_bank` (
+	`account_id` int(11) primary key,
+	`bank_type` enum('B','P','W') default 'B',
+	`zeny` bigint(20) unsigned default 0,
+	`daily_deposit` bigint(20) default 0,
+	`daily_withdraw` bigint(20) default 0,
+	`last_access` datetime
+) engine = innodb;
+*/
+
+prontera,155,186,5	script	Banking	1_F_MARIA,{
+	mes "["+ strnpcinfo(0) +"]";
+	if ( !query_sql( "select bank_type, zeny, daily_deposit, daily_withdraw, date(last_access) from zeny_bank where account_id = "+ getcharid(3), .@bank_enum$, .@zeny$, .@deposit$, .@withdraw$, .@date$ ) )
+		goto L_Open_Account;
+	if ( gettimestr("%Y-%m-%d", 20) != .@date$ ) {
+		query_sql "update zeny_bank set daily_deposit = 0, daily_withdraw = 0, last_access = now() where account_id = "+ getcharid(3);
+		.@deposit$ = "0";
+		.@withdraw$ = "0";
+	}
+	if ( .@bank_enum$ == "B" ) .@t = 1;
+	else if ( .@bank_enum$ == "P" ) .@t = 2;
+	else if ( .@bank_enum$ == "W" ) .@t = 3;
+	mes "^0000FF"+ .bank_type$[.@t] +"^000000";
+	mes "    "+ F_InsertComma(.@zeny$) +" Zeny";
+	mes "- Deposit ->";
+	mes "[ "+ F_InsertComma(.@deposit$) +" / "+ F_InsertComma(.bank_depo$[.@t]) +" ]";
+	mes "- Withdraw ->";
+	mes "[ "+ F_InsertComma(.@withdraw$) +" / "+ F_InsertComma(.bank_with$[.@t]) +" ]";
+	next;
+//	switch ( select ( "Deposit Money", "Withdraw Zeny" ) ) {
+	switch ( select ( "Deposit Money", "Withdraw Zeny", "Close This Account" ) ) {
+	mes "["+ strnpcinfo(0) +"]";
+	mes "^0000FF"+ .bank_type$[.@t] +"^000000";
+	case 1:
+		if ( .@deposit$ == .bank_depo$[.@t] ) {
+			mes "You have reach the maximum daily deposit limit";
+			close;
+		}
+		mes "Current Zeny";
+		mes "    "+ F_InsertComma(.@zeny$) +" Zeny";
+		mes "- Deposit ->";
+		mes "[ "+ F_InsertComma(.@deposit$) +" / "+ F_InsertComma(.bank_depo$[.@t]) +" ]";
+		next;
+		if ( Zeny == 0 ) {
+			mes "["+ strnpcinfo(0) +"]";
+			mes "You don't even have a Single Zeny.";
+			close;
+		}
+		query_sql "select "+ .bank_depo$[.@t] +" - "+ .@deposit$, .@limit$;
+		input .@num, 0, MAX_ZENY;
+		mes "["+ strnpcinfo(0) +"]";
+		if ( !.@num ) {
+			mes "Transaction cancelled";
+			close;
+		}
+		.@min_value = min( Zeny, atoi( .@limit$ ) );
+		if ( .@num > .@min_value ) {
+			mes "Your Input value has shrink into";
+			mes F_InsertComma(.@min_value) +" Zeny";
+			if ( .@min_value == Zeny )
+				mes "because you are carrying that amount of Zeny.";
+			else if ( .@min_value == atoi( .@limit$ ) )
+				mes "because of the daily deposit limit.";
+			mes "Continue ?";
+			next;
+			select "OK";
+			.@num = .@min_value;
+			mes "["+ strnpcinfo(0) +"]";
+		}
+		mes "Are you sure you want to deposit";
+		mes F_InsertComma(.@num) +" Zeny";
+		mes "into the bank account?";
+		next;
+		select "Yes";
+		mes "["+ strnpcinfo(0) +"]";
+		Zeny -= .@num;
+		query_sql "update zeny_bank set zeny = zeny + "+ .@num +", daily_deposit = daily_deposit + "+ .@num +", last_access = now() where account_id = "+ getcharid(3);
+		mes "You have successfully deposit "+ F_InsertComma(.@num) +" Zeny into the bank account.";
+		close;
+	case 2:
+		if ( .@withdraw$ == .bank_with$[.@t] ) {
+			mes "You have reach the maximum daily withdrawal limit";
+			close;
+		}
+		mes "Current Zeny";
+		mes "    "+ F_InsertComma(.@zeny$) +" Zeny";
+		mes "- Withdraw ->";
+		mes "[ "+ F_InsertComma(.@withdraw$) +" / "+ F_InsertComma(.bank_with$[.@t]) +" ]";
+		next;
+		if ( Zeny == MAX_ZENY ) {
+			mes "["+ strnpcinfo(0) +"]";
+			mes "You are carrying the maximum amount of Zeny.";
+			close;
+		}
+		query_sql "select "+ .bank_with$[.@t] +" - "+ .@withdraw$, .@limit$;
+		input .@num, 0, MAX_ZENY;
+		mes "["+ strnpcinfo(0) +"]";
+		if ( !.@num ) {
+			mes "Transaction cancelled";
+			close;
+		}
+		.@min_value = min( atoi( .@limit$ ), atoi( .@zeny$ ), MAX_ZENY - Zeny );
+		if ( .@num > .@min_value ) {
+			mes "Your Input value has shrink into";
+			mes F_InsertComma(.@min_value) +" Zeny";
+			if ( .@min_value == atoi( .@limit$ ) )
+				mes "because of the daily withdrawal limit.";
+			else if ( .@min_value == atoi( .@zeny$ ) )
+				mes "because that is the amount of Zeny left in the bank.";
+			else if ( .@min_value == MAX_ZENY - Zeny )
+				mes "because that is the maximum amount of Zeny you can hold.";
+			mes "Continue ?";
+			next;
+			select "OK";
+			.@num = .@min_value;
+			mes "["+ strnpcinfo(0) +"]";
+		}
+		mes "Are you sure you want to withdraw";
+		mes F_InsertComma(.@num) +" Zeny";
+		mes "from the bank account?";
+		next;
+		select "Yes";
+		mes "["+ strnpcinfo(0) +"]";
+		Zeny += .@num;
+		query_sql "update zeny_bank set zeny = zeny - "+ .@num +", daily_withdraw = daily_withdraw + "+ .@num +", last_access = now() where account_id = "+ getcharid(3);
+		mes "You have successfully withdraw "+ F_InsertComma(.@num) +" Zeny from the bank account.";
+		close;
+	case 3:
+		query_sql "delete from zeny_bank where account_id = "+ getcharid(3);
+		mes "This account has close forcefully.";
+	}
+	close;
+L_Open_Account:
+	mes "Do you wish to open a bank account?\r";
+	for ( .@i = 0; .@i < .total; ++.@i ) {
+		mes "^0000FF"+ .bank_type$[.@i] +"^000000 - ^FF0000Fee^000000 -> "+ F_InsertComma(.bank_fees$[.@i]);
+		mes "- Deposit Limit -> "+ F_InsertComma(.bank_depo$[.@i]);
+		mes "- Withdraw Limit -> "+ F_InsertComma(.bank_with$[.@i]);
+	}
+	next;
+	.@s = select ( implode( .bank_type$, ":" ) ) -1;
+	mes "["+ strnpcinfo(0) +"]";
+	mes "Select type -> ^0000FF"+ .bank_type$[.@s] +"^000000?";
+	mes "The Fee is "+ F_InsertComma(.bank_fees$[.@s]) +" Zeny";
+	next;
+	select "Open a ^0000FF"+ .bank_type$[.@s] +"^000000";
+	mes "["+ strnpcinfo(0) +"]";
+	if ( Zeny < atoi( .bank_fees$[.@s] ) ) {
+		mes "You don't have enough Zeny to open this account.";
+		close;
+	}
+	Zeny -= atoi( .bank_fees$[.@s] );
+	query_sql "insert into zeny_bank values ("+ getcharid(3) +", '"+ .bank_enum$[.@s] +"', 0, 0, 0, now() )";
+	mes "Your bank account has successfully created";
+	close;
+OnInit:
+	callsub L_Bank_Type, "Basic Account", "B", "1000000", "100000000", "10000000";
+	callsub L_Bank_Type, "Premium Account", "P", "5000000", "1000000000", "100000000";
+	callsub L_Bank_Type, "Wicked Account", "W", "10000000", "5000000000", "1000000000";
+	.total = 0;
+	end;
+L_Bank_Type:
+	++.total;
+	.bank_type$[.total] = getarg(0);
+	.bank_enum$[.total] = getarg(1);
+	.bank_fees$[.total] = getarg(2);
+	.bank_depo$[.total] = getarg(3);
+	.bank_with$[.total] = getarg(4);
+	return;
+}

@@ -1,0 +1,219 @@
+//===== Hercules Script ======================================
+//= Zeny in separate table
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.4
+//===== Compatible With: ===================================== 
+//= Hercules 2018-05-22
+//===== Description: =========================================
+//= Basic Account : Fee 1,000,000 (Player can only deposit up to 100m zeny per day and withdraw 10m per day.)
+//= Premium Account : Fee 5,000,000 (Deposit up to 1b zeny per day and withdraw 100m per day)
+//= Wicked Account : Fee 10,000,000 (Deposit up to 5b zeny per day and withdraw 1b per day)
+//===== Topic ================================================
+//= 
+//===== Additional Comments: =================================  
+//= convert to hercules
+//============================================================
+
+/*
+CREATE TABLE `zeny_bank` (
+	`account_id` INT PRIMARY KEY,
+	`bank_type` ENUM('B','P','W') DEFAULT 'B',
+	`zeny` BIGINT DEFAULT 0,
+	`daily_deposit` BIGINT DEFAULT 0,
+	`daily_withdraw` BIGINT DEFAULT 0,
+	`last_access` DATETIME
+) ENGINE = InnoDB;
+*/
+
+//	~~~~~ Please use this latest int__ function that support negative numbers ~~~~~
+function	script	int__	{
+	.@str$ = getarg(0);
+	.@is_negative = (charat(.@str$, 0) == "-");
+	for (.@i = getstrlen(.@str$) -3; .@i > .@is_negative; .@i -= 3)
+		.@str$ = insertchar(.@str$, ",", .@i);
+	return .@str$;
+}
+
+prontera,155,186,5	script	Banking	1_F_MARIA,{
+	mes .npcname$;
+	if (!query_sql("SELECT `bank_type`, `zeny`, `daily_deposit`, `daily_withdraw`, DATE(`last_access`) FROM `zeny_bank` WHERE `account_id` = "+ getcharid(CHAR_ID_ACCOUNT), .@bank_enum$, .@zeny$, .@deposit$, .@withdraw$, .@date$ ) )
+		goto L_Open_Account;
+	if (gettimestr("%Y-%m-%d", 20) != .@date$) {
+		query_sql "UPDATE `zeny_bank` SET `daily_deposit` = 0, `daily_withdraw` = 0, `last_access` = NOW() WHERE `account_id` = "+ getcharid(CHAR_ID_ACCOUNT);
+		.@deposit$ = "0";
+		.@withdraw$ = "0";
+	}
+	if (.@bank_enum$ == "B") .@t = 1;
+	else if (.@bank_enum$ == "P") .@t = 2;
+	else if (.@bank_enum$ == "W") .@t = 3;
+	mes "^0000FF"+ .bank_type$[.@t] +"^000000";
+	mes "    "+ int__(.@zeny$) +" Zeny";
+	mes "- Deposit ->";
+	mes "[ "+ int__(.@deposit$) +" / "+ int__(.bank_depo$[.@t]) +" ]";
+	mes "- Withdraw ->";
+	mes "[ "+ int__(.@withdraw$) +" / "+ int__(.bank_with$[.@t]) +" ]";
+	next;
+	switch(select("Deposit Money", "Withdraw Zeny", (.@t < 3)? "Upgrade This Account" : "")) {
+	mes .npcname$;
+	mes "^0000FF"+ .bank_type$[.@t] +"^000000";
+	case 1:
+		if (.@deposit$ == .bank_depo$[.@t]) {
+			mes "You have reach the maximum daily deposit limit";
+			close;
+		}
+		mes "Current Zeny";
+		mes "    "+ int__(.@zeny$) +" Zeny";
+		mes "- Deposit ->";
+		mes "[ "+ int__(.@deposit$) +" / "+ int__(.bank_depo$[.@t]) +" ]";
+		next;
+		if (Zeny == 0) {
+			mes .npcname$;
+			mes "You don't even have a Single Zeny.";
+			close;
+		}
+		query_sql "SELECT "+ .bank_depo$[.@t] +" - "+ .@deposit$, .@limit$;
+		input .@num, 0, MAX_ZENY;
+		mes .npcname$;
+		if (!.@num) {
+			mes "Transaction cancelled";
+			close;
+		}
+		.@min_value = min(Zeny, atoi(.@limit$));
+		if (.@num > .@min_value) {
+			mes "Your Input value has shrink into";
+			mes int__(.@min_value) +" Zeny";
+			if (.@min_value == Zeny)
+				mes "because you are carrying that amount of Zeny.";
+			else if (.@min_value == atoi(.@limit$))
+				mes "because of the daily deposit limit.";
+			mes "Continue ?";
+			next;
+			select "OK";
+			.@num = .@min_value;
+			mes .npcname$;
+		}
+		mes "Are you sure you want to deposit";
+		mes int__(.@num) +" Zeny";
+		mes "into the bank account?";
+		next;
+		select "Yes";
+		mes .npcname$;
+		Zeny -= .@num;
+		query_sql "UPDATE `zeny_bank` SET `zeny` = `zeny` + "+ .@num +", `daily_deposit` = `daily_deposit` + "+ .@num +", `last_access` = NOW() WHERE `account_id` = "+ getcharid(CHAR_ID_ACCOUNT);
+		mes "You have successfully deposit "+ int__(.@num) +" Zeny into the bank account.";
+		close;
+	case 2:
+		if (.@withdraw$ == .bank_with$[.@t]) {
+			mes "You have reach the maximum daily withdrawal limit";
+			close;
+		}
+		mes "Current Zeny";
+		mes "    "+ int__(.@zeny$) +" Zeny";
+		mes "- Withdraw ->";
+		mes "[ "+ int__(.@withdraw$) +" / "+ int__(.bank_with$[.@t]) +" ]";
+		next;
+		if (Zeny == MAX_ZENY) {
+			mes .npcname$;
+			mes "You are carrying the maximum amount of Zeny.";
+			close;
+		}
+		query_sql "SELECT "+ .bank_with$[.@t] +" - "+ .@withdraw$, .@limit$;
+		input .@num, 0, MAX_ZENY;
+		mes .npcname$;
+		if (!.@num) {
+			mes "Transaction cancelled";
+			close;
+		}
+		.@min_value = min(atoi(.@limit$), atoi(.@zeny$), MAX_ZENY - Zeny);
+		if ( .@num > .@min_value ) {
+			mes "Your Input value has shrink into";
+			mes int__(.@min_value) +" Zeny";
+			if (.@min_value == atoi(.@limit$))
+				mes "because of the daily withdrawal limit.";
+			else if (.@min_value == atoi(.@zeny$))
+				mes "because that is the amount of Zeny left in the bank.";
+			else if (.@min_value == MAX_ZENY - Zeny)
+				mes "because that is the maximum amount of Zeny you can hold.";
+			mes "Continue ?";
+			next;
+			select "OK";
+			.@num = .@min_value;
+			mes .npcname$;
+		}
+		mes "Are you sure you want to withdraw";
+		mes int__(.@num) +" Zeny";
+		mes "from the bank account?";
+		next;
+		select "Yes";
+		mes .npcname$;
+		Zeny += .@num;
+		query_sql "UPDATE `zeny_bank` SET `zeny` = `zeny` - "+ .@num +", `daily_withdraw` = `daily_withdraw` + "+ .@num +", `last_access` = NOW() WHERE `account_id` = "+ getcharid(CHAR_ID_ACCOUNT);
+		mes "You have successfully withdraw "+ int__(.@num) +" Zeny from the bank account.";
+		close;
+	case 3:
+		mes "Select the type of banking account you like to make an upgrade.";
+		next;
+		for (.@i = 0; .@i <= .total; ++.@i)
+			.@menu$ += ((.@i > .@t)? "^0000FF"+ .bank_type$[.@i] +"^000000" : "")+ ":";
+		.@s = select( .@menu$ ) -1;
+		mes .npcname$;
+		if (Zeny < atoi(.bank_fees$[.@s]) && atoi(.@zeny$) < atoi(.bank_fees$[.@s])) {
+			mes "You don't have enough Zeny to upgrade into this account.";
+			close;
+		}
+		mes "Select the payment type";
+		mes "The Fee is "+ int__(.bank_fees$[.@s]) +" Zeny";
+		next;
+		switch(select((Zeny < atoi(.bank_fees$[.@s]))? "" : "Pay with Zeny", (atoi(.@zeny$) < atoi(.bank_fees$[.@s]))? "" : "Pay from the bank")) {
+		mes .npcname$;
+		case 1:
+			Zeny -= atoi(.bank_fees$[.@s]);
+			query_sql "UPDATE `zeny_bank` SET `bank_type` = '"+ .bank_enum$[.@s] +"' WHERE `account_id` = "+ getcharid(CHAR_ID_ACCOUNT);
+			break;
+		case 2:
+			query_sql "UPDATE `zeny_bank` SET `zeny` = `zeny` - "+ .bank_fees$[.@s] +", `bank_type` = '"+ .bank_enum$[.@s] +"' WHERE `account_id` = "+ getcharid(CHAR_ID_ACCOUNT);
+		}
+		mes "Your account has successfully upgrade into";
+		mes "^0000FF"+ .bank_type$[.@s] +"^000000?";
+	}
+	close;
+L_Open_Account:
+	mes "Do you wish to open a bank account?\r";
+	for (.@i = 1; .@i <= .total; ++.@i) {
+		mes "^0000FF"+ .bank_type$[.@i] +"^000000 - ^FF0000Fee^000000 -> "+ int__(.bank_fees$[.@i]);
+		mes "- Deposit Limit -> "+ int__(.bank_depo$[.@i]);
+		mes "- Withdraw Limit -> "+ int__(.bank_with$[.@i]);
+	}
+	next;
+	.@s = select (implode(.bank_type$, ":")) -1;
+	mes .npcname$;
+	mes "Select type -> ^0000FF"+ .bank_type$[.@s] +"^000000?";
+	mes "The Fee is "+ int__(.bank_fees$[.@s]) +" Zeny";
+	next;
+	select "Open a ^0000FF"+ .bank_type$[.@s] +"^000000";
+	mes .npcname$;
+	if (Zeny < atoi(.bank_fees$[.@s])) {
+		mes "You don't have enough Zeny to open this account.";
+		close;
+	}
+	Zeny -= atoi(.bank_fees$[.@s]);
+	query_sql "INSERT INTO `zeny_bank` VALUES ("+ getcharid(CHAR_ID_ACCOUNT) +", '"+ .bank_enum$[.@s] +"', 0, 0, 0, NOW())";
+	mes "Your bank account has successfully created";
+	close;
+OnInit:
+	.npcname$ = "["+ strnpcinfo(NPC_NAME) +"]";
+	callsub L_Bank_Type, "Basic Account", "B", "1000000", "100000000", "10000000";
+	callsub L_Bank_Type, "Premium Account", "P", "5000000", "1000000000", "100000000";
+	callsub L_Bank_Type, "Wicked Account", "W", "10000000", "5000000000", "1000000000";
+	end;
+L_Bank_Type:
+	++.total;
+	.bank_type$[.total] = getarg(0);
+	.bank_enum$[.total] = getarg(1);
+	.bank_fees$[.total] = getarg(2);
+	.bank_depo$[.total] = getarg(3);
+	.bank_with$[.total] = getarg(4);
+	return;
+}

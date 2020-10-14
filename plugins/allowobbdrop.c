@@ -3,7 +3,7 @@
 //===== By: ==================================================
 //= AnnieRuru
 //===== Current Version: =====================================
-//= 0.1
+//= 0.2
 //===== Compatible With: ===================================== 
 //= Hercules 2020-10-14
 //===== Description: =========================================
@@ -27,7 +27,7 @@
 HPExport struct hplugin_info pinfo = {
 	"allowobbdrop",
 	SERVER_TYPE_MAP,
-	"0.1",
+	"0.2",
 	HPM_VERSION,
 };
 
@@ -62,6 +62,13 @@ static int pc_inventoryblank_post(int retVal, struct map_session_data *sd) {
 		return retVal;
 }
 
+static int pc_isUseitem_post(int retVal, struct map_session_data *sd, int n) {
+	struct player_data *ssd = getFromMSD(sd, 0);
+	nullpo_ret(ssd);
+	ssd->use_item_id = 0;
+	return retVal;
+}
+
 ACMD(allowobbdrop) {
 	struct player_data *ssd = getFromMSD(sd, 0);
 	nullpo_ret(ssd);
@@ -80,6 +87,6 @@ HPExport void plugin_init (void) {
 	addHookPost(pc, reg_received, pc_reg_received_post);
 	addHookPre(pc, isUseitem, pc_isUseitem_pre);
 	addHookPost(pc, inventoryblank, pc_inventoryblank_post);
-
+	addHookPost(pc, isUseitem, pc_isUseitem_post);
 	addAtcommand("allowobbdrop", allowobbdrop);
 }

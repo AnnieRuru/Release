@@ -4,7 +4,7 @@
 //= AnnieRuru
 //= original by Euphy
 //===== Current Version: =====================================
-//= 1.7
+//= 1.7a
 //===== Compatible With: ===================================== 
 //= Hercules 2020-10-16
 //===== Description: =========================================
@@ -26,44 +26,25 @@ prontera,170,180,1	script	Stylist#custom_stylist	2_M_DYEINGER,{
 			break;
 	.@revert = .@i;
 	setpcblock PCBLOCK_COMMANDS, true;
-	while ( true ) {
+	while (true) {
 		changelook .@lookpart, getd(".list"+ .@part +"["+ .@i +"]");
 		showscript sprintf(_$("This is style #%d."), getd(".list"+ .@part +"["+ .@i +"]")), getcharid(CHAR_ID_ACCOUNT), SELF;
 		.@next = (.@i == .maxindex[.@part])? 0 : .@i+1;
 		.@previous = (.@i == 0)? .maxindex[.@part] : .@i-1;
-		if (.@reverse_order == false) {
-			.@s = prompt(
-			sprintf(_$("~ Next (%s%d%s)"), F_MesColor(C_BLUE), getd(".list"+ .@part +"["+ .@next +"]"), F_MesColor(C_BLACK)),
-			sprintf(_$("~ Previous (%s%d%s)"), F_MesColor(C_BLUE), getd(".list"+ .@part +"["+ .@previous +"]"), F_MesColor(C_BLACK)),
+		.@next_option_menu$ = sprintf(_$("~ Next (%s%d%s)"), F_MesColor(C_BLUE), getd(".list"+ .@part +"["+ .@next +"]"), F_MesColor(C_BLACK));
+		.@previous_option_menu$ = sprintf(_$("~ Previous (%s%d%s)"), F_MesColor(C_BLUE), getd(".list"+ .@part +"["+ .@previous +"]"), F_MesColor(C_BLACK));
+		switch(prompt(
+			(.@reverse_order)? .@previous_option_menu$ : .@next_option_menu$,
+			(.@reverse_order)? .@next_option_menu$ : .@previous_option_menu$,
 			" ~ Jump to...",
 			sprintf(_$("~ Revert to original (%s%d%s)"), F_MesColor(C_BLUE), getd(".list"+ .@part +"["+ .@revert +"]"), F_MesColor(C_BLACK)),
-			"~ Use this style");
-		} else {
-			.@s = prompt(
-			sprintf(_$("~ Previous (%s%d%s)"), F_MesColor(C_BLUE), getd(".list"+ .@part +"["+ .@previous +"]"), F_MesColor(C_BLACK)),
-			sprintf(_$("~ Next (%s%d%s)"), F_MesColor(C_BLUE), getd(".list"+ .@part +"["+ .@next +"]"), F_MesColor(C_BLACK)),
-			" ~ Jump to...",
-			sprintf(_$("~ Revert to original (%s%d%s)"), F_MesColor(C_BLUE), getd(".list"+ .@part +"["+ .@revert +"]"), F_MesColor(C_BLACK)),
-			"~ Use this style");
-		}
-		switch(.@s) {
+			"~ Use this style")) {
 		case 1:
-			if (.@reverse_order == false) {
-				.@i = .@next;
-				.@reverse_order = false;
-			} else {
-				.@i = .@previous;
-				.@reverse_order = true;
-			}
+			.@i = (.@reverse_order)? .@previous : .@next;
 			break;
 		case 2:
-			if (.@reverse_order == false) {
-				.@i = .@previous;
-				.@reverse_order = true;
-			} else {
-				.@i = .@next;
-				.@reverse_order = false;
-			}
+			.@i = (.@reverse_order)? .@next : .@previous;
+			.@reverse_order ^= 1;
 			break;
 		case 3:
 			message getcharid(CHAR_ID_ACCOUNT), sprintf(_$("Choose a style between %d - %d."), .minstyles[.@part], .maxstyles[.@part]);
@@ -106,25 +87,25 @@ OnInit:
 	freeloop true;
 	setarray .look[0], LOOK_HAIR, LOOK_HAIR_COLOR, LOOK_CLOTHES_COLOR, LOOK_BODY2,
 		Job_Summoner + LOOK_HAIR, Job_Summoner + LOOK_HAIR_COLOR, Job_Summoner + LOOK_CLOTHES_COLOR;
-	for ( .@i = 0; .@i < 7; ++.@i ) {
+	for (.@i = 0; .@i < 7; ++.@i) {
 		deletearray .@array$;
 		.@index = 0;
-		.@size = explode( .@array$, .list$[.look[.@i]], "," );
-		for ( .@j = 0; .@j < .@size; ++.@j ) {
-			if ( compare( .@array$[.@j], "-" ) ) {
-				explode( .@range$, .@array$[.@j], "-" );
+		.@size = explode(.@array$, .list$[.look[.@i]], ",");
+		for (.@j = 0; .@j < .@size; ++.@j) {
+			if (compare(.@array$[.@j], "-")) {
+				explode(.@range$, .@array$[.@j], "-");
 				.@min = atoi(.@range$[0]);
 				.@max = atoi(.@range$[1]);
 				.@range = .@max - .@min +1;
-				for ( .@k = 0; .@k < .@range; ++.@k )
-					setd ".list"+ .look[.@i] +"["+( .@index++ )+"]", .@min + .@k;
+				for (.@k = 0; .@k < .@range; ++.@k)
+					setd ".list"+ .look[.@i] +"["+(.@index++)+"]", .@min + .@k;
 			}
 			else
-				setd ".list"+ .look[.@i] +"["+( .@index++ )+"]", atoi( .@array$ );
+				setd ".list"+ .look[.@i] +"["+(.@index++)+"]", atoi(.@array$);
 		}
 		.maxindex[.look[.@i]] = .@index -1;
 		.minstyles[.look[.@i]] = getd(".list"+ .look[.@i]);
-		.maxstyles[.look[.@i]] = getd(".list"+ .look[.@i] +"["+( .@index -1 )+"]");
+		.maxstyles[.look[.@i]] = getd(".list"+ .look[.@i] +"["+(.@index -1)+"]");
 	}
 	end;
 }

@@ -79,7 +79,7 @@ OnInit:
 	.lowestownage = 5; // mininum ownage count allow to show in longest ownage ladder. Default 5 means must at least have 5 ownage counts to display in ladder
 
 	setarray .maptrigger$, // only these maps will trigger this script
-		"all", // uncomment this to allow load all maps
+//		"all", // uncomment this to allow load all maps
 		"guild_vs1",
 		"guild_vs2",
 		"guild_vs3",

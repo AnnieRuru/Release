@@ -1,0 +1,142 @@
+//===== Hercules Script ===========================================
+//= Custom Statue
+//===== By: =======================================================
+//= AnnieRuru
+//===== Current Version: ==========================================
+//= 1.0
+//===== Compatible With: ==========================================
+//= Hercules 2020-10-17
+//===== Description: ==============================================
+//= allow GMs to setup a custom statue for whatever reason
+//===== Topic =====================================================
+//= https://herc.ws/board/topic/19003-custom-statue/
+//===== Additional Comments: ======================================
+//= someone on discord told me the status doesn't work, so I made this
+//=================================================================
+
+prontera,155,185,4	script	Custom Statue	4_PORING,{
+	if (getgmlevel() >= 60)
+		goto L_gm;
+	if (!.textlines) {
+		mes "Boing ~ Boing ~";
+		close;
+	}
+L_test:
+	for (.@i = 0; .@i < .textlines; ++.@i)
+		mes .text$[.@i];
+	close;
+L_gm:
+	if (.textlines) {
+		mes "GM menu";
+		next;
+		if (select("Test Dialog", "Revert to normal") == 1)
+			goto L_test;
+		select "Confirm Revert";
+		.@npcgid = getnpcid();
+		setunitdata .@npcgid, UDT_CLASS, 4_PORING;
+		setnpcdisplay strnpcinfo(NPC_NAME_UNIQUE), "Custom Statue";
+		deletearray .text$;
+		.textlines = 0;
+		close;
+	}
+L_loop:
+	mes "Disguise as -> "+((.@aid)? rid2name(.@aid) :"");
+	mes "NPC display name -> "+((getstrlen(.@name$))? .@name$ :"");
+	mes "Text :";
+	for (.@i = 0; .@i < .textlines; ++.@i)
+		mes .text$[.@i];
+	next;
+	.@menu$ = "Disguise as -> "+((.@aid)? rid2name(.@aid) :"") +":"
+			+ "NPC display name -> "+((getstrlen(.@name$))? .@name$ :"") +":";
+	for (.@i = 0; .@i < .textlines; ++.@i) {
+		.@len = getstrlen(.text$[.@i]);
+		.@menu$ += replacestr(substr(.text$[.@i], 0, (.@len > 70)? 70 : .@len -1), ":", ";") +":";
+	}
+	.@menu$ += "Add Text:Complete";
+	.@s = select(.@menu$);
+	if (.@s == 1) {
+		mes "input player name";
+		next;
+		if (input(.@tmp$, 2, 70))
+			goto L_loop;
+		.@aid = getcharid(CHAR_ID_ACCOUNT, .@tmp$);
+		if (!.@aid) {
+			mes "player not found";
+			next;
+		}
+		goto L_loop;
+	}
+	else if (.@s == 2) {
+		if (select("Use player name", "Custom Name") == 1) {
+			if (!.@aid) {
+				mes "Disguise as player not yet set";
+				next;
+				goto L_loop;
+			}
+			.@name$ = rid2name(.@aid);
+			goto L_loop;
+		}
+		if (input(.@tmp$, 2, 70))
+			goto L_loop;
+		.@name$ = .@tmp$;
+		goto L_loop;
+	}
+	else if (.@s == .textlines +4) {
+		if (!.@aid) {
+			mes "disguise as player not yet set";
+			++.@false_condition;
+		}
+		if (!getstrlen(.@name$)) {
+			mes "display name not yet set";
+			++.@false_condition;
+		}
+		if (!.textlines) {
+			mes "no text has been set";
+			++.@false_condition;
+		}
+		if (.@false_condition) {
+			next;
+			goto L_loop;
+		}
+	}
+	else {
+		.@tmp = 0;
+		deletearray .@string$;
+		do {
+			input .@string$[.@tmp];
+		} while (getstrlen(.@string$[.@tmp++]) > 50 && .@tmp < 3);
+		if (.@string$ == " ") {
+			deletearray .text$[.@s -3], 1;
+			--.textlines;
+			goto L_loop;
+		}
+		.text$[.@s -3] = implode(.@string$);
+		if (.@s == .textlines +3)
+			++.textlines;
+		goto L_loop;
+	}
+	.@origin = playerattached();
+	attachrid .@aid;
+	.@class = Class;
+	.@sex = Sex;
+	.@hairstyle = getlook(LOOK_HAIR);
+	.@haircolor = getlook(LOOK_HAIR_COLOR);
+	.@clothcolor = getlook(LOOK_CLOTHES_COLOR);
+	.@head_top = getlook(LOOK_HEAD_TOP);
+	.@head_mid = getlook(LOOK_HEAD_MID);
+	.@head_bottom = getlook(LOOK_HEAD_BOTTOM);
+	.@body2 = getlook(LOOK_BODY2);
+	attachrid .@origin;
+	.@npcgid = getnpcid();
+	setunitdata .@npcgid, UDT_CLASS, .@class;
+	setunitdata .@npcgid, UDT_SEX, .@sex;
+	setunitdata .@npcgid, UDT_HAIRSTYLE, .@hairstyle;
+	setunitdata .@npcgid, UDT_HAIRCOLOR, .@haircolor;
+	setunitdata .@npcgid, UDT_CLOTHCOLOR, .@clothcolor;
+	setunitdata .@npcgid, UDT_HEADTOP, .@head_top;
+	setunitdata .@npcgid, UDT_HEADMIDDLE, .@head_mid;
+	setunitdata .@npcgid, UDT_HEADBOTTOM, .@head_bottom;
+	setunitdata .@npcgid, UDT_BODY2, .@body2;
+	setnpcdisplay strnpcinfo(NPC_NAME_UNIQUE), rid2name(.@aid);
+	close;
+}

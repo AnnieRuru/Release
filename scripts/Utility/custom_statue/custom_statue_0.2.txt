@@ -1,0 +1,57 @@
+prontera,155,185,4	script	Custom Statue	4_PORING,{
+	if (getgmlevel() >= 99)
+		goto L_gm;
+	if (!getstrlen(.text$)) {
+		mes "Boing ~ Boing ~";
+		close;
+	}
+L_test:
+	mes .text$;
+	close;
+L_gm:
+	if (getstrlen(.text$)) {
+		mes "GM menu";
+		next;
+		if (select("Test Dialog", "Revert to normal") == 1)
+			goto L_test;
+		select "Confirm Revert";
+		.@npcgid = getnpcid();
+		setunitdata .@npcgid, UDT_CLASS, 4_PORING;
+		setnpcdisplay strnpcinfo(0), "Custom Statue";
+		.text$ = "";
+		close;
+	}
+	mes "input player name";
+	next;
+	if (input(.@tmp$, 1, 70))
+		close;
+	.@aid = getcharid(CHAR_ID_ACCOUNT, .@tmp$);
+	if (!.@aid) {
+		mes "player not found";
+		close;
+	}
+	mes "input text";
+	next;
+	input .text$;
+	.@origin = playerattached();
+	attachrid .@aid;
+	.@class = Class;
+	.@sex = Sex;
+	.@hairstyle = getlook(LOOK_HAIR);
+	.@haircolor = getlook(LOOK_HAIR_COLOR);
+	.@clothcolor = getlook(LOOK_CLOTHES_COLOR);
+	.@head_top = getlook(LOOK_HEAD_TOP);
+	.@head_mid = getlook(LOOK_HEAD_MID);
+	.@head_bottom = getlook(LOOK_HEAD_BOTTOM);
+	.@npcgid = getnpcid();
+	setunitdata .@npcgid, UDT_CLASS, .@class;
+	setunitdata .@npcgid, UDT_SEX, .@sex;
+	setunitdata .@npcgid, UDT_HAIRSTYLE, .@hairstyle;
+	setunitdata .@npcgid, UDT_HAIRCOLOR, .@haircolor;
+	setunitdata .@npcgid, UDT_CLOTHCOLOR, .@clothcolor;
+	setunitdata .@npcgid, UDT_HEADTOP, .@head_top;
+	setunitdata .@npcgid, UDT_HEADMIDDLE, .@head_mid;
+	setunitdata .@npcgid, UDT_HEADBOTTOM, .@head_bottom;
+	setnpcdisplay strnpcinfo(NPC_NAME), rid2name(.@aid);
+	close;
+}

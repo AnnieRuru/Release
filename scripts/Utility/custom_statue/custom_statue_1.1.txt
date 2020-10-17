@@ -1,0 +1,166 @@
+//===== Hercules Script ===========================================
+//= Custom Statue
+//===== By: =======================================================
+//= AnnieRuru
+//===== Current Version: ==========================================
+//= 1.1
+//===== Compatible With: ==========================================
+//= Hercules 2020-10-17
+//===== Description: ==============================================
+//= allow GMs to setup a custom statue for whatever reason
+//===== Topic =====================================================
+//= https://herc.ws/board/topic/19003-custom-statue/
+//===== Additional Comments: ======================================
+//= someone on discord told me the status doesn't work, so I made this
+//=================================================================
+
+prontera,155,185,4	script	Custom Statue	4_PORING,{
+	if (getgmlevel() >= 60)
+		goto L_gm;
+	if (!$custom_statue_data) {
+		mes "Boing ~ Boing ~";
+		close;
+	}
+L_test:
+	for (.@i = 0; .@i < $custom_statue_data; ++.@i)
+		mes $custom_statue_text$[.@i];
+	close;
+L_gm:
+	if ($custom_statue_data) {
+		mes "GM menu";
+		next;
+		if (select("Test Dialog", "Revert to normal") == 1)
+			goto L_test;
+		select "Confirm Revert";
+		setunitdata getnpcid(), UDT_CLASS, 4_PORING;
+		setnpcdisplay strnpcinfo(NPC_NAME_UNIQUE), "Custom Statue";
+		deletearray $custom_statue_text$;
+		deletearray $custom_statue_data;
+		$custom_statue_name$ = "";
+		close;
+	}
+L_loop:
+	mes "Disguise as -> "+((.@aid)? rid2name(.@aid) :"");
+	mes "NPC display name -> "+((getstrlen(.@name$))? .@name$ :"");
+	mes "Text :";
+	for (.@i = 0; .@i < .@textlines; ++.@i)
+		mes .@text$[.@i];
+	next;
+	.@menu$ = "Disguise as -> "+((.@aid)? rid2name(.@aid) :"") +":"
+			+ "NPC display name -> "+((getstrlen(.@name$))? .@name$ :"") +":";
+	for (.@i = 0; .@i < .@textlines; ++.@i) {
+		.@len = getstrlen(.@text$[.@i]);
+		.@menu$ += replacestr(substr(.@text$[.@i], 0, (.@len > 70)? 70 : .@len -1), ":", ";") +":";
+	}
+	.@menu$ += "Add Text:Complete";
+	.@s = select(.@menu$);
+	if (.@s == 1) {
+		mes "input player name";
+		next;
+		if (input(.@tmp$, 2, 70))
+			goto L_loop;
+		if (getstrlen(.@tmp$) > 23) {
+			mes "the maximum length for names is 23";
+			next;
+			goto L_loop;
+		}
+		.@aid = getcharid(CHAR_ID_ACCOUNT, .@tmp$);
+		if (!.@aid) {
+			mes "player not found";
+			next;
+		}
+		.@origin = getcharid(CHAR_ID_ACCOUNT);
+		attachrid .@aid;
+		.@statue_data[1] = Class;
+		.@statue_data[2] = Sex;
+		.@statue_data[3] = getlook(LOOK_HAIR);
+		.@statue_data[4] = getlook(LOOK_HAIR_COLOR);
+		.@statue_data[5] = getlook(LOOK_CLOTHES_COLOR);
+		.@statue_data[6] = getlook(LOOK_HEAD_TOP);
+		.@statue_data[7] = getlook(LOOK_HEAD_MID);
+		.@statue_data[8] = getlook(LOOK_HEAD_BOTTOM);
+		.@statue_data[9] = getlook(LOOK_BODY2);
+		attachrid .@origin;
+		goto L_loop;
+	}
+	else if (.@s == 2) {
+		if (select("Use player name", "Custom Name") == 1) {
+			if (!.@aid) {
+				mes "Disguise as player not yet set";
+				next;
+				goto L_loop;
+			}
+			.@name$ = rid2name(.@aid);
+			goto L_loop;
+		}
+		if (input(.@tmp$, 2, 70))
+			goto L_loop;
+		.@name$ = .@tmp$;
+		goto L_loop;
+	}
+	else if (.@s == .@textlines +4) {
+		if ($custom_statue_data) {
+			mes "Another GM has setup this statue.";
+			close;
+		}
+		if (!.@aid) {
+			mes "disguise as player not yet set";
+			++.@false_condition;
+		}
+		if (!getstrlen(.@name$)) {
+			mes "display name not yet set";
+			++.@false_condition;
+		}
+		if (!.@textlines) {
+			mes "no text has been set";
+			++.@false_condition;
+		}
+		if (.@false_condition) {
+			next;
+			goto L_loop;
+		}
+	}
+	else {
+		.@tmp = 0;
+		deletearray .@string$;
+		do {
+			input .@string$[.@tmp];
+		} while (getstrlen(.@string$[.@tmp++]) > 50 && .@tmp < 3);
+		if (.@string$ == " ") {
+			deletearray .@text$[.@s -3], 1;
+			--.@textlines;
+			goto L_loop;
+		}
+		.@text$[.@s -3] = implode(.@string$);
+		if (.@s == .@textlines +3)
+			++.@textlines;
+		goto L_loop;
+	}
+	.@origin = playerattached();
+	attachrid .@aid;
+	copyarray $custom_statue_text$, .@text$, .@textlines;
+	$custom_statue_data = .@textlines;
+	copyarray $custom_statue_data[1], .@statue_data[1], 9;
+	$custom_statue_name$ = .@name$;
+	attachrid .@origin;
+	callsub L_set_statue;
+	close;
+OnInit:
+	if (!$custom_statue_data)
+		end;
+	callsub L_set_statue;
+	end;
+L_set_statue:
+	.@npcgid = getnpcid();
+	setunitdata .@npcgid, UDT_CLASS, $custom_statue_data[1];
+	setunitdata .@npcgid, UDT_SEX, $custom_statue_data[2];
+	setunitdata .@npcgid, UDT_HAIRSTYLE, $custom_statue_data[3];
+	setunitdata .@npcgid, UDT_HAIRCOLOR, $custom_statue_data[4];
+	setunitdata .@npcgid, UDT_CLOTHCOLOR, $custom_statue_data[5];
+	setunitdata .@npcgid, UDT_HEADTOP, $custom_statue_data[6];
+	setunitdata .@npcgid, UDT_HEADMIDDLE, $custom_statue_data[7];
+	setunitdata .@npcgid, UDT_HEADBOTTOM, $custom_statue_data[8];
+	setunitdata .@npcgid, UDT_BODY2, $custom_statue_data[9];
+	setnpcdisplay strnpcinfo(NPC_NAME_UNIQUE), $custom_statue_name$;
+	return;
+}

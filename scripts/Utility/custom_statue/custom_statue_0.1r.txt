@@ -1,0 +1,35 @@
+prontera,155,185,4	script	Custom Statue	4_PORING,{
+	mes "input player name";
+	next;
+	if (input(.@tmp$, 1, 70))
+		close;
+	.@aid = getcharid(3, .@tmp$);
+	if (!.@aid) {
+		mes "player not found";
+		close;
+	}
+	.@origin = playerattached();
+	attachrid .@aid;
+	.@class = Class;
+	.@sex = Sex;
+	.@hairstyle = getlook(LOOK_HAIR);
+	.@haircolor = getlook(LOOK_HAIR_COLOR);
+	.@clothcolor = getlook(LOOK_CLOTHES_COLOR);
+	.@head_top = getlook(LOOK_HEAD_TOP);
+	.@head_mid = getlook(LOOK_HEAD_MID);
+	.@head_bottom = getlook(LOOK_HEAD_BOTTOM);
+	.@body2 = getlook(LOOK_BODY2);
+	attachrid .@origin;
+	.@npcgid = getnpcid(0);
+	setunitdata .@npcgid, UNPC_CLASS, .@class;
+	setunitdata .@npcgid, UNPC_SEX, .@sex;
+	setunitdata .@npcgid, UNPC_HAIRSTYLE, .@hairstyle;
+	setunitdata .@npcgid, UNPC_HAIRCOLOR, .@haircolor;
+	setunitdata .@npcgid, UNPC_CLOTHCOLOR, .@clothcolor;
+	setunitdata .@npcgid, UNPC_HEADTOP, .@head_top;
+	setunitdata .@npcgid, UNPC_HEADMIDDLE, .@head_mid;
+	setunitdata .@npcgid, UNPC_HEADBOTTOM, .@head_bottom;
+	setunitdata .@npcgid, UNPC_BODY2, .@body2;
+	setnpcdisplay strnpcinfo(3), rid2name(.@aid);
+	close;
+}

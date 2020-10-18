@@ -1,0 +1,212 @@
+//===== Hercules Script ===========================================
+//= Custom Statue
+//===== By: =======================================================
+//= AnnieRuru
+//===== Current Version: ==========================================
+//= 1.2
+//===== Compatible With: ==========================================
+//= Hercules 2020-10-18
+//===== Description: ==============================================
+//= allow GMs to setup a custom statue for whatever reason
+//===== Topic =====================================================
+//= https://herc.ws/board/topic/19003-custom-statue/
+//===== Additional Comments: ======================================
+//= someone on discord told me the statue doesn't work, so I made this
+//=================================================================
+
+-	script	custom_statue	FAKE_NPC,{
+	.@id = .npcgid[getnpcid()];
+	if (getgmlevel() >= 60)
+		goto L_gm;
+	if (!getd("$statue_data"+ .@id)) {
+		mes "Boing ~ Boing ~";
+		close;
+	}
+L_test:
+	for (.@i = 0; .@i < getd("$statue_data"+ .@id); ++.@i)
+		mes getd("$statue_text"+ .@id +"$["+ .@i +"]");
+	close;
+L_gm:
+	if (getd("$statue_data"+ .@id)) {
+		mes "GM menu";
+		next;
+		if (select("Test Dialog", "Revert to normal") == 1)
+			goto L_test;
+		select "Confirm Revert";
+		setunitdata getnpcid(), UDT_CLASS, 4_PORING;
+		setnpcdisplay .original_npcname$[.@id], "Custom Statue";
+		deletearray getd("$statue_data"+ .@id);
+		deletearray getd("$statue_text"+ .@id +"$");
+		$statue_name$[.@id] = "";
+		close;
+	}
+L_loop:
+	mes "Disguise as -> "+((.@aid)? .@aid_name$ :"");
+	mes "NPC display name -> "+((getstrlen(.@display_name$))? .@display_name$ :"");
+	mes "Text :";
+	for (.@i = 0; .@i < .@textlines; ++.@i)
+		mes .@text$[.@i];
+	next;
+	.@menu$ = "Disguise as -> "+((.@aid)? .@aid_name$ :"") +":"
+			+ "NPC display name -> "+((getstrlen(.@display_name$))? .@display_name$ :"") +":";
+	for (.@i = 0; .@i < .@textlines; ++.@i) {
+		.@len = getstrlen(.@text$[.@i]);
+		.@menu$ += replacestr(substr(.@text$[.@i], 0, (.@len > 70)? 70 : .@len -1), ":", ";") +":";
+	}
+	.@menu$ += "Add Text:Complete";
+	.@s = select(.@menu$);
+	if (.@s == 1) {
+		mes "input player name";
+		next;
+		if (input(.@tmp$, 2, 70))
+			goto L_loop;
+		if (getstrlen(.@tmp$) > 23) {
+			mes "the maximum length for names is 23";
+			next;
+			goto L_loop;
+		}
+		.@aid = getcharid(CHAR_ID_ACCOUNT, .@tmp$);
+		if (.@aid) {
+			.@origin = playerattached();
+			attachrid .@aid;
+			.@statue_data[1] = Class;
+			.@statue_data[2] = Sex;
+			.@statue_data[3] = getlook(LOOK_HAIR);
+			.@statue_data[4] = getlook(LOOK_HAIR_COLOR);
+			.@statue_data[5] = getlook(LOOK_CLOTHES_COLOR);
+			.@statue_data[6] = getlook(LOOK_HEAD_TOP);
+			.@statue_data[7] = getlook(LOOK_HEAD_MID);
+			.@statue_data[8] = getlook(LOOK_HEAD_BOTTOM);
+			.@statue_data[9] = getlook(LOOK_BODY2);
+			attachrid .@origin;
+			.@aid_name$ = rid2name(.@aid);
+		}
+		else {
+			if (!query_sql("SELECT `account_id`, `name`, `class`, `sex`, `hair`, `hair_color`, `clothes_color`, `body`, `head_top`, `head_mid`, `head_bottom` FROM `char` WHERE `name` = '"+ escape_sql(.@tmp$) +"'",
+				.@aid, .@aid_name$, .@class, .@sex$, .@hair_style, .@hair_color, .@cloth_color, .@body_style, .@head_top, .@head_mid, .@head_bottom)) {
+				mes "player not found";
+				next;
+				goto L_loop;
+			}
+			.@statue_data[1] = .@class;
+			.@statue_data[2] = (.@sex$ == "F")? SEX_FEMALE:SEX_MALE;
+			.@statue_data[3] = .@hair_style;
+			.@statue_data[4] = .@hair_color;
+			.@statue_data[5] = .@cloth_color;
+			.@statue_data[6] = .@head_top;
+			.@statue_data[7] = .@head_mid;
+			.@statue_data[8] = .@head_bottom;
+			.@statue_data[9] = .@body_style;
+		}
+		goto L_loop;
+	}
+	else if (.@s == 2) {
+		if (select("Use player name", "Custom Name") == 1) {
+			if (!.@aid) {
+				mes "Disguise as player not yet set";
+				next;
+				goto L_loop;
+			}
+			.@display_name$ = .@aid_name$;
+			goto L_loop;
+		}
+		if (input(.@tmp$, 2, 70))
+			goto L_loop;
+		if (getstrlen(.@tmp$) > 23) {
+			mes "the maximum length for names is 23";
+			next;
+			goto L_loop;
+		}
+		if (compare(.@tmp$, ":") || compare(.@tmp$, "#")) {
+			mes "display name musn't include :->";
+			mes ": colon symbol";
+			mes "# hash symbol";
+			next;
+			goto L_loop;
+		}
+		.@display_name$ = .@tmp$;
+		goto L_loop;
+	}
+	else if (.@s == .@textlines +4) {
+		if (getd("$statue_data"+ .@id)) {
+			mes "Another GM has setup this statue.";
+			close;
+		}
+		if (!.@aid) {
+			mes "disguise as player not yet set";
+			++.@false_condition;
+		}
+		if (!getstrlen(.@display_name$)) {
+			mes "display name not yet set";
+			++.@false_condition;
+		}
+		if (!.@textlines) {
+			mes "no text has been set";
+			++.@false_condition;
+		}
+		if (.@false_condition) {
+			next;
+			goto L_loop;
+		}
+	}
+	else {
+		.@tmp = 0;
+		deletearray .@string$;
+		do {
+			input .@string$[.@tmp];
+		} while (getstrlen(.@string$[.@tmp++]) > 50 && .@tmp < 3);
+		if (.@string$ == " ") {
+			deletearray .@text$[.@s -3], 1;
+			--.@textlines;
+			goto L_loop;
+		}
+		.@text$[.@s -3] = implode(.@string$);
+		if (.@s == .@textlines +3)
+			++.@textlines;
+		goto L_loop;
+	}
+	copyarray getd("$statue_text"+ .@id +"$"), .@text$, .@textlines;
+	setd "$statue_data"+ .@id, .@textlines;
+	copyarray getd("$statue_data"+ .@id +"[1]"), .@statue_data[1], 9;
+	$statue_name$[.@id] = .@display_name$;
+	callsub L_set_statue, .@id;
+	close;
+OnInit:
+	if ($custom_statue_data) { // for those who have installed this script before 1.1, clean your server variable
+		deletearray $custom_statue_text$;
+		deletearray $custom_statue_data;
+		$custom_statue_name$ = "";
+	}
+	getmapxy .@map$, .@x, .@y, UNITTYPE_NPC;
+	if (!getstrlen(.@map$)) // prevent server crash <_<
+		end;
+	.@id = atoi(strnpcinfo(NPC_NAME_HIDDEN));
+	.npcgid[getnpcid()] = .@id;
+	.original_npcname$[.@id] = strnpcinfo(NPC_NAME);
+	if (!getd("$statue_data"+ .@id))
+		end;
+	callsub L_set_statue, .@id;
+	end;
+L_set_statue:
+	.@npcgid = getnpcid();
+	.@id = getarg(0);
+	setunitdata .@npcgid, UDT_CLASS, getd("$statue_data"+ .@id +"[1]");
+	setunitdata .@npcgid, UDT_SEX, getd("$statue_data"+ .@id +"[2]");
+	setunitdata .@npcgid, UDT_HAIRSTYLE, getd("$statue_data"+ .@id +"[3]");
+	setunitdata .@npcgid, UDT_HAIRCOLOR, getd("$statue_data"+ .@id +"[4]");
+	setunitdata .@npcgid, UDT_CLOTHCOLOR, getd("$statue_data"+ .@id +"[5]");
+	setunitdata .@npcgid, UDT_HEADTOP, getd("$statue_data"+ .@id +"[6]");
+	setunitdata .@npcgid, UDT_HEADMIDDLE, getd("$statue_data"+ .@id +"[7]");
+	setunitdata .@npcgid, UDT_HEADBOTTOM, getd("$statue_data"+ .@id +"[8]");
+	setunitdata .@npcgid, UDT_BODY2, getd("$statue_data"+ .@id +"[9]");
+	setnpcdisplay .original_npcname$[.@id], $statue_name$[.@id];
+	return;
+}
+
+//	the hidden name must be a number, don't repeat the same number
+prontera,155,185,4	duplicate(custom_statue)	Custom Statue#1	4_PORING
+prontera,158,185,4	duplicate(custom_statue)	Custom Statue#2	4_PORING
+prontera,161,185,4	duplicate(custom_statue)	Custom Statue#3	4_PORING
+//	no problem, can make more
+//prontera,164,185,4	duplicate(custom_statue)	Custom Statue#4	4_PORING
+//	...

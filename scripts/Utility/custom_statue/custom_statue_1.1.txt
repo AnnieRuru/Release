@@ -11,7 +11,7 @@
 //===== Topic =====================================================
 //= https://herc.ws/board/topic/19003-custom-statue/
 //===== Additional Comments: ======================================
-//= someone on discord told me the status doesn't work, so I made this
+//= someone on discord told me the statue doesn't work, so I made this
 //=================================================================
 
 prontera,155,185,4	script	Custom Statue	4_PORING,{

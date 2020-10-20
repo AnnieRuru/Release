@@ -3,7 +3,7 @@
 //===== By: =======================================================
 //= AnnieRuru
 //===== Current Version: ==========================================
-//= 1.4
+//= 1.4a
 //===== Compatible With: ==========================================
 //= Hercules 2020-10-19
 //===== Description: ==============================================
@@ -125,12 +125,13 @@ L_loop:
 				.@statue_data[7] = getlook(LOOK_HEAD_MID);
 				.@statue_data[8] = getlook(LOOK_HEAD_BOTTOM);
 				.@statue_data[9] = getlook(LOOK_BODY2);
+				.@statue_data[11] = getlook(LOOK_ROBE);
 				attachrid .@origin;
 				.@aid_name$ = rid2name(.@aid);
 			}
 			else {
-				if (!query_sql("SELECT `account_id`, `name`, `class`, `sex`, `hair`, `hair_color`, `clothes_color`, `body`, `head_top`, `head_mid`, `head_bottom` FROM `char` WHERE `name` = '"+ escape_sql(.@tmp$) +"'",
-					.@aid, .@aid_name$, .@class, .@sex$, .@hair_style, .@hair_color, .@cloth_color, .@body_style, .@head_top, .@head_mid, .@head_bottom)) {
+				if (!query_sql("SELECT `account_id`, `name`, `class`, `sex`, `hair`, `hair_color`, `clothes_color`, `body`, `head_top`, `head_mid`, `head_bottom`, `robe` FROM `char` WHERE `name` = '"+ escape_sql(.@tmp$) +"'",
+					.@aid, .@aid_name$, .@class, .@sex$, .@hair_style, .@hair_color, .@cloth_color, .@body_style, .@head_top, .@head_mid, .@head_bottom, .@robe)) {
 					mes "player not found";
 					next;
 					goto L_loop;
@@ -144,6 +145,7 @@ L_loop:
 				.@statue_data[7] = .@head_mid;
 				.@statue_data[8] = .@head_bottom;
 				.@statue_data[9] = .@body_style;
+				.@statue_data[11] = .@robe;
 			}			
 		} else {
 			mes "input npc ID";
@@ -247,6 +249,7 @@ L_loop:
 	$statue_log_gm_date$[.@id] = gettimestr("%a %d %b %Y %H:%M%p", 40);
 	$statue_log_gm_name$[.@id] = strcharinfo(PC_NAME);
 	setd "$statue_data"+ .@id +"[10]", gettimetick(2);
+	setd "$statue_data"+ .@id +"[11]", .@statue_data[11];
 	callsub L_set_statue, .@id;
 	close;
 L_set_statue:
@@ -262,6 +265,7 @@ L_set_statue:
 		setunitdata .@npcgid, UDT_HEADMIDDLE, getd("$statue_data"+ .@id +"[7]");
 		setunitdata .@npcgid, UDT_HEADBOTTOM, getd("$statue_data"+ .@id +"[8]");
 		setunitdata .@npcgid, UDT_BODY2, getd("$statue_data"+ .@id +"[9]");
+		setunitdata .@npcgid, UDT_ROBE, getd("$statue_data"+ .@id +"[11]");
 	}
 	setnpcdisplay .original_npcname$[.@id], $statue_name$[.@id];
 	return;

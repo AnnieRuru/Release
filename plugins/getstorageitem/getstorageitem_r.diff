@@ -1,0 +1,175 @@
+//===== rAthena Patch ========================================
+//= getstorageitem
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= initial version
+//===== Compatible With: ===================================== 
+//= rathena 2013-01-22
+//===== Description: =========================================
+//= storage related script commands
+//===== Topic ================================================
+//= https://rathena.org/board/topic/77365-disabling-some-healing-items/?do=findComment&comment=172893
+//===== Additional Comments: =================================
+//= I hated paid service at that time =/
+//============================================================
+
+Index: script.c
+===================================================================
+--- script.c	(revision 17101)
++++ script.c	(working copy)
+@@ -17323,6 +17323,119 @@
+ 	return 0;
+ }
+ 
++BUILDIN_FUNC(getstorageitem) {
++	TBL_PC *sd = ( script_hasdata(st,4) ) ? map_id2sd( script_getnum(st,4) ): script_rid2sd(st);
++	struct item it;
++	int nameid = 0, amount = script_getnum(st,3);
++	if ( !sd || amount <= 0 )
++		return 0;
++	if ( script_isstring(st,2) ) {
++		const char *name = script_getstr(st,2);
++		struct item_data *item_data = itemdb_searchname(name);
++		if ( !item_data ) {
++			ShowError("getstorageitem: Non-existant item %s requested.\n", name);
++			return 0;
++		}
++		nameid = item_data->nameid;
++	}
++	else {
++		nameid = script_getnum(st,2);
++		if ( nameid < 0 )
++			nameid = itemdb_searchrandomid(-nameid);
++		if ( nameid <= 0 || !itemdb_exists(nameid) ) {
++			ShowError("getstorageitem: Non-existant item %d requested.\n", nameid);
++			return 0;
++		}
++	}
++	memset( &it, 0, sizeof(it) );
++	it.nameid = nameid;
++	it.identify = 1;
++	if ( itemdb_isstackable(nameid) )
++		storage_additem( sd, &it, amount );
++	else {
++		int i;
++		for ( i = 0; i < amount; i++ )
++			storage_additem( sd, &it, 1 );
++	}
++	clif_storageclose(sd);
++	sd->state.storage_flag = 0;
++	return 0;
++}
++
++BUILDIN_FUNC(countstorageitem) {
++	TBL_PC *sd = ( script_hasdata(st,3) ) ? map_id2sd( script_getnum(st,3) ): script_rid2sd(st);
++	int i, nameid = 0, count = 0;
++	if ( !sd )
++		return 0;
++	if ( script_isstring(st,2) ) {
++		const char *name = script_getstr(st,2);
++		struct item_data *item_data = itemdb_searchname(name);
++		if ( !item_data ) {
++			script_pushint(st,0);
++			ShowError("countstorageitem: Non-existant item %s requested.\n", name);
++			return 0;
++		}
++		nameid = item_data->nameid;
++	}
++	else {
++		nameid = script_getnum(st,2);
++		if ( !itemdb_exists(nameid) ) {
++			script_pushint(st,0);
++			ShowError("countstorageitem: Non-existant item %d requested.\n", nameid);
++			return 0;
++		}
++	}
++	for ( i = 0; i < MAX_STORAGE; i++ )
++		if ( sd->status.storage.items[i].nameid == nameid )
++			count += sd->status.storage.items[i].amount;
++	script_pushint( st,count );
++	return 0;
++}
++
++BUILDIN_FUNC(delstorageitem) {
++	TBL_PC *sd = ( script_hasdata(st,4) ) ? map_id2sd( script_getnum(st,4) ): script_rid2sd(st);
++	int i, nameid = 0, amount = script_getnum(st,3);
++	if ( !sd || amount <= 0 )
++		return 0;
++	if ( script_isstring(st,2) ) {
++		const char *name = script_getstr(st,2);
++		struct item_data *item_data = itemdb_searchname(name);
++		if ( !item_data ) {
++			ShowError("countstorageitem: Non-existant item %s requested.\n", name);
++			return 0;
++		}
++		nameid = item_data->nameid;
++	}
++	else {
++		nameid = script_getnum(st,2);
++		if ( !itemdb_exists(nameid) ) {
++			ShowError("countstorageitem: Non-existant item %d requested.\n", nameid);
++			return 0;
++		}
++	}
++	if ( itemdb_isstackable(nameid) ) {
++		for ( i = 0; i < MAX_STORAGE; i++ ) {
++			if ( sd->status.storage.items[i].nameid == nameid ) {
++				storage_delitem( sd, i, ( amount > sd->status.storage.items[i].amount )? sd->status.storage.items[i].amount : amount );
++			}
++		}
++	}
++	else {
++		int j = 0;
++		for ( i = 0; i < MAX_STORAGE; i++ ) {
++			if ( sd->status.storage.items[i].nameid == nameid ) {
++				storage_delitem( sd, i, 1 );
++				j++;
++				if ( j == amount )
++					break;
++			}
++		}
++	}
++	clif_storageclose(sd);
++	sd->state.storage_flag = 0;
++	return 0;
++}
++
+ // declarations that were supposed to be exported from npc_chat.c
+ #ifdef PCRE_SUPPORT
+ BUILDIN_FUNC(defpattern);
+@@ -17780,5 +17893,9 @@
+ 	BUILDIN_DEF(checkquest, "i?"),
+ 	BUILDIN_DEF(changequest, "ii"),
+ 	BUILDIN_DEF(showevent, "ii"),
++
++	BUILDIN_DEF(getstorageitem,"vi?"),
++	BUILDIN_DEF(countstorageitem,"v?"),
++	BUILDIN_DEF(delstorageitem,"vi?"),
+ 	{NULL,NULL,NULL},
+ };
+Index: storage.c
+===================================================================
+--- storage.c	(revision 17101)
++++ storage.c	(working copy)
+@@ -132,7 +132,7 @@
+ /*==========================================
+  * Internal add-item function.
+  *------------------------------------------*/
+-static int storage_additem(struct map_session_data* sd, struct item* item_data, int amount)
++int storage_additem(struct map_session_data* sd, struct item* item_data, int amount)
+ {
+ 	struct storage_data* stor = &sd->status.storage;
+ 	struct item_data *data;
+Index: storage.h
+===================================================================
+--- storage.h	(revision 17101)
++++ storage.h	(working copy)
+@@ -11,6 +11,7 @@
+ //#include "map.h"
+ struct map_session_data;
+ 
++int storage_additem(struct map_session_data* sd, struct item* item_data, int amount);
+ int storage_delitem(struct map_session_data* sd, int n, int amount);
+ int storage_storageopen(struct map_session_data *sd);
+ int storage_storageadd(struct map_session_data *sd,int index,int amount);

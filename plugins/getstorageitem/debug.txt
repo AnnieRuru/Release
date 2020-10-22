@@ -1,0 +1,57 @@
+//===== Hercules Script ======================================
+//= getstorageitem
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.0
+//===== Compatible With: ===================================== 
+//= Hercules 2020-10-22
+//===== Description: =========================================
+//= storage related script commands
+//===== Topic ================================================
+//= 
+//===== Additional Comments: =================================
+//= script use to debug these script commands
+//============================================================
+
+prontera,155,185,5	script	delstorageitem	1_F_MARIA,{
+	getstorageitem 501, 1;
+	getstorageitem 1201, 1;
+	getstoragelist;
+	if (!@storagelist_count)
+		end;
+	for (.@i = 0; .@i < @storagelist_count; ++.@i)
+		mes getitemname(@storagelist_id[.@i]);
+	next;
+	for (.@i = 0; .@i < @storagelist_count; ++.@i)
+		.@menu$ += getitemname(@storagelist_id[.@i]) +":";
+	.@s = select(.@menu$) -1;
+	delstorageitem @storagelist_id[.@s], countstorageitem(@storagelist_id[.@s]);
+	close;
+}
+
+prontera,158,185,5	script	delstorageitemidx	1_F_MARIA,{
+	getstoragelist;
+	mes "^000000=== Total items : "+ @storagelist_count +" ===";
+	for ( .@i = 0; .@i < @storagelist_count; ++.@i ) {
+		.@itemname$ = callfunc( "getitemname2", @storagelist_id[.@i], @storagelist_identify[.@i], @storagelist_refine[.@i], @storagelist_attribute[.@i], @storagelist_card1[.@i], @storagelist_card2[.@i], @storagelist_card3[.@i], @storagelist_card4[.@i], @storagelist_bound[.@i]);
+		dispbottom .@itemname$ +": "+ @storagelist_amount[.@i] +" ea." + @storagelist_identify[.@i] +" "+ @storagelist_attribute[.@i];
+		.@menu$ = .@menu$ + @itemname2_info$ + .@itemname$ +"; "+ @storagelist_amount[.@i] +" ea.:";
+	}
+	.@s = select(.@menu$) -1;
+	mes @itemname2_info$[0] + callfunc( "getitemname2", @storagelist_id[.@s], @storagelist_identify[.@s], @storagelist_refine[.@s], @storagelist_attribute[.@s], @storagelist_card1[.@s], @storagelist_card2[.@s], @storagelist_card3[.@s], @storagelist_card4[.@s], @storagelist_bound[.@s] ) +": "+ @storagelist_amount[.@s] +" ea.^000000";
+	if ( getstrlen( @itemname2_info$[1] ) )
+		mes "ID = "+ @itemname2_info$[1];
+	if ( getstrlen( @itemname2_info$[2] ) )
+		mes "Full name = "+ @itemname2_info$[2];
+	if ( getstrlen( @itemname2_info$[3] ) )
+		mes "start crumb = "+ @itemname2_info$[3];
+	if ( getstrlen( @itemname2_info$[4] ) )
+		mes "weapon element = "+ @itemname2_info$[4];
+	if ( getstrlen( @itemname2_info$[5] ) )
+		mes "bound type = "+ @itemname2_info$[5];
+	next;
+	select "deleteidx";
+	delstorageitemidx @storagelist_idx[.@s], @storagelist_amount[.@s];
+	close;
+}

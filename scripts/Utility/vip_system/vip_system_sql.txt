@@ -1,0 +1,115 @@
+//===== Hercules Script ====================================
+//= vip system
+//===== By: ================================================
+//= Annieruru
+//===== Current Version: ===================================
+//= 0.1
+//===== Compatible With: ===================================
+//= Hercules 2020-10-22
+//===== Description: =======================================
+//= vip system store the data in SQL table
+//===== Topic ==============================================
+//= https://herc.ws/board/topic/19012-q-countdown-time-via-sql/
+//===== Additional Comments: ===============================
+//= I still think using an Item and let player buy from Store is better
+//= store the data in SQL table ? hmm ... nice idea actually
+//==========================================================
+
+/*
+CREATE TABLE `vip_system` (
+	`id` INT PRIMARY KEY AUTO_INCREMENT,
+	`account_id` INT,
+	`start_time` DATETIME,
+	`end_time` DATETIME,
+	KEY (`account_id`)
+) ENGINE = InnoDB;
+*/
+
+prontera,155,185,5	script	jksdfhkdsjf	1_F_MARIA,{
+function	timeleft__	{
+	.@left = getarg(0);
+	if (.@left <= 0)
+		return getarg(0);
+	.@day = .@left / 86400;
+	.@hour = .@left % 86400 / 3600;
+	.@min = .@left % 3600 / 60;
+	.@sec = .@left % 60;
+	if (.@day)
+		return sprintf(_$("%d day %d hour"), .@day, .@hour);
+	else if (.@hour)
+		return sprintf(_$("%d hour %d min"), .@hour, .@min);
+	else if (.@min)
+		return sprintf(_$("%d min %d sec"), .@min, .@sec);
+	else
+		return sprintf(_$("%d sec"), .@sec);
+}
+	mes "input a player name";
+	next;
+	input .@tmp$;
+	.@aid = getcharid(CHAR_ID_ACCOUNT, .@tmp$);
+	if (!.@aid) {
+		mes "that player name doesn't exist.";
+		close;
+	}
+	.@origin = playerattached();
+	attachrid .@aid;
+	.@gmlevel = getgmlevel();
+	.@groupid = getgroupid();
+	attachrid .@origin;
+	if (.@gmlevel) {
+		mes "that player is a GM";
+		close;
+	}
+	if (.@groupid == .GM) {
+		mes "that player currently is a super player";
+		close;
+	}
+	mes "input how long you want to promote the player into super player";
+	next;
+	input .@tmp, 1, 30*24*60*60;
+	mes "promote them to super player for "+ timeleft__(.@tmp) +"?";
+	next;
+	select "yes";
+	if (!isloggedin(.@aid)) {
+		mes "that player has log out";
+		close;
+	}
+	if (setgroupid(.GM, .@aid) == false) {
+		mes "failed";
+		close;
+	}
+	attachrid .@aid;
+	addtimer .@tmp *1000, strnpcinfo(NPC_NAME_UNIQUE)+"::Ontimeout";
+	ModExp = 200;
+	dispbottom rid2name(.@origin) +" has promoted you into a super player for "+ timeleft__(.@tmp);
+	attachrid .@origin;
+	query_sql "INSERT INTO `vip_system` VALUES (NULL, "+ .@aid +", NOW(), DATE_ADD(NOW(), INTERVAL "+ .@tmp +" SECOND))";
+	close;
+Ontimeout:
+	if (getgroupid() != .GM) end;
+	ModExp = 100;
+	if (setgroupid(0) == false) {
+		dispbottom "unknown error";
+		end;
+	}
+	dispbottom "Your super player priviledge has been revoke";
+	end;
+OnPCLoginEvent:
+	query_sql "SELECT UNIX_TIMESTAMP(`end_time`) FROM `vip_system` WHERE `account_id` = "+ getcharid(CHAR_ID_ACCOUNT) +" ORDER BY `id` DESC LIMIT 1", .@endtime;
+//	dispbottom ModExp +" "+ .@endtime +" "+ gettimetick(2) +" "+(.@endtime - gettimetick(2));
+	if (ModExp != 200) end;
+	if (gettimetick(2)  >= .@endtime)
+		goto Ontimeout;
+	if (setgroupid(.GM) == false) {
+		dispbottom "unknown error";
+		end;
+	}
+	ModExp = 200;
+	.@timeleft = .@endtime - gettimetick(2);
+	dispbottom "Your super player priviledge time left -> "+ timeleft__(.@timeleft);
+	addtimer .@timeleft *1000, strnpcinfo(NPC_NAME_UNIQUE)+"::Ontimeout";
+	end;
+OnInit:
+	.GM = 99;
+	end;
+}

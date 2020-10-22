@@ -3,7 +3,7 @@
 //===== By: ================================================
 //= Annieruru
 //===== Current Version: ===================================
-//= 0.1
+//= 0.1a
 //===== Compatible With: ===================================
 //= Hercules 2020-10-22
 //===== Description: =======================================
@@ -79,7 +79,8 @@ function	timeleft__	{
 		close;
 	}
 	attachrid .@aid;
-	addtimer .@tmp *1000, strnpcinfo(NPC_NAME_UNIQUE)+"::Ontimeout";
+	if (.@tmp < 2147483)
+		addtimer .@tmp *1000, strnpcinfo(NPC_NAME_UNIQUE)+"::Ontimeout";
 	ModExp = 200;
 	dispbottom rid2name(.@origin) +" has promoted you into a super player for "+ timeleft__(.@tmp);
 	attachrid .@origin;
@@ -107,9 +108,10 @@ OnPCLoginEvent:
 	ModExp = 200;
 	.@timeleft = .@endtime - gettimetick(2);
 	dispbottom "Your super player priviledge time left -> "+ timeleft__(.@timeleft);
-	addtimer .@timeleft *1000, strnpcinfo(NPC_NAME_UNIQUE)+"::Ontimeout";
+	if (.@timeleft < 2147483)
+		addtimer .@timeleft *1000, strnpcinfo(NPC_NAME_UNIQUE)+"::Ontimeout";
 	end;
 OnInit:
-	.GM = 99;
+	.GM = 1;
 	end;
 }

@@ -1,0 +1,306 @@
+//===== rAthena Script =======================================
+//= Stylist npc
+//===== By: ==================================================
+//= AnnieRuru
+//= based on Euphy's version
+//===== Current Version: =====================================
+//= 2.0
+//===== Compatible With: ===================================== 
+//= rAthena 2020-10-23
+//===== Description: =========================================
+//= stylist script with no palette knowledge required !!
+//===== Topic ================================================
+//= https://rathena.org/board/topic/126230-help-stylist-restriction-bodystyle-2/
+//===== Additional Comments: =================================  
+//= someone said I helped a rude person =/
+//============================================================
+
+prontera,170,180,1	script	Stylist#custom_1	2_M_DYEINGER,{
+	if (.gravity_logic[Class])
+		.@job = .gravity_logic[Class];
+	else
+		.@job = Class;
+	.@choose = select("Hair style", "Hair color", "Cloth Color", (.bodystyle_num[.@job] > 1)? "Body Style" :"") -1;
+	if (.@choose < 2 && BaseClass != Job_Summoner)
+		.@job = Job_Novice;
+	if (.@choose == 3) {
+		.@original_cloth_color = getlook(LOOK_CLOTHES_COLOR);
+		changelook LOOK_CLOTHES_COLOR, 0;
+	}
+	.@look = .look[.@choose];
+	if (.@look == LOOK_CLOTHES_COLOR)
+		.@bodystyle = getlook(LOOK_BODY2);
+	.@revert = .@i = inarray(getd("."+ .@job +"_"+ .@look +"_"+ .@bodystyle), getlook(.@look));
+	while (true) {
+		changelook .@look, getd("."+ .@job +"_"+ .@look +"_"+ .@bodystyle +"["+ .@i +"]");
+		message strcharinfo(0), "This is style #"+ getd("."+ .@job +"_"+ .@look +"_"+ .@bodystyle +"["+ .@i +"]") +".";
+		.@next = (.@i == getd(".maxindex"+ .@job +"_"+ .@look +"_"+ .@bodystyle))? 0 : .@i+1;
+		.@previous = (.@i == 0)? getd(".maxindex"+ .@job +"_"+ .@look +"_"+ .@bodystyle) : .@i-1;
+		.@next_option_menu$ = " ~ Next (^0055FF"+ getd("."+ .@job +"_"+ .@look +"_"+ .@bodystyle +"["+ .@next +"]") +"^000000)";
+		.@previous_option_menu$ = " ~ Previous (^0055FF"+ getd("."+ .@job +"_"+ .@look +"_"+ .@bodystyle +"["+ .@previous +"]") +"^000000)";
+		switch(prompt(
+			(.@reverse_order)? .@previous_option_menu$ : .@next_option_menu$,
+			(.@reverse_order)? .@next_option_menu$ : .@previous_option_menu$,
+			" ~ Jump to...",
+			" ~ Revert to original (^0055FF"+ getd("."+ .@job +"_"+ .@look +"_"+ .@bodystyle +"["+ .@revert +"]") +"^000000)",
+			"~ Use this style")) {
+		case 1:
+			.@i = (.@reverse_order)? .@previous : .@next;
+			break;
+		case 2:
+			.@i = (.@reverse_order)? .@next : .@previous;
+			.@reverse_order = !.@reverse_order;
+			break;
+		case 3:
+			message strcharinfo(0), "Choose a style between "+ getd(".minstyles"+ .@job +"_"+ .@look +"_"+ .@bodystyle) +" - "+ getd(".maxstyles"+ .@job +"_"+ .@look +"_"+ .@bodystyle) +".";
+			input .@num;
+			.@j = inarray(getd("."+ .@job +"_"+ .@look +"_"+ .@bodystyle), .@num);
+			if (.@j == -1)
+				message strcharinfo(0), "That style is unavailable.";
+			else
+				.@i = .@j;
+			break;
+		case 4:
+			.@i = .@revert;
+			break;
+		case 5:
+			if (.@original_cloth_color)
+				setlook LOOK_CLOTHES_COLOR, 0;
+			setlook .@look, getd("."+ .@job +"_"+ .@look +"_"+ .@bodystyle +"["+ .@i +"]");
+			setpcblock PCBLOCK_COMMANDS, false;
+			close;
+		case 255:
+			if (.@original_cloth_color)
+				changelook LOOK_CLOTHES_COLOR, .@original_cloth_color;
+			changelook .@look, getd("."+ .@job +"_"+ .@look +"_"+ .@bodystyle +"["+ .@revert +"]");
+			setpcblock PCBLOCK_COMMANDS, false;
+			end;
+		}
+	}
+	end;
+
+OnInit:
+	.@unknown_job$ = "Unknown Job"; // this 'Unknown Job' is defined from conf\message.conf ... if it's different then better change here
+
+//	for LOOK_HAIR & LOOK_HAIR_COLOR, Human will use Job_Novice as base
+	setd ".@"+ Job_Novice +"_"+ LOOK_HAIR +"$", getbattleflag("min_hair_style") +"-"+ getbattleflag("max_hair_style");
+	setd ".@"+ Job_Novice +"_"+ LOOK_HAIR_COLOR +"$", getbattleflag("min_hair_color") +"-"+ getbattleflag("max_hair_color");
+//	Doram class use Job_Summoner as base
+	setd ".@"+ Job_Summoner +"_"+ LOOK_HAIR +"$", getbattleflag("min_hair_style") +"-"+ getbattleflag("max_hair_style");
+	setd ".@"+ Job_Summoner +"_"+ LOOK_HAIR_COLOR +"$", getbattleflag("min_hair_color") +"-"+ getbattleflag("max_hair_color");
+
+//	number of bodystyle is detected by getarraysize
+	setd ".@"+ Job_Rune_Knight +"_"+ LOOK_CLOTHES_COLOR +"$[1]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+	setd ".@"+ Job_Warlock +"_"+ LOOK_CLOTHES_COLOR +"$[1]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+	setd ".@"+ Job_Ranger +"_"+ LOOK_CLOTHES_COLOR +"$[1]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+	setd ".@"+ Job_Arch_Bishop +"_"+ LOOK_CLOTHES_COLOR +"$[1]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+	setd ".@"+ Job_Mechanic +"_"+ LOOK_CLOTHES_COLOR +"$[1]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+	setd ".@"+ Job_Guillotine_Cross +"_"+ LOOK_CLOTHES_COLOR +"$[1]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+	setd ".@"+ Job_Royal_Guard +"_"+ LOOK_CLOTHES_COLOR +"$[1]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+	setd ".@"+ Job_Sorcerer +"_"+ LOOK_CLOTHES_COLOR +"$[1]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+	setd ".@"+ Job_Minstrel +"_"+ LOOK_CLOTHES_COLOR +"$[1]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+	setd ".@"+ Job_Wanderer +"_"+ LOOK_CLOTHES_COLOR +"$[1]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+	setd ".@"+ Job_Sura +"_"+ LOOK_CLOTHES_COLOR +"$[1]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+	setd ".@"+ Job_Genetic +"_"+ LOOK_CLOTHES_COLOR +"$[1]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+	setd ".@"+ Job_Shadow_Chaser +"_"+ LOOK_CLOTHES_COLOR +"$[1]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+
+	setd ".@"+ Job_Summoner +"_"+ LOOK_CLOTHES_COLOR +"$[0]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color");
+/*
+//	everything down here is custom ... for example this rune knight will have 3 bodystyle value 0~2
+	// Job_Rune_Knight | Job_Rune_Knight_T | Job_Baby_Rune
+	setd ".@"+ Job_Rune_Knight +"_"+ LOOK_CLOTHES_COLOR +"$[0]", getbattleflag("min_cloth_color") +"-"+ getbattleflag("max_cloth_color"); // default bodystyle has full range of colors
+	setd ".@"+ Job_Rune_Knight +"_"+ LOOK_CLOTHES_COLOR +"$[1]", "0-5,11-18,20-23"; // the ID range is 0,1,2,3,4,5,11,12,13,14,15,16,17,18,20,21,22,23
+	setd ".@"+ Job_Rune_Knight +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0"; // only 1 color
+
+//	copy additional bodystyle sprite from 4th job, but still you should fix the palette range
+	setd ".@"+ Job_Rune_Knight +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0";
+	setd ".@"+ Job_Warlock +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0";
+	setd ".@"+ Job_Ranger +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0";
+	setd ".@"+ Job_Arch_Bishop +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0";
+	setd ".@"+ Job_Mechanic +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0";
+	setd ".@"+ Job_Guillotine_Cross +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0";
+	setd ".@"+ Job_Royal_Guard +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0";
+	setd ".@"+ Job_Sorcerer +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0";
+	setd ".@"+ Job_Minstrel +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0";
+	setd ".@"+ Job_Wanderer +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0";
+	setd ".@"+ Job_Sura +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0";
+	setd ".@"+ Job_Genetic +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0";
+	setd ".@"+ Job_Shadow_Chaser +"_"+ LOOK_CLOTHES_COLOR +"$[2]", "0";
+
+//	add bodystyle from soul reaper into soul linker / star emperor into star gladiator
+	setd ".@"+ Job_Soul_Linker +"_"+ LOOK_CLOTHES_COLOR +"$[1]", "0";
+	setd ".@"+ Job_Star_Gladiator +"_"+ LOOK_CLOTHES_COLOR +"$[1]", "0";
+
+	setd ".@"+ Job_Summoner +"_"+ LOOK_CLOTHES_COLOR +"$[0]", "0-3";
+*/
+//	AND if not set, will assumed only has 1 default bodystyle value (0) and use default min-max cloth_color range from battle config
+//	=======================================================================================================================================
+	freeloop true;
+//	stupid gravity logic at work here
+	.gravity_logic[Job_Baby] = Job_Novice;
+	.gravity_logic[Job_Baby_Swordman] = Job_Swordman;
+	.gravity_logic[Job_Baby_Mage] = Job_Mage;
+	.gravity_logic[Job_Baby_Archer] = Job_Novice;
+	.gravity_logic[Job_Baby_Acolyte] = Job_Acolyte;
+	.gravity_logic[Job_Baby_Merchant] = Job_Merchant;
+	.gravity_logic[Job_Baby_Thief] = Job_Thief;
+	.gravity_logic[Job_Baby_Knight] = Job_Knight;
+	.gravity_logic[Job_Knight2] = Job_Knight;
+	.gravity_logic[Job_Baby_Knight2] = Job_Knight;
+	.gravity_logic[Job_Baby_Priest] = Job_Priest;
+	.gravity_logic[Job_Baby_Wizard] = Job_Wizard;
+	.gravity_logic[Job_Baby_Blacksmith] = Job_Blacksmith;
+	.gravity_logic[Job_Baby_Hunter] = Job_Hunter;
+	.gravity_logic[Job_Baby_Assassin] = Job_Assassin;
+	.gravity_logic[Job_Baby_Crusader] = Job_Crusader;
+	.gravity_logic[Job_Crusader2] = Job_Crusader;
+	.gravity_logic[Job_Baby_Crusader2] = Job_Crusader;
+	.gravity_logic[Job_Baby_Monk] = Job_Monk;
+	.gravity_logic[Job_Baby_Sage] = Job_Sage;
+	.gravity_logic[Job_Baby_Rogue] = Job_Rogue;
+	.gravity_logic[Job_Baby_Alchemist] = Job_Alchemist;
+	.gravity_logic[Job_Baby_Bard] = Job_Bard;
+	.gravity_logic[Job_Baby_Dancer] = Job_Dancer;
+	.gravity_logic[Job_Lord_Knight2] = Job_Lord_Knight;
+	.gravity_logic[Job_Paladin2] = Job_Paladin;
+	.gravity_logic[Job_Super_Baby] = Job_SuperNovice;
+	.gravity_logic[Job_Star_Gladiator2] = Job_Star_Gladiator;
+	.gravity_logic[Job_Rune_Knight_T] = Job_Rune_Knight;
+	.gravity_logic[JOB_BABY_RUNE_KNIGHT] = Job_Rune_Knight;
+	.gravity_logic[Job_Rune_Knight2] = Job_Rune_Knight;
+	.gravity_logic[Job_Rune_Knight_T2] = Job_Rune_Knight;
+	.gravity_logic[JOB_BABY_RUNE_KNIGHT2] = Job_Rune_Knight;
+	.gravity_logic[Job_Warlock_T] = Job_Warlock;
+	.gravity_logic[Job_Baby_Warlock] = Job_Warlock;
+	.gravity_logic[Job_Ranger_T] = Job_Ranger;
+	.gravity_logic[Job_Baby_Ranger] = Job_Ranger;
+	.gravity_logic[Job_Ranger2] = Job_Ranger;
+	.gravity_logic[Job_Ranger_T2] = Job_Ranger;
+	.gravity_logic[Job_Baby_Ranger2] = Job_Ranger;
+	.gravity_logic[Job_Arch_Bishop_T] = Job_Arch_Bishop;
+	.gravity_logic[JOB_BABY_ARCH_BISHOP] = Job_Arch_Bishop;
+	.gravity_logic[Job_Mechanic_T] = Job_Mechanic;
+	.gravity_logic[Job_Baby_Mechanic] = Job_Mechanic;
+	.gravity_logic[Job_Mechanic2] = Job_Mechanic;
+	.gravity_logic[Job_Mechanic_T2] = Job_Mechanic;
+	.gravity_logic[Job_Baby_Mechanic2] = Job_Mechanic;
+	.gravity_logic[Job_Guillotine_Cross_T] = Job_Guillotine_Cross;
+	.gravity_logic[JOB_BABY_GUILLOTINE_CROSS] = Job_Guillotine_Cross;
+	.gravity_logic[Job_Royal_Guard_T] = Job_Royal_Guard;
+	.gravity_logic[JOB_BABY_ROYAL_GUARD] = Job_Royal_Guard;
+	.gravity_logic[Job_Royal_Guard2] = Job_Royal_Guard;
+	.gravity_logic[Job_Royal_Guard_T2] = Job_Royal_Guard;
+	.gravity_logic[JOB_BABY_ROYAL_GUARD2] = Job_Royal_Guard;
+	.gravity_logic[Job_Sorcerer_T] = Job_Sorcerer;
+	.gravity_logic[Job_Baby_Sorcerer] = Job_Sorcerer;
+	.gravity_logic[Job_Minstrel_T] = Job_Minstrel;
+	.gravity_logic[Job_Baby_Minstrel] = Job_Minstrel;
+	.gravity_logic[Job_Wanderer_T] = Job_Wanderer;
+	.gravity_logic[Job_Baby_Wanderer] = Job_Wanderer;
+	.gravity_logic[Job_Sura_T] = Job_Sura;
+	.gravity_logic[Job_Baby_Sura] = Job_Sura;
+	.gravity_logic[Job_Genetic_T] = Job_Genetic;
+	.gravity_logic[Job_Baby_Genetic] = Job_Genetic;
+	.gravity_logic[Job_Shadow_Chaser_T] = Job_Shadow_Chaser;
+	.gravity_logic[JOB_BABY_SHADOW_CHASER] = Job_Shadow_Chaser;
+	.gravity_logic[Job_Super_Baby_E] = Job_Super_Novice_E;
+
+	setarray .@job, Job_Novice, Job_Summoner;
+	setarray .look, LOOK_HAIR, LOOK_HAIR_COLOR, LOOK_CLOTHES_COLOR, LOOK_BODY2;
+	for (.@i = 0; .@i < 2; ++.@i) {
+		for (.@j = 0; .@j < 2; ++.@j) {
+			deletearray .@array$;
+			.@index = 0;
+			explode(.@array$, getd(".@"+ .@job[.@i] +"_"+ .look[.@j] +"$"), ",");
+			.@size = getarraysize(.@array$);
+			for (.@k = 0; .@k < .@size; ++.@k) {
+				if (compare(.@array$[.@k], "-")) {
+					explode(.@range$, .@array$[.@k], "-");
+					.@min = atoi(.@range$[0]);
+					.@max = atoi(.@range$[1]);
+					.@range = .@max - .@min +1;
+					for (.@l = 0; .@l < .@range; ++.@l)
+						setd "."+ .@job[.@i] +"_"+ .look[.@j] +"_0["+(.@index++)+"]", .@min + .@l;
+				}
+				else {
+					setd "."+ .@job[.@i] +"_"+ .look[.@j] +"_0["+(.@index++)+"]", atoi(.@array$);
+				}
+			}
+			setd ".maxindex"+ .@job[.@i] +"_"+ .look[.@j] +"_0", .@index -1;
+			setd ".minstyles"+ .@job[.@i] +"_"+ .look[.@j] +"_0", getd("."+ .@job[.@i] +"_"+ .look[.@j] +"_0");
+			setd ".maxstyles"+ .@job[.@i] +"_"+ .look[.@j] +"_0", getd("."+ .@job[.@i] +"_"+ .look[.@j] +"_0["+(.@index -1)+"]");
+		}
+	}
+	.@min_cloth_color = getbattleflag("min_cloth_color");
+	.@max_cloth_color = getbattleflag("max_cloth_color");
+	for (.@i = Job_Novice; .@i <= Job_Summoner; ++.@i) {
+		if (.gravity_logic[.@i] || jobname(.@i) == .@unknown_job$) 
+			continue;
+		.bodystyle_num[.@i] = getarraysize(getd(".@"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"$"));
+		if (!.bodystyle_num[.@i]) {
+			for (.@j = .@min_cloth_color; .@j <= .@max_cloth_color; ++.@j)
+				setd "."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_0["+ .@j +"]", .@j;
+			setd ".maxindex"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_0", .@max_cloth_color -1;
+			setd ".minstyles"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_0", getd("."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_0");
+			setd ".maxstyles"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_0", getd("."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_0["+(.@max_cloth_color -1)+"]");
+		}
+		else if (.bodystyle_num[.@i] == 1) {
+			deletearray .@array$;
+			.@index = 0;
+			explode(.@array$, getd(".@"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"$"), ",");
+			.@size = getarraysize(.@array$);
+			for (.@j = 0; .@j < .@size; ++.@j) {
+				if (compare(.@array$[.@j], "-")) {
+					explode(.@range$, .@array$[.@j], "-");
+					.@min = atoi(.@range$[0]);
+					.@max = atoi(.@range$[1]);
+					.@range = .@max - .@min +1;
+					for (.@k = 0; .@k < .@range; ++.@k)
+						setd "."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_0["+(.@index++)+"]", .@min + .@k;
+				}
+				else
+					setd "."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_0["+(.@index++)+"]", atoi(.@array$);
+			}
+			setd ".maxindex"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_0", .@index -1;
+			setd ".minstyles"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_0", getd("."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_0");
+			setd ".maxstyles"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_0", getd("."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_0["+(.@index -1)+"]");
+		}
+		else {
+			for (.@j = 0; .@j < .bodystyle_num[.@i]; ++.@j) {
+				if (getstrlen(getd(".@"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"$["+ .@j +"]"))) {
+					deletearray .@array$;
+					.@index = 0;
+					explode(.@array$, getd(".@"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"$["+ .@j +"]"), ",");
+					.@size = getarraysize(.@array$);
+					for (.@k = 0; .@k < .@size; ++.@k) {
+						if (compare(.@array$[.@k], "-")) {
+							explode(.@range$, .@array$[.@k], "-");
+							.@min = atoi(.@range$[0]);
+							.@max = atoi(.@range$[1]);
+							.@range = .@max - .@min +1;
+							for (.@l = 0; .@l < .@range; ++.@l)
+								setd "."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_"+ .@j +"["+(.@index++)+"]", .@min + .@l;
+						}
+						else
+							setd "."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_"+ .@j +"["+(.@index++)+"]", atoi(.@array$);
+					}
+					setd ".maxindex"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_"+ .@j, .@index -1;
+					setd ".minstyles"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_"+ .@j, getd("."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_"+ .@j);
+					setd ".maxstyles"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_"+ .@j, getd("."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_"+ .@j +"["+(.@index -1)+"]");
+				}
+				else {
+					for (.@k = .@min_cloth_color; .@k <= .@max_cloth_color; ++.@k)
+						setd "."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_"+ .@j +"["+ .@k +"]", .@k;
+					setd ".maxindex"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_"+ .@j, .@max_cloth_color -1;
+					setd ".minstyles"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_"+ .@j, getd("."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_"+ .@j);
+					setd ".maxstyles"+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_"+ .@j, getd("."+ .@i +"_"+ LOOK_CLOTHES_COLOR +"_"+ .@j +"["+(.@max_cloth_color -1)+"]");
+				}
+				setd "."+ .@i +"_"+ LOOK_BODY2 +"_0["+ .@j +"]", .@j;
+			}
+			setd ".maxindex"+ .@i +"_"+ LOOK_BODY2 +"_0", .bodystyle_num[.@i] -1;
+			setd ".minstyles"+ .@i +"_"+ LOOK_BODY2 +"_0", getd("."+ .@i +"_"+ LOOK_BODY2 +"_0");
+			setd ".maxstyles"+ .@i +"_"+ LOOK_BODY2 +"_0", getd("."+ .@i +"_"+ LOOK_BODY2 +"_0["+(.bodystyle_num[.@i] -1)+"]");
+		}
+	}
+	end;
+}

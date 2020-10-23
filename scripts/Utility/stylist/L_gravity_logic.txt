@@ -1,0 +1,79 @@
+L_gravity_logic:
+	if (Class == Job_Novice || Class == Job_Baby)
+		return Job_Novice;
+	else if (Class == Job_Swordman || Class == Job_Baby_Swordman)
+		return Job_Swordman;
+	else if (Class == Job_Mage || Class == Job_Baby_Mage)
+		return Job_Mage;
+	else if (Class == Job_Archer || Class == Job_Baby_Archer)
+		return Job_Archer;
+	else if (Class == Job_Acolyte || Class == Job_Baby_Acolyte)
+		return Job_Acolyte;
+	else if (Class == Job_Merchant || Class == Job_Baby_Merchant)
+		return Job_Merchant;
+	else if (Class == Job_Thief || Class == Job_Baby_Thief)
+		return Job_Thief;
+	else if (Class == Job_Knight || Class == Job_Baby_Knight || Class == Job_Knight2 || Class == Job_Baby_Knight2)
+		return Job_Knight;
+	else if (Class == Job_Priest || Class == Job_Baby_Priest)
+		return Job_Priest;
+	else if (Class == Job_Wizard || Class == Job_Baby_Wizard)
+		return Job_Wizard;
+	else if (Class == Job_Blacksmith || Class == Job_Baby_Blacksmith)
+		return Job_Blacksmith;
+	else if (Class == Job_Hunter || Class == Job_Baby_Hunter)
+		return Job_Hunter;
+	else if (Class == Job_Assassin || Class == Job_Baby_Assassin)
+		return Job_Assassin;
+	else if (Class == Job_Crusader || Class == Job_Baby_Crusader || Class == Job_Crusader2 || Class == Job_Baby_Crusader2)
+		return Job_Crusader;
+	else if (Class == Job_Monk || Class == Job_Baby_Monk)
+		return Job_Monk;
+	else if (Class == Job_Sage || Class == Job_Baby_Sage)
+		return Job_Sage;
+	else if (Class == Job_Rogue || Class == Job_Baby_Rogue)
+		return Job_Rogue;
+	else if (Class == Job_Alchemist || Class == Job_Baby_Alchemist)
+		return Job_Alchemist;
+	else if (Class == Job_Bard || Class == Job_Baby_Bard)
+		return Job_Bard;
+	else if (Class == Job_Dancer || Class == Job_Baby_Dancer)
+		return Job_Dancer;
+	else if (Class == Job_Lord_Knight || Class == Job_Lord_Knight2)
+		return Job_Lord_Knight;
+	else if (Class == Job_Paladin || Class == Job_Paladin2)
+		return Job_Paladin;
+	else if (Class == Job_SuperNovice || Class == Job_Super_Baby)
+		return Job_SuperNovice;
+	else if (Class == Job_Star_Gladiator || Class == Job_Star_Gladiator2)
+		return Job_Star_Gladiator;
+	else if (Class == Job_Rune_Knight || Class == Job_Rune_Knight_T || Class == Job_Baby_Rune || Class == Job_Rune_Knight2 || Class == Job_Rune_Knight_T2 || Class == Job_Baby_Rune2)
+		return Job_Rune_Knight;
+	else if (Class == Job_Warlock || Class == Job_Warlock_T || Class == Job_Baby_Warlock)
+		return Job_Warlock;
+	else if (Class == Job_Ranger || Class == Job_Ranger_T || Class == Job_Baby_Ranger || Class == Job_Ranger2 || Class == Job_Ranger_T2 || Class == Job_Baby_Ranger2)
+		return Job_Ranger;
+	else if (Class == Job_Arch_Bishop || Class == Job_Arch_Bishop_T || Class == Job_Baby_Bishop)
+		return Job_Arch_Bishop;
+	else if (Class == Job_Mechanic || Class == Job_Mechanic_T || Class == Job_Baby_Mechanic || Class == Job_Mechanic2 || Class == Job_Mechanic_T2 || Class == Job_Baby_Mechanic2)
+		return Job_Mechanic;
+	else if (Class == Job_Guillotine_Cross || Class == Job_Guillotine_Cross_T || Class == Job_Baby_Cross)
+		return Job_Guillotine_Cross;
+	else if (Class == Job_Royal_Guard || Class == Job_Royal_Guard_T || Class == Job_Baby_Guard || Class == Job_Royal_Guard2 || Class == Job_Royal_Guard_T2 || Class == Job_Baby_Guard2)
+		return Job_Royal_Guard;
+	else if (Class == Job_Sorcerer || Class == Job_Sorcerer_T || Class == Job_Baby_Sorcerer)
+		return Job_Sorcerer;
+	else if (Class == Job_Minstrel || Class == Job_Minstrel_T || Class == Job_Baby_Minstrel)
+		return Job_Minstrel;
+	else if (Class == Job_Wanderer || Class == Job_Wanderer_T || Class == Job_Baby_Wanderer)
+		return Job_Wanderer;
+	else if (Class == Job_Sura || Class == Job_Sura_T || Class == Job_Baby_Sura)
+		return Job_Sura;
+	else if (Class == Job_Genetic || Class == Job_Genetic_T || Class == Job_Baby_Genetic)
+		return Job_Genetic;
+	else if (Class == Job_Shadow_Chaser || Class == Job_Shadow_Chaser_T || Class == Job_Baby_Chaser)
+		return Job_Shadow_Chaser;
+	else if (Class == Job_Super_Novice_E || Class == Job_Super_Baby_E)
+		return Job_Super_Novice_E;
+	else
+		return Class;

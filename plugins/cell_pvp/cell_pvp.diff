@@ -1,0 +1,623 @@
+2b4f6c1a0de7c44f1d6b83604f3cb328db24b622
+ conf/battle/mycustom.conf | 42 ++++++++++++++++++++++
+ db/const.txt              |  2 ++
+ src/map/atcommand.c       |  6 ++--
+ src/map/battle.c          | 29 +++++++++++----
+ src/map/battle.h          | 10 ++++++
+ src/map/clif.c            |  6 ++++
+ src/map/map.c             | 45 +++++++++++++++++++++++
+ src/map/map.h             |  5 +++
+ src/map/pc.c              | 91 +++++++++++++++++++++++++++++++++++++++++++----
+ src/map/pc.h              |  6 ++++
+ src/map/skill.c           |  2 +-
+ src/map/unit.c            | 44 +++++++++++++++++++++++
+ 12 files changed, 271 insertions(+), 17 deletions(-)
+
+diff --git a/conf/battle/mycustom.conf b/conf/battle/mycustom.conf
+index fdb8f31..c3cbea4 100644
+--- a/conf/battle/mycustom.conf
++++ b/conf/battle/mycustom.conf
+@@ -87,3 +87,45 @@ item_zeny: 30000
+ 
+ // Item ID for Cash. Set to 0 if you don't want use Cash.
+ item_cash: 30001
++
++
++// Addon Cell PVP [Ize]
++// Enable Deathmatch for cell pvp
++// Default: 0
++// 0 = No
++// 1 = Yes
++cellpvp_deathmatch: 1
++
++// Delay player alive deathmatch for cell pvp
++// Default: 1000 (1 secand)
++cellpvp_deathmatch_delay: 1000
++
++// When player is dead recovery HP/SP Rate for cell pvp
++// Default: 100 (recovery 100%)
++deathmatch_hp_rate: 100
++deathmatch_sp_rate: 100
++
++// Enable buff when player is dead for cell pvp
++// Default: 1
++// 0 = No
++// 1 = Yes
++// Request core npc files use name "deathmatch_core"
++cellpvp_autobuff: yes
++
++// Can atk player in party
++// Default: 1
++// 0 = No
++// 1 = Yes
++cellpvp_party_enable: no
++
++// Can atk player in guild
++// Default: 1
++// 0 = No
++// 1 = Yes
++cellpvp_guild_enable: no
++
++// When player move to cell pvp is delay walk out cooldown
++// Default: 5000 (5 secand)
++cellpvp_walkout_delay: 5000
++
++
+diff --git a/db/const.txt b/db/const.txt
+index 435236f..fb810b3 100644
+--- a/db/const.txt
++++ b/db/const.txt
+@@ -373,6 +373,7 @@ cell_basilica	4
+ cell_landprotector	5
+ cell_novending	6
+ cell_nochat	7
++cell_pvp	8
+ 
+ //cell_gettype	0
+ cell_chkwall	1
+@@ -388,6 +389,7 @@ cell_chkbasilica	10
+ cell_chklandprotector	11
+ cell_chknovending	12
+ cell_chknochat	13
++cell_chkpvp	14
+ 
+ StatusPoint	9	1
+ BaseLevel	11	1
+diff --git a/src/map/atcommand.c b/src/map/atcommand.c
+index 9039d18..33d133c 100644
+--- a/src/map/atcommand.c
++++ b/src/map/atcommand.c
+@@ -475,7 +475,7 @@ static inline const char* atcommand_help_string(AtCommandInfo *info) {
+ 		return false;
+ 	}
+ 
+-	if (sd->bl.m >= 0 && map->list[sd->bl.m].flag.nowarp && !pc_has_permission(sd, PC_PERM_WARP_ANYWHERE)) {
++	if (sd->state.pvp || (sd->bl.m >= 0 && map->list[sd->bl.m].flag.nowarp && !pc_has_permission(sd, PC_PERM_WARP_ANYWHERE))) { // Addon Cell PVP [Ize]
+ 		clif->message(fd, msg_txt(248)); // You are not authorized to warp from your current map.
+ 		return false;
+ 	}
+@@ -518,7 +518,7 @@ static inline const char* atcommand_help_string(AtCommandInfo *info) {
+ 	
+ 	sscanf(message, "%hd %hd", &x, &y);
+ 	
+-	if (map->list[sd->bl.m].flag.noteleport && !pc_has_permission(sd, PC_PERM_WARP_ANYWHERE)) {
++	if (sd->state.pvp || (map->list[sd->bl.m].flag.noteleport && !pc_has_permission(sd, PC_PERM_WARP_ANYWHERE))) {// Addon Cell PVP [Ize]
+ 		clif->message(fd, msg_txt(248)); // You are not authorized to warp from your current map.
+ 		return false;
+ 	}
+@@ -757,7 +757,7 @@ static inline const char* atcommand_help_string(AtCommandInfo *info) {
+ 		clif->message(fd, msg_txt(249)); // You are not authorized to warp to your save map.
+ 		return false;
+ 	}
+-	if (sd->bl.m >= 0 && map->list[sd->bl.m].flag.nowarp && !pc_has_permission(sd, PC_PERM_WARP_ANYWHERE)) {
++	if (sd->state.pvp || (sd->bl.m >= 0 && map->list[sd->bl.m].flag.nowarp && !pc_has_permission(sd, PC_PERM_WARP_ANYWHERE))) {// Addon Cell PVP [Ize]
+ 		clif->message(fd, msg_txt(248)); // You are not authorized to warp from your current map.
+ 		return false;
+ 	}
+diff --git a/src/map/battle.c b/src/map/battle.c
+index fbfc7c3..dcb35a4 100644
+--- a/src/map/battle.c
++++ b/src/map/battle.c
+@@ -6287,9 +6287,12 @@ int battle_check_target( struct block_list *src, struct block_list *target,int f
+ 						return (BCT_ENEMY&flag)?1:-1; // Duel targets can ONLY be your enemy, nothing else.
+ 					else
+ 						return 0; // You can't target anything out of your duel
++				} else if( map->getcell( s_bl->m, s_bl->x, s_bl->y, CELL_CHKPVP ) && map->getcell( t_bl->m, t_bl->x, t_bl->y, CELL_CHKPVP ) )
++				{	// Addon Cell PVP [Ize]
++					 state |= BCT_ENEMY;
+ 				}
+ 			}
+			if( map_flag_gvg(m) && !sd->status.guild_id && t_bl->type == BL_MOB && ((TBL_MOB*)t_bl)->class_ == MOBID_EMPERIUM )
+ 				return 0; //If you don't belong to a guild, can't target emperium.
+ 			if( t_bl->type != BL_PC )
+@@ -6394,13 +6397,16 @@ int battle_check_target( struct block_list *src, struct block_list *target,int f
+ 	{ //Non pvp/gvg, check party/guild settings.
+ 		if( flag&BCT_PARTY || state&BCT_ENEMY ) {
+ 			int s_party = status->get_party_id(s_bl);
+-			if(s_party && s_party == status->get_party_id(t_bl))
++			if(s_party && s_party == status->get_party_id(t_bl) && !(battle_config.cellpvp_party_enable && map->getcell( t_bl->m, t_bl->x, t_bl->y, CELL_CHKPVP )) ) // Addon Cell PVP [Ize]
+ 				state |= BCT_PARTY;
++			else
++				state |= BCT_ENEMY;
+ 		}
+ 		if( flag&BCT_GUILD || state&BCT_ENEMY ) {
+ 			int s_guild = status->get_guild_id(s_bl);
+ 			int t_guild = status->get_guild_id(t_bl);
+-			if(s_guild && t_guild && (s_guild == t_guild || (!(flag&BCT_SAMEGUILD) && guild->isallied(s_guild, t_guild))))
++			if(s_guild && t_guild && (s_guild == t_guild || (!(flag&BCT_SAMEGUILD) && guild->isallied(s_guild, t_guild))) 
++			   && !(battle_config.cellpvp_guild_enable && map->getcell( t_bl->m, t_bl->x, t_bl->y, CELL_CHKPVP)) ) // Addon Cell PVP [Ize]
+ 				state |= BCT_GUILD;
+ 		}
+     } //end non pvp/gvg chk rivality
+@@ -6857,15 +6863,24 @@ bool battle_check_range(struct block_list *src, struct block_list *bl, int range
++
++		// Addon Cell PVP [Ize]
++	{ "cellpvp_deathmatch",			&battle_config.cellpvp_deathmatch,		1,      0,      1,              },
++	{ "cellpvp_deathmatch_delay",		&battle_config.cellpvp_deathmatch_delay,	1000,	0,	INT_MAX,	},
++	{ "deathmatch_hp_rate",			&battle_config.deathmatch_hp_rate,		0,	0,	100,		},
++	{ "deathmatch_sp_rate",			&battle_config.deathmatch_sp_rate,		0,	0,	100,		},
++	{ "cellpvp_autobuff",			&battle_config.cellpvp_autobuff,		1,      0,	1,		},
++	{ "cellpvp_party_enable",		&battle_config.cellpvp_party_enable,		1,      0,	1,		},
++	{ "cellpvp_guild_enable",		&battle_config.cellpvp_guild_enable,		1,      0,	1,		},
++	{ "cellpvp_walkout_delay",		&battle_config.cellpvp_walkout_delay,		5000,	0,	INT_MAX,	},
+ };
+ #ifndef STATS_OPT_OUT
+ /**
+diff --git a/src/map/battle.h b/src/map/battle.h
+index 027f015..42ad9e7 100644
+--- a/src/map/battle.h
++++ b/src/map/battle.h
+@@ -496,6 +496,16 @@ struct Battle_Config {
+ 	int ksp_mvp_only;
+ 	int spawn_direction;
+ 	int extended_vending, show_item_vending, ex_vending_info, item_zeny, item_cash;
++
++	// Addon Cell PVP [Ize]
++	int cellpvp_deathmatch;
++	int cellpvp_deathmatch_delay;
++	int deathmatch_hp_rate;
++	int deathmatch_sp_rate;
++	int cellpvp_autobuff;
++	int cellpvp_party_enable;
++	int cellpvp_guild_enable;
++	int cellpvp_walkout_delay;
+ };
+ 
+ extern struct Battle_Config battle_config;
+diff --git a/src/map/clif.c b/src/map/clif.c
+index 47d4506..9ae497d 100644
+--- a/src/map/clif.c
++++ b/src/map/clif.c
+@@ -9590,6 +9590,12 @@ void clif_parse_LoadEndAck(int fd,struct map_session_data *sd) {
+ 
+ 	clif->maptypeproperty2(&sd->bl,SELF);
+ 
++	// Addon Cell PVP [Ize]
++	if( !sd->state.pvp && map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP) )
++		map->pvp_area(sd, 1);
++	else if( sd->state.pvp && !map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP) )
++		map->pvp_area(sd, 0);
++
+ 	/* Guild Aura Init */
+ 	if( sd->state.gmaster_flag ) {
+ 		guild->aura_refresh(sd,GD_LEADERSHIP,guild->checkskill(sd->guild,GD_LEADERSHIP));
+diff --git a/src/map/map.c b/src/map/map.c
+index 952f589..05536b0 100644
+--- a/src/map/map.c
++++ b/src/map/map.c
+@@ -1787,6 +1787,9 @@ int map_quit(struct map_session_data *sd) {
+ 	if( sd->state.vending ) {
+ 		idb_remove(vending->db, sd->status.char_id);
+ 	}
++
++	if( sd->state.pvp && map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP ) )
++		map->pvp_area(sd, 0);	
+ 	
+ 	party->booking_delete(sd); // Party Booking [Spiria]
+ 	pc->makesavestatus(sd);
+@@ -2597,6 +2600,8 @@ int map_getcellp(struct map_data* m,int16 x,int16 y,cell_chk cellchk) {
+ 		return (cell.novending);
+ 	case CELL_CHKNOCHAT:
+ 		return (cell.nochat);
++	case CELL_CHKPVP:	// Addon Cell PVP [Ize]
++		return (cell.pvp);
+ 	case CELL_CHKICEWALL:
+ 		return (cell.icewall);
+ 
+@@ -2657,6 +2662,7 @@ void map_setcell(int16 m, int16 x, int16 y, cell_t cell, bool flag) {
+ 	case CELL_LANDPROTECTOR: map->list[m].cell[j].landprotector = flag; break;
+ 	case CELL_NOVENDING:     map->list[m].cell[j].novending = flag;     break;
+ 	case CELL_NOCHAT:        map->list[m].cell[j].nochat = flag;        break;
++	case CELL_PVP:		 map->list[m].cell[j].pvp = flag;	    break;// Addon Cell PVP [Ize]
+ 	case CELL_ICEWALL:       map->list[m].cell[j].icewall = flag;       break;
+ 	default:
+ 		ShowWarning("map_setcell: invalid cell type '%d'\n", (int)cell);
+@@ -5450,6 +5456,43 @@ void set_server_type(void) {
+ }
+ 
+ 
++// Addon Cell PVP [Ize]
++void map_pvp_area(struct map_session_data* sd, bool flag)
++{
++	switch(flag) 
++	{
++		case 1:
++			clif->map_property(sd, MAPPROPERTY_FREEPVPZONE);
++			clif->maptypeproperty2(&sd->bl,SELF);
++			if (sd->pvp_timer == INVALID_TIMER) {
++				map->list[sd->bl.m].cell_pvpuser++;
++ 
++				sd->pvp_timer  = timer->add(timer->gettick()+200, pc->calc_pvprank_timer, sd->bl.id, 0);
++				sd->pvp_rank  = 0;
++				sd->pvp_lastusers = 0;
++				sd->pvp_point  = 5;
++				sd->pvp_won   = 0;
++				sd->pvp_lost  = 0;
++				sd->state.pvp  = 1;
++				sd->pvpcan_walkout_tick =  timer->gettick();
++			}
++			break;
++		default:
++			clif->pvpset(sd, 0, 0, 2);
++			map->list[sd->bl.m].cell_pvpuser--;
++
++			if( sd->pvp_timer != INVALID_TIMER )
++				timer->delete(sd->pvp_timer, pc->calc_pvprank_timer);
++
++			sd->pvp_timer  = INVALID_TIMER;
++			sd->state.pvp  = 0;
++			break;
++	}
++
++	return;
++}
++
++
+ /// Called when a terminate signal is received.
+ void do_shutdown(void)
+ {
+@@ -6178,6 +6221,8 @@ void map_defaults(void) {
+ 	map->remove_questinfo = map_remove_questinfo;
+ 	
+ 	map->merge_zone = map_merge_zone;
++
++	map->pvp_area = map_pvp_area;
+ 		
+ 	/**
+ 	 * mapit interface
+diff --git a/src/map/map.h b/src/map/map.h
+index e158785..703aebb 100644
+--- a/src/map/map.h
++++ b/src/map/map.h
+@@ -444,6 +444,7 @@ typedef enum {
+ 	CELL_LANDPROTECTOR,
+ 	CELL_NOVENDING,
+ 	CELL_NOCHAT,
++	CELL_PVP,	// Addon Cell PVP [Ize]
+ 	CELL_ICEWALL,
+ 
+ } cell_t;
+@@ -467,6 +468,7 @@ typedef enum {
+ 	CELL_CHKLANDPROTECTOR,
+ 	CELL_CHKNOVENDING,
+ 	CELL_CHKNOCHAT,
++	CELL_CHKPVP,		// Addon Cell PVP [Ize]
+ 	CELL_CHKICEWALL,
+ 
+ } cell_chk;
+@@ -485,6 +487,7 @@ struct mapcell {
+ 		landprotector : 1,
+ 		novending : 1,
+ 		nochat : 1,
++		pvp : 1,	// Addon Cell PVP [Ize]
+ 		icewall : 1;
+ 
+ #ifdef CELL_NOSTACK
+@@ -597,6 +600,7 @@ struct map_data {
+ 	int npc_num;
+ 	int users;
+ 	int users_pvp;
++	int cell_pvpuser;	// Addon Cell PVP [Ize
+ 	int iwall_num; // Total of invisible walls in this map
+ 	struct map_flag {
+ 		unsigned town : 1; // [Suggestion to protect Mail System]
+@@ -1070,6 +1074,7 @@ struct map_interface {
+ 	void (*add_questinfo) (int m, struct questinfo *qi);
+ 	bool (*remove_questinfo) (int m, struct npc_data *nd);
+ 	struct map_zone_data *(*merge_zone) (struct map_zone_data *main, struct map_zone_data *other);
++	void (*pvp_area) (struct map_session_data *sd, bool flag);
+ };
+ 
+ struct map_interface *map;
+diff --git a/src/map/pc.c b/src/map/pc.c
+index b7a1142..03c707f 100644
+--- a/src/map/pc.c
++++ b/src/map/pc.c
+@@ -604,7 +604,7 @@ int pc_makesavestatus(struct map_session_data *sd)
+ 		sd->status.last_point.y = sd->bl.y;
+ 	}
+ 
+-	if( ( map->list[sd->bl.m].flag.nosave && sd->state.autotrade != 2 ) || map->list[sd->bl.m].instance_id >= 0) {
++	if( ( map->list[sd->bl.m].flag.nosave && sd->state.autotrade != 2 ) || map->list[sd->bl.m].instance_id >= 0 || map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP)) { // Addon Cell PVP [Ize]
+ 		struct map_data *m=&map->list[sd->bl.m];
+ 		if(m->save.map)
+ 			memcpy(&sd->status.last_point,&m->save,sizeof(sd->status.last_point));
+@@ -4277,7 +4277,7 @@ int pc_isUseitem(struct map_session_data *sd,int n)
+ 			break;
+ 		case ITEMID_WING_OF_FLY:
+ 		case ITEMID_GIANT_FLY_WING:
+-			if( map->list[sd->bl.m].flag.noteleport || map_flag_gvg2(sd->bl.m) ) {
++			if( map->list[sd->bl.m].flag.noteleport || map_flag_gvg2(sd->bl.m) || map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP) ) { // Addon Cell PVP [Ize]
+ 				clif->skill_mapinfomessage(sd,0);
+ 				return 0;
+ 			}
+@@ -4293,7 +4293,7 @@ int pc_isUseitem(struct map_session_data *sd,int n)
+ 				clif->message(sd->fd, msg_txt(863)); // "Duel: Can't use this item in duel."
+ 				return 0;
+ 			}
+-			if( nameid != ITEMID_WING_OF_FLY && nameid != ITEMID_GIANT_FLY_WING && map->list[sd->bl.m].flag.noreturn )
++			if( nameid != ITEMID_WING_OF_FLY && nameid != ITEMID_GIANT_FLY_WING && map->list[sd->bl.m].flag.noreturn || map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP) )	// Addon Cell PVP [Ize]
+ 				return 0;
+ 			break;
+ 		case ITEMID_BRANCH_OF_DEAD_TREE:
+@@ -5058,6 +5058,10 @@ int pc_setpos(struct map_session_data* sd, unsigned short map_index, int x, int
+ 		if( hChSys.local && map->list[sd->bl.m].channel && idb_exists(map->list[sd->bl.m].channel->users, sd->status.char_id) ) {
+ 			clif->chsys_left(map->list[sd->bl.m].channel,sd);
+ 		}
++
++		// Addon Cell PVP [Ize]
++		if(sd->state.pvp && map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP))
++			map->list[sd->state.pmap].cell_pvpuser--;
+ 	}
+ 
+ 	if( m < 0 ) {
+@@ -5187,7 +5191,7 @@ int pc_memo(struct map_session_data* sd, int pos) {
+ 	nullpo_ret(sd);
+ 
+ 	// check mapflags
+-	if( sd->bl.m >= 0 && (map->list[sd->bl.m].flag.nomemo || map->list[sd->bl.m].flag.nowarpto) && !pc_has_permission(sd, PC_PERM_WARP_ANYWHERE) ) {
++	if((sd->bl.m >= 0 && (map->list[sd->bl.m].flag.nomemo || map->list[sd->bl.m].flag.nowarpto) && !pc_has_permission(sd, PC_PERM_WARP_ANYWHERE)) || map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP) ) {	// Addon Cell PVP [Ize]
+ 		clif->skill_mapinfomessage(sd, 1); // "Saved point cannot be memorized."
+ 		return 0;
+ 	}
+@@ -6879,6 +6883,12 @@ void pc_respawn(struct map_session_data* sd, clr_type clrtype)
+ 	pc->setrestartvalue(sd,3);
+ 	if( pc->setpos(sd, sd->status.save_point.map, sd->status.save_point.x, sd->status.save_point.y, clrtype) )
+ 		clif->resurrection(&sd->bl, 1); //If warping fails, send a normal stand up packet.
++
++	// Addon Cell PVP [Ize]
++	if (sd->state.pvp && map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP) )
++		map->pvp_area(sd, 1);
++	else
++		map->pvp_area(sd, 0);
+ }
+ 
+ int pc_respawn_timer(int tid, int64 tick, int id, intptr_t data) {
+@@ -6892,6 +6902,57 @@ int pc_respawn_timer(int tid, int64 tick, int id, intptr_t data) {
+ 	return 0;
+ }
+ 
++
++// Addon Cell PVP [Ize]
++void pc_deathmatch(struct map_session_data* sd, clr_type clrtype)
++{
++	struct npc_data *nd;
++	short x = 0, y = 0;
++
++	if( !pc_isdead(sd) )
++		return; // not applicable
++
++	if( map->getcell(sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP) && battle_config.cellpvp_deathmatch ) 
++	{
++		do {
++			x = rand() % (map->list[sd->bl.m].xs - 2) + 1;
++			y = rand() % (map->list[sd->bl.m].ys - 2) + 1;
++		} while( !map->getcell(sd->bl.m, x, y, CELL_CHKPVP) || !map->getcell(sd->bl.m, x, y, CELL_CHKPVP) );
++
++		pc->setstand(sd);
++		pc->setrestartvalue(sd,3);
++		status_percent_heal(&sd->bl, battle_config.deathmatch_hp_rate, battle_config.deathmatch_sp_rate);
++
++		if( pc->setpos(sd, sd->mapindex, x, y, clrtype) )
++			clif->resurrection(&sd->bl, 1); //If warping fails, send a normal stand up packet.
++
++		status->change_clear(&sd->bl, 3);
++
++		if(sd && battle_config.cellpvp_autobuff)
++		{
++			nd = npc->name2id("deathmatch_core");
++			if (nd && nd->subtype == SCRIPT)
++				script->run(nd->u.scr.script, 0, sd->bl.id, nd->bl.id);
++		}
++	}
++}
++
++// Addon Cell PVP [Ize]
++int pc_deathmatch_timer(int tid, int64 tick, int id, intptr_t data)
++{
++	struct map_session_data *sd = map->id2sd(id);
++	if( sd != NULL )
++	{
++		pc->deathmatch(sd, CLR_OUTSIGHT);
++		if (sd->state.pvp && map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP ) ) {
++			map->pvp_area(sd, 1);
++			map->list[sd->bl.m].cell_pvpuser--;
++		}
++	}
++	return 0;
++}
++
++
+ /*==========================================
+  * Invoked when a player has received damage
+  *------------------------------------------*/
+@@ -7099,8 +7160,9 @@ int pc_dead(struct map_session_data *sd,struct block_list *src) {
+ 	}
+ 
+ 	if( battle_config.bone_drop==2
+-	 || (battle_config.bone_drop==1 && map->list[sd->bl.m].flag.pvp)
+-	) {
++	 || (battle_config.bone_drop==1 && (map->list[sd->bl.m].flag.pvp || (map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP) && sd->state.pvp))) // Addon Cell PVP [Ize])
++	)
++	{
+ 		struct item item_tmp;
+ 		memset(&item_tmp,0,sizeof(item_tmp));
+ 		item_tmp.nameid=ITEMID_SKULL_;
+@@ -7192,6 +7254,12 @@ int pc_dead(struct map_session_data *sd,struct block_list *src) {
+ 		}
+ 	}
+ 
++	// Addon Cell PVP [Ize]
++	if (map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP ) && battle_config.cellpvp_deathmatch && sd->state.pvp) {
++		timer->add(tick+battle_config.cellpvp_deathmatch_delay, pc->deathmatch_timer, sd->bl.id, 0);
++		return 1|8;
++	}
++
+ 	if(map->list[sd->bl.m].flag.pvp_nightmaredrop) {
+ 		// Moved this outside so it works when PVP isn't enabled and during pk mode [Ancyker]
+ 		for(j=0;j<map->list[sd->bl.m].drop_list_count;j++){
+@@ -9389,6 +9457,13 @@ int pc_calc_pvprank(struct map_session_data *sd) {
+ 	old=sd->pvp_rank;
+ 	sd->pvp_rank=1;
+ 	map->foreachinmap(pc_calc_pvprank_sub,sd->bl.m,BL_PC,sd);
++
++	// Addon Cell PVP [Ize]
++	if( sd->state.pvp ) {
++		clif->pvpset( sd, sd->pvp_rank, sd->pvp_lastusers = m->cell_pvpuser, 0);
++		return sd->pvp_rank;
++	}
++
+ 	if(old!=sd->pvp_rank || sd->pvp_lastusers!=m->users_pvp)
+ 		clif->pvpset(sd,sd->pvp_rank,sd->pvp_lastusers=m->users_pvp,0);
+ 	return sd->pvp_rank;
+@@ -11286,6 +11361,10 @@ void pc_defaults(void) {
+ 	pc->autotrade_start = pc_autotrade_start;
+ 	pc->autotrade_prepare = pc_autotrade_prepare;
+ 	pc->autotrade_populate = pc_autotrade_populate;
++	
++	// Addon Cell PVP [Ize
++	pc->deathmatch = pc_deathmatch;
++	pc->deathmatch_timer = pc_deathmatch_timer;
+ 
+ 	// cydh bonus_script Start
+ 	pc->bonus_script_timer = pc_bonus_script_timer;
+diff --git a/src/map/pc.h b/src/map/pc.h
+index 03db3cf..d6a1ed7 100644
+--- a/src/map/pc.h
++++ b/src/map/pc.h
+@@ -201,6 +201,7 @@ struct map_session_data {
+ 		unsigned int itemcheck : 1;
+ 		unsigned int standalone : 1;/* [Ind/Hercules <3] */
+ 		unsigned int loggingout : 1;
++		bool pvp : 1;	// Addon Cell PVP [Ize]
+ 		bool actlooting : 1;
+ 		bool processhalt : 1;//processhalt
+ 	} state;
+@@ -268,6 +269,7 @@ struct map_session_data {
+ 	int64 canskill_tick;        /// used to prevent abuse from no-delay ACT files
+ 	int64 cansendmail_tick;     /// Mail System Flood Protection
+ 	int64 ks_floodprotect_tick; /// [Kill Steal Protection]
++	int64 pvpcan_walkout_tick; // Addon Cell PVP [Ize]
+ 	struct {
+ 		short nameid;
+ 		int64 tick;
+@@ -1046,6 +1048,10 @@ struct pc_interface {
+ 	void (*autotrade_prepare) (struct map_session_data *sd);
+ 	void (*autotrade_populate) (struct map_session_data *sd);
+ 
++	// Addon Cell PVP [Ize]
++	void (*deathmatch) (struct map_session_data* sd, clr_type clrtype);
++	int (*deathmatch_timer) (int tid, int64 tick, int id, intptr_t data);
++
+ 	// cydh bonus_script Start
+ 	int (*bonus_script_timer) (int tid, int64 tick, int id, intptr_t data);
+ 	void (*bonus_script_remove) (struct s_bonus_script *bscript);
+diff --git a/src/map/skill.c b/src/map/skill.c
+index 24f2f49..364fb3f 100644
+--- a/src/map/skill.c
++++ b/src/map/skill.c
+@@ -6049,7 +6049,7 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl, uin
+ 		case MO_ABSORBSPIRITS:
+ 		{
+ 			int sp = 0;
+-			if (dstsd && dstsd->spiritball && (sd == dstsd || map_flag_vs(src->m) || (sd->duel_group && sd->duel_group == dstsd->duel_group)) && ((dstsd->class_&MAPID_BASEMASK)!=MAPID_GUNSLINGER || (dstsd->class_&MAPID_UPPERMASK)!=MAPID_REBELLION))
++			if (dstsd && dstsd->spiritball && (sd == dstsd || map_flag_vs(src->m) || (sd->duel_group && sd->duel_group == dstsd->duel_group) || (map->getcell(src->m,src->x,src->y,CELL_CHKPVP) && map->getcell(bl->m,bl->x,bl->y,CELL_CHKPVP)) ) && ((dstsd->class_&MAPID_BASEMASK)!=MAPID_GUNSLINGER || (dstsd->class_&MAPID_UPPERMASK)!=MAPID_REBELLION)) // Addon Cell PVP [Ize]
+ 			{	// split the if for readability, and included gunslingers in the check so that their coins cannot be removed [Reddozen]
+ 				sp = dstsd->spiritball * 7;
+ 				pc->delspiritball(dstsd,dstsd->spiritball,0);
+diff --git a/src/map/unit.c b/src/map/unit.c
+index 36eed87..1e653fa 100644
+--- a/src/map/unit.c
++++ b/src/map/unit.c
+@@ -230,6 +230,13 @@ int unit_walktoxy_timer(int tid, int64 tick, int id, intptr_t data) {
+ 			} else
+ 				sd->hd->masterteleport_timer = 0;
+ 		}
++
++		// Addon Cell PVP [Ize]
++		if(!sd->state.pvp && map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP))
++			map->pvp_area(sd, 1);
++		else if(sd->state.pvp && !map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP))
++			map->pvp_area(sd, 0);
++
+ 	} else if (md) {
+ 		if( map->getcell(bl->m,x,y,CELL_CHKNPC) ) {
+ 			if( npc->touch_areanpc2(md) ) return 0; // Warped
+@@ -374,6 +381,26 @@ int unit_walktoxy( struct block_list *bl, short x, short y, int flag)
+ 	if(!(flag&2) && (!(status_get_mode(bl)&MD_CANMOVE) || !unit->can_move(bl)))
+ 		return 0;
+ 
++	// Addon Cell PVP [Ize]
++	if (bl->type == BL_PC)
++	{
++		struct map_session_data* sd = (TBL_PC*)bl;
++
++		if (sd && battle_config.cellpvp_walkout_delay > 0 && DIFF_TICK( timer->gettick(), sd->pvpcan_walkout_tick) < battle_config.cellpvp_walkout_delay && !map->getcell( sd->bl.m, x, y, CELL_CHKPVP ) )
++		{
++			int e_tick = (int)(DIFF_TICK(timer->gettick(), sd->pvpcan_walkout_tick )/1000);
++			char e_msg[150];
++			e_tick = (battle_config.cellpvp_walkout_delay/1000) - e_tick;
++			if( e_tick > 99 )
++					sprintf(e_msg, Cooling down walk delay. Wait %.1f minutes.", (double)e_tick / 60);
++			else
++					sprintf(e_msg, "Cooling down walk delay. Wait %d seconds.", e_tick);
++
++			clif->colormes(sd->fd,color_table[COLOR_RED],e_msg);
++			return 0;
++		}
++	}
++
+ 	ud->state.walk_easy = flag&1;
+ 	ud->to_x = x;
+ 	ud->to_y = y;
+@@ -632,6 +659,12 @@ int unit_movepos(struct block_list *bl, short dst_x, short dst_y, int easy, bool
+ 		} else
+ 			sd->areanpc_id=0;
+ 
++		// Addon Cell PVP [Ize]
++		if( !sd->state.pvp && map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP))
++			map->pvp_area(sd, 1);
++		else if( sd->state.pvp && !map->getcell( sd->bl.m, sd->bl.x, sd->bl.y, CELL_CHKPVP))
++			map->pvp_area(sd, 0);
++
+ 		if( sd->status.pet_id > 0 && sd->pd && sd->pd->pet.intimate > 0 )
+ 		{ // Check if pet needs to be teleported. [Skotlex]
+ 			int flag = 0;
+@@ -864,6 +897,17 @@ int unit_stop_walking(struct block_list *bl,int type)
+ 
+ int unit_skilluse_id(struct block_list *src, int target_id, uint16 skill_id, uint16 skill_lv)
+ {
++
++	// Addon Cell PVP [Ize]
++	struct block_list *bl = map->id2bl(target_id);	
++
++	if( bl && src->type == BL_PC && bl->type == BL_PC && src->id != target_id) {
++		struct map_session_data *dstsd = (TBL_PC*)bl;
++		
++		 if( dstsd && dstsd->state.pvp != ((TBL_PC*)src)->state.pvp )
++			 return 0;
++	}
++
+ 	return unit->skilluse_id2(
+ 		src, target_id, skill_id, skill_lv,
+ 		skill->cast_fix(src, skill_id, skill_lv),

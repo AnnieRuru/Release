@@ -4,9 +4,9 @@
 //= AnnieRuru
 //= based on [Ize] source code
 //===== Current Version: =====================================
-//= 1.0
+//= 1.1a
 //===== Compatible With: ===================================== 
-//= Hercules 2020-10-25
+//= Hercules 2020-10-26
 //===== Description: =========================================
 //= create a custom zone for players to pvp
 //===== Topic ================================================
@@ -31,7 +31,7 @@
 HPExport struct hplugin_info pinfo = {
 	"cell_pvp",
 	SERVER_TYPE_MAP,
-	"1.0",
+	"1.1",
 	HPM_VERSION,
 };
 
@@ -192,18 +192,70 @@ static int battle_check_target_post(int retVal, struct block_list *src, struct b
 		t_bl = target;
 	if ((s_bl = battle->get_master(src)) == NULL)
 		s_bl = src;
-	if (s_bl->type == BL_PC && t_bl->type == BL_PC) {
-		struct map_session_data *sd = BL_CAST(BL_PC, s_bl), *tsd = BL_CAST(BL_PC, t_bl);
-		nullpo_ret(sd);
-		nullpo_ret(tsd);
-		if (retVal == 1) {
-			int i;
-			ARR_FIND(0, VECTOR_LENGTH(cellpvp), i, VECTOR_INDEX(cellpvp, i).mapid == sd->bl.m);
-			if (i < VECTOR_LENGTH(cellpvp)) {
-				if (sd->bl.x < VECTOR_INDEX(cellpvp, i).x1 || tsd->bl.x < VECTOR_INDEX(cellpvp, i).x1 || sd->bl.y < VECTOR_INDEX(cellpvp, i).y1 || tsd->bl.y < VECTOR_INDEX(cellpvp, i).y1 || sd->bl.x > VECTOR_INDEX(cellpvp, i).x2 || tsd->bl.x > VECTOR_INDEX(cellpvp, i).x2 || sd->bl.y > VECTOR_INDEX(cellpvp, i).y2 || tsd->bl.y > VECTOR_INDEX(cellpvp, i).y2)
+	if (s_bl->type != BL_PC || t_bl->type != BL_PC)
+		return retVal;
+	struct map_session_data *sd = BL_CAST(BL_PC, s_bl), *tsd = BL_CAST(BL_PC, t_bl);
+	nullpo_ret(sd);
+	nullpo_ret(tsd);
+	if (retVal == 1) {
+		int i;
+		ARR_FIND(0, VECTOR_LENGTH(cellpvp), i, VECTOR_INDEX(cellpvp, i).mapid == sd->bl.m);
+		if (i < VECTOR_LENGTH(cellpvp)) {
+			if (sd->bl.x < VECTOR_INDEX(cellpvp, i).x1 || tsd->bl.x < VECTOR_INDEX(cellpvp, i).x1 || sd->bl.y < VECTOR_INDEX(cellpvp, i).y1 || tsd->bl.y < VECTOR_INDEX(cellpvp, i).y1 || sd->bl.x > VECTOR_INDEX(cellpvp, i).x2 || tsd->bl.x > VECTOR_INDEX(cellpvp, i).x2 || sd->bl.y > VECTOR_INDEX(cellpvp, i).y2 || tsd->bl.y > VECTOR_INDEX(cellpvp, i).y2)
 				return 0;
-			}
 		}
+	}
+	return retVal;
+}
+
+static int skill_check_condition_castbeginend_post(int retVal, struct map_session_data *sd, uint16 skill_id, uint16 skill_lv) {
+	if (sd == NULL || retVal == 0)
+		return 0;
+	if (((sd->auto_cast_current.itemskill_conditions_checked || !sd->auto_cast_current.itemskill_check_conditions)
+	    && sd->auto_cast_current.type == AUTOCAST_ITEM) || sd->auto_cast_current.type == AUTOCAST_IMPROVISE) {
+		return 1;
+	}
+	if (pc_has_permission(sd, PC_PERM_SKILL_UNCONDITIONAL) && sd->auto_cast_current.type != AUTOCAST_ITEM) {
+		sd->state.arrow_atk = skill->get_ammotype(skill_id)? 1:0;
+		sd->spiritball_old = sd->spiritball;
+		return 1;
+	}
+	struct status_data *st = &sd->battle_status;
+	struct status_change *sc = &sd->sc;
+	if (!sc->count)
+		sc = NULL;
+	switch(skill_id) { // Turn off check.
+	case BS_MAXIMIZE:
+	case NV_TRICKDEAD:
+	case TF_HIDING:
+	case AS_CLOAKING:
+	case CR_AUTOGUARD:
+	case ML_AUTOGUARD:
+	case CR_DEFENDER:
+	case ML_DEFENDER:
+	case ST_CHASEWALK:
+	case PA_GOSPEL:
+	case CR_SHRINK:
+	case TK_RUN:
+	case GS_GATLINGFEVER:
+	case TK_READYCOUNTER:
+	case TK_READYDOWN:
+	case TK_READYSTORM:
+	case TK_READYTURN:
+	case SG_FUSION:
+	case RA_WUGDASH:
+	case KO_YAMIKUMO:
+	case SU_HIDE:
+		if (sc && sc->data[status->skill2sc(skill_id)])
+			return 1;
+	default:
+		break;
+	}
+	int i;
+	ARR_FIND(0, VECTOR_LENGTH(cellpvp), i, VECTOR_INDEX(cellpvp, i).mapid == sd->bl.m);
+	if (i < VECTOR_LENGTH(cellpvp)) {
+		if (sd->bl.x < VECTOR_INDEX(cellpvp, i).x1 || sd->bl.y < VECTOR_INDEX(cellpvp, i).y1 || sd->bl.x > VECTOR_INDEX(cellpvp, i).x2 || sd->bl.y > VECTOR_INDEX(cellpvp, i).y2)
+			return 0;
 	}
 	return retVal;
 }
@@ -353,6 +405,8 @@ HPExport void plugin_init(void) {
 	addHookPre(pc, respawn_timer, pc_respawn_timer_pre);
 	addHookPre(map, zone_change2, map_zone_change2_pre);
 	addHookPost(battle, check_target, battle_check_target_post);
+	addHookPost(skill, check_condition_castbegin, skill_check_condition_castbeginend_post);
+	addHookPost(skill, check_condition_castend, skill_check_condition_castbeginend_post);
 	addHookPost(unit, walk_toxy_timer, unit_walk_toxy_timer_post);
 	addHookPost(unit, blown, unit_blown_post);
 	addAtcommand("cell_pvp", cell_pvp);

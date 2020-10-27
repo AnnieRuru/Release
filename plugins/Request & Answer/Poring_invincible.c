@@ -20,12 +20,14 @@
 #include "map/battle.h"
 #include "plugins/HPMHooking.h"
 #include "common/HPMDataCheck.h"
+
 HPExport struct hplugin_info pinfo = {
 	"Poring invincible",
 	SERVER_TYPE_MAP,
 	"0_0",
 	HPM_VERSION,
 };
+
 int64 battle_calc_damage_pre(struct block_list **src,struct block_list **bl,struct Damage **d,int64 *damage,uint16 *skill_id,uint16 *skill_lv) {
 	struct block_list *s_bl = *src;
 	if ( (s_bl = battle->get_master(*src)) == NULL ) {
@@ -41,6 +43,7 @@ int64 battle_calc_damage_pre(struct block_list **src,struct block_list **bl,stru
 	}
 	return 0;
 }
+
 HPExport void plugin_init (void) {
-	addHookPre( battle, calc_damage, battle_calc_damage_pre );
+	addHookPre(battle, calc_damage, battle_calc_damage_pre);
 }

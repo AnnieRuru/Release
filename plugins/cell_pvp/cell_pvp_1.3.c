@@ -4,7 +4,7 @@
 //= AnnieRuru
 //= based on [Ize] source code
 //===== Current Version: =====================================
-//= 1.3
+//= 1.3a
 //===== Compatible With: ===================================== 
 //= Hercules 2020-10-27
 //===== Description: =========================================
@@ -79,8 +79,7 @@ void walkin_cellpvp(struct map_session_data *sd) {
 	clif->map_property(sd, MAPPROPERTY_FREEPVPZONE);
 	clif->maptypeproperty2(&sd->bl, SELF);
 	if (sd->pvp_timer == INVALID_TIMER) {
-		if (!map->list[sd->bl.m].flag.pvp_nocalcrank)
-			sd->pvp_timer = timer->add(timer->gettick() + 200, pc->calc_pvprank_timer, sd->bl.id, 0);
+		sd->pvp_timer = timer->add(timer->gettick() + 200, pc->calc_pvprank_timer, sd->bl.id, 0);
 		sd->pvp_rank = 0;
 		sd->pvp_lastusers = 0;
 		sd->pvp_point = 5;
@@ -112,11 +111,8 @@ int buildin_cellpvp(struct block_list *bl, va_list ap) {
 	nullpo_ret(bl);
 	Assert_ret(bl->type == BL_PC);
 	struct map_session_data *sd = BL_CAST(BL_PC, bl);
-	int flag = va_arg(ap, int);
-	if (flag == true)
-		walkin_cellpvp(sd);
-	else
-		walkout_cellpvp(sd);
+	nullpo_ret(sd);
+	walkin_cellpvp(sd);
 	return true;
 }
 
@@ -183,21 +179,21 @@ static int pc_dead_post(int retVal, struct map_session_data *sd, struct block_li
 	struct map_cellpvp_data *mf = getFromMAPD(&map->list[sd->bl.m], 0);
 	if (mf == NULL || mf->map_cellpvp_flag == false)
 		return retVal;
-	if (mf->map_cellpvp_respawn == CELL_PVP_RESPAWN_INSTANT)
-		timer->add(timer->gettick() + 1, pc->respawn_timer, sd->bl.id, 0);
-	if (mf->map_cellpvp_respawn == CELL_PVP_RESPAWN_NORMAL && battle->bc->pk_mode == 1 && map->list[sd->bl.m].flag.pvp_nocalcrank == 0) {
+	if (battle->bc->pk_mode == 1) {
 		sd->pvp_point -= 5;
 		sd->pvp_lost++;
 		if (src != NULL && src->type == BL_PC) {
-			struct map_session_data *ssd = BL_UCAST(BL_PC, src);
+			struct map_session_data *ssd = BL_CAST(BL_PC, src);
 			ssd->pvp_point++;
 			ssd->pvp_won++;
 		}
-		if (sd->pvp_point < 0) {
+		if (mf->map_cellpvp_respawn == CELL_PVP_RESPAWN_NORMAL && sd->pvp_point < 0) {
 			timer->add(timer->gettick() + 1, pc->respawn_timer, sd->bl.id, 0);
 			return 1|8;
 		}
 	}
+	if (mf->map_cellpvp_respawn == CELL_PVP_RESPAWN_INSTANT)
+		timer->add(timer->gettick() + 1, pc->respawn_timer, sd->bl.id, 0);
 	return retVal;
 }
 
@@ -410,7 +406,7 @@ ACMD(cell_pvp) {
 	}
 	map->zone_change2(sd->bl.m, strdb_get(map->zone_db, MAP_ZONE_PVP_NAME));
 	map->list[sd->bl.m].flag.pvp = 1;
-	map->foreachinarea(buildin_cellpvp, sd->bl.m, x_1, y_1, x_2, y_2, BL_PC, true);
+	map->foreachinarea(buildin_cellpvp, sd->bl.m, x_1, y_1, x_2, y_2, BL_PC);
 	char msg_respawn[CHAT_SIZE_MAX];
 	if (respawn == CELL_PVP_RESPAWN_DISABLE)
 		safesnprintf(msg_respawn, CHAT_SIZE_MAX, "%s", "no respawn");
@@ -476,7 +472,7 @@ BUILDIN(cell_pvp) {
 	}
 	map->zone_change2(map_id, strdb_get(map->zone_db, MAP_ZONE_PVP_NAME));
 	map->list[map_id].flag.pvp = 1;
-	map->foreachinarea(buildin_cellpvp, map_id, mf->x1, mf->y1, mf->x2, mf->y2, BL_PC, true);
+	map->foreachinarea(buildin_cellpvp, map_id, mf->x1, mf->y1, mf->x2, mf->y2, BL_PC);
 	return true;
 }
 

@@ -1,0 +1,314 @@
+//===== Hercules Script =======================================
+//= Dicebet Gambling
+//===== By: ==================================================
+//= Original by Technoken
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.0
+//===== Compatible With: ===================================== 
+//= Hercules 2020-11-05
+//===== Description: =========================================
+//= Gamble with other players using dicebet.
+//= This idea came from GTA Samp gamble system
+//= New atcommands:
+//= 	@dicebet <opponent name> <amount to bet>
+//= 	  - sends a dicebet invitation to another player
+//= 	@acceptdb - accepts the dicebet invitation
+//= 	@declinedb - declines the dicebet invitation
+//= 	@resetdb - resets the dicebet invitation
+//= THIS IS A FREE SCRIPT
+//===== Topic ================================================
+//= Original Topic from rathena
+//= https://rathena.org/board/topic/112255-quests-games-dicebet-gambling/
+//= Hercules conversion
+//= https://herc.ws/board/topic/19077-dicebet-gambling/
+//===== Additional Comments: =================================
+//= not sure about the license ... since it was release for free, I also have to convert for free
+//============================================================
+
+-	script	DicebetGambling	FAKE_NPC,{
+OnInit:
+	.minbet = 1; // Minimum amount to bet
+	.maxbet = 30000; // Maximum amount to bet   NOTE: the bet will fail if the opponent doesn't has enough betting coins
+	.itembet = Poring_Coin; // Item ID use to bet
+	.timelimit = 60; // how many seconds the opponent has to accept the bet before it automatically cancel ?
+	bindatcmd "dicebet", strnpcinfo(NPC_NAME_UNIQUE) +"::OnAtcommandDicebet", 0, 99;
+	bindatcmd "acceptdb", strnpcinfo(NPC_NAME_UNIQUE) +"::OnAtcommandAcceptDB", 0, 99;
+	bindatcmd "declinedb", strnpcinfo(NPC_NAME_UNIQUE) +"::OnAtcommandDeclineDB", 0, 99;
+	bindatcmd "resetdb", strnpcinfo(NPC_NAME_UNIQUE) +"::OnAtcommandResetDB", 0, 99;
+	setarray .dice[1], e_dice1,  e_dice2, e_dice3, e_dice4, e_dice5, e_dice6;
+	end;
+OnAtcommandDicebet:
+	if (.@atcmd_numparameters < 2) {
+		message getcharid(CHAR_ID_ACCOUNT), "Please enter correct parameters (usage: @dicebet <opponent name> <amount to bet>)";
+		message getcharid(CHAR_ID_ACCOUNT), "@dicebet failed.";
+		end;
+	}
+	.@amount = .@atcmd_parameters$[.@atcmd_numparameters -1];
+	deletearray .@atcmd_parameters$[.@atcmd_numparameters -1], 1;
+	.@name$ = implode(.@atcmd_parameters$, " ");
+	.@aid = getcharid(CHAR_ID_ACCOUNT, .@name$);
+	if (!.@aid) {
+		message getcharid(CHAR_ID_ACCOUNT), "Character name is not found.";
+		message getcharid(CHAR_ID_ACCOUNT), "Might be offline or a non-existing character.";
+		message getcharid(CHAR_ID_ACCOUNT), "@dicebet failed.";
+		end;
+	}
+	if (.@aid == getcharid(CHAR_ID_ACCOUNT)) {
+		message getcharid(CHAR_ID_ACCOUNT), "You cannot offer yourself a dice bet.";
+		message getcharid(CHAR_ID_ACCOUNT), "@dicebet failed.";
+		end;
+	}
+	if (@dicebet) {
+		message getcharid(CHAR_ID_ACCOUNT), "1 dice bet at a time.";
+		message getcharid(CHAR_ID_ACCOUNT), "@dicebet failed.";
+		end;
+	}
+	if (.@amount < .minbet || .@amount > .maxbet) {
+		message getcharid(CHAR_ID_ACCOUNT), "Minimum Bet: "+ .minbet +" "+ getitemname(.itembet);
+		message getcharid(CHAR_ID_ACCOUNT), "Maximum Bet: "+ .maxbet +" "+ getitemname(.itembet);
+		message getcharid(CHAR_ID_ACCOUNT), "@dicebet failed.";
+		end;
+	}
+	if (countitem(.itembet) < .@amount) {
+		message getcharid(CHAR_ID_ACCOUNT), "You don't have enough "+ getitemname(.itembet) +" to place on the bet.";
+		message getcharid(CHAR_ID_ACCOUNT), "@dicebet failed.";
+		end;
+	}
+	if (!checkweight(.itembet, .@amount)) {
+		message getcharid(CHAR_ID_ACCOUNT), "You don't have enough space once you won the bet.";
+		message getcharid(CHAR_ID_ACCOUNT), "@dicebet failed.";
+		end;
+	}
+	getmapxy .@map$, .@x, .@y, UNITTYPE_PC;
+	.@origin = playerattached();
+	attachrid .@aid;
+	getmapxy .@map1$, .@x1, .@y1, UNITTYPE_PC;
+	if (.@map$ != .@map1$ || distance(.@x, .@y, .@x1, .@y1) > 3) {
+		message .@origin, "You must be near to your opponent.";
+		message .@origin, "@dicebet failed.";
+		end;
+	}
+	if (@dicebetaid) {
+		message .@origin, "Your opponent is on a dice bet.";
+		message .@origin, "@dicebet failed.";
+		end;
+	}
+	@dicebetaid = .@origin;
+	@dicebet = 2;
+	@dicebetamount = .@amount;
+	dispbottom rid2name(.@origin) +" has offered you a dice bet for "+ .@amount+" "+ getitemname(.itembet) +".", C_PINK;
+	dispbottom "Will you accept? (Use @acceptdb/@declinedb)", C_PINK;
+	addtimer .timelimit * 1000, strnpcinfo(NPC_NAME_UNIQUE) +"::Onresetbet";
+	attachrid .@origin;
+	@dicebetaid = .@aid;
+	@dicebet = 1;
+	@dicebetamount = .@amount;
+	dispbottom "You offered "+ rid2name(.@aid) +" a dice bet for "+ .@amount +" "+ getitemname(.itembet), C_PINK;
+	addtimer .timelimit * 1000, strnpcinfo(NPC_NAME_UNIQUE) +"::Onresetbet";
+	end;
+OnAtcommandAcceptDB:
+	if (@dicebet == 3) {
+		message getcharid(CHAR_ID_ACCOUNT), "The dice are rolling";
+		message getcharid(CHAR_ID_ACCOUNT), "@acceptdb failed.";
+		end;
+	}
+	if (@dicebet == 1) {
+		message getcharid(CHAR_ID_ACCOUNT), "You have send a dice bet invitation";
+		message getcharid(CHAR_ID_ACCOUNT), "@acceptdb failed.";
+		end;
+	}
+	if (!@dicebetaid) {
+		message getcharid(CHAR_ID_ACCOUNT), "No one offered you a dice bet.";
+		message getcharid(CHAR_ID_ACCOUNT), "@acceptdb failed.";
+		end;
+	}
+	if (!isloggedin(@dicebetaid)) { // shouldn't happen, but as a safeguard
+		message getcharid(CHAR_ID_ACCOUNT), "Your opponent has gone offline.";
+		message getcharid(CHAR_ID_ACCOUNT), "@acceptdb failed.";
+		@dicebet = 4;
+		goto Onresetbet;
+	}
+	if (countitem(.itembet) < @dicebetamount) {
+		message getcharid(CHAR_ID_ACCOUNT), "You don't have enough "+ getitemname(.itembet) +" to accept the bet.";
+		message getcharid(CHAR_ID_ACCOUNT), "@acceptdb failed.";
+		end;
+	}
+	if (!checkweight(.itembet, @dicebetamount)) {
+		message getcharid(CHAR_ID_ACCOUNT), "You don't have enough space once you won the bet.";
+		message getcharid(CHAR_ID_ACCOUNT), "@acceptdb failed.";
+		end;
+	}
+	getmapxy .@map$, .@x, .@y, UNITTYPE_PC;
+	.@origin = playerattached();
+	attachrid @dicebetaid;
+	getmapxy .@map1$, .@x1, .@y1, UNITTYPE_PC;
+	if (.@map$ != .@map1$ || distance(.@x, .@y, .@x1, .@y1) > 3) {
+		message .@origin, "You must be near to your opponent.";
+		message .@origin, "@acceptdb failed.";
+		end;
+	}
+	if (countitem(.itembet) < @dicebetamount) {
+		message .@origin, "Your opponent don't have enough "+ getitemname(.itembet) +" to place on the bet.";
+		message .@origin, "@acceptdb failed.";
+		message getcharid(CHAR_ID_ACCOUNT), "Your opponent has accepted the bet but you didn't carry enough "+ getitemname(.itembet) +" to place on the bet.";
+		end;
+	}
+	if (!checkweight(.itembet, @dicebetamount)) {
+		message .@origin, "Your opponent don't have enough inventory space to place on the bet.";
+		message .@origin, "@acceptdb failed.";
+		message getcharid(CHAR_ID_ACCOUNT), "Your opponent has accepted the bet but you have enough inventory space to place on the bet.";
+		end;
+	}
+	@dicebet = 3;
+	attachrid .@origin;
+	@dicebet = 3;
+	dispbottom rid2name(@dicebetaid) +" accepted your dice bet offer for "+ @dicebetamount +" "+ getitemname(.itembet), C_PINK;
+	.@r[1] = rand(1,6);
+	emotion .dice[.@r[1]], true;
+	.@aid[1] = playerattached();
+	.@itemamount[1] = countitem(.itembet);
+	attachrid @dicebetaid;
+	.@r[2] = rand(1,6);
+	emotion .dice[.@r[2]], true;
+	.@aid[2] = playerattached();
+	.@itemamount[2] = countitem(.itembet);
+	sleep 1000;
+	if (!isloggedin(.@aid[1]) && !isloggedin(.@aid[2]))
+		end;
+	else if (!isloggedin(.@aid[1])) {
+		attachrid .@aid[2];
+		@dicebet = 4;
+		dispbottom "Your opponent has logged out and thus cancels the dice bet.", C_PINK;
+		goto Onresetbet;
+	}
+	else if (!isloggedin(.@aid[2])) {
+		attachrid .@aid[1];
+		@dicebet = 4;
+		dispbottom "Your opponent has logged out and thus cancels the dice bet.", C_PINK;
+		goto Onresetbet;
+	}
+	attachrid .@aid[1];
+	@dicebet = 4;
+	getmapxy .@map$, .@x, .@y, UNITTYPE_PC;
+	attachrid .@aid[2];
+	@dicebet = 4;
+	getmapxy .@map1$, .@x1, .@y1, UNITTYPE_PC;
+	if (.@map$ != .@map1$ || distance(.@x, .@y, .@x1, .@y1) > 3) {
+		dispbottom "The dice bet was cancelled due to changing of distance.", C_PINK;
+		addtimer 1, strnpcinfo(NPC_NAME_UNIQUE)+"::Onresetbet";
+		attachrid .@aid[1];
+		dispbottom "The dice bet was cancelled due to changing of distance.", C_PINK;
+		goto Onresetbet;
+	}
+	attachrid .@aid[1];
+	if (.@itemamount[1] != countitem(.itembet)) {
+		dispbottom "Dice bet was cancelled because you changed the amount of "+ getitemname(.itembet) +" in your inventory", C_PINK;
+		addtimer 1, strnpcinfo(NPC_NAME_UNIQUE)+"::Onresetbet";
+		attachrid .@aid[2];
+		dispbottom "Dice bet was cancelled because your opponent changed the amount of "+ getitemname(.itembet) +" in their inventory", C_PINK;
+		goto Onresetbet;
+	}
+	attachrid .@aid[2];
+	if (.@itemamount[2] != countitem(.itembet)) {
+		dispbottom "Dice bet was cancelled because you changed the amount of "+ getitemname(.itembet) +" in your inventory", C_PINK;
+		addtimer 1, strnpcinfo(NPC_NAME_UNIQUE)+"::Onresetbet";
+		attachrid .@aid[1];
+		dispbottom "Dice bet was cancelled because your opponent changed the amount of "+ getitemname(.itembet) +" in their inventory", C_PINK;
+		goto Onresetbet;
+	}
+	if (.@r[1] == .@r[2]) {
+		attachrid .@aid[1];
+		dispbottom "Nobody won the bet because it land on the same number.", C_PINK;
+		addtimer 1, strnpcinfo(NPC_NAME_UNIQUE)+"::Onresetbet";
+		attachrid .@aid[2];
+		dispbottom "Nobody won the bet because it land on the same number.", C_PINK;
+		goto Onresetbet;
+	}
+	else if (.@r[1] > .@r[2]) {
+		attachrid .@aid[2];
+		delitem .itembet, @dicebetamount;
+		dispbottom "You lost the bet ... Lost "+ @dicebetamount +" "+ getitemname(.itembet) +".", C_PINK;
+		addtimer 1, strnpcinfo(NPC_NAME_UNIQUE)+"::Onresetbet";
+		attachrid .@aid[1];
+		getitem .itembet, @dicebetamount;
+		dispbottom "You won the bet !! Gain "+ @dicebetamount +" "+ getitemname(.itembet) +".", C_PINK;
+		goto Onresetbet;
+	}
+	else if (.@r[2] > .@r[1]) {
+		attachrid .@aid[1];
+		delitem .itembet, @dicebetamount;
+		dispbottom "You lost the bet ... Lost "+ @dicebetamount +" "+ getitemname(.itembet) +".", C_PINK;
+		addtimer 1, strnpcinfo(NPC_NAME_UNIQUE)+"::Onresetbet";
+		attachrid .@aid[2];
+		getitem .itembet, @dicebetamount;
+		dispbottom "You won the bet !! Gain "+ @dicebetamount +" "+ getitemname(.itembet) +".", C_PINK;
+		goto Onresetbet;
+	}
+	end;
+OnAtcommandDeclineDB:
+	if (@dicebet == 3) {
+		message getcharid(CHAR_ID_ACCOUNT), "The dice are rolling";
+		message getcharid(CHAR_ID_ACCOUNT), "@declinedb failed.";
+		end;
+	}
+	if (@dicebet == 1) {
+		message getcharid(CHAR_ID_ACCOUNT), "You have send a dice bet invitation";
+		message getcharid(CHAR_ID_ACCOUNT), "@declinedb failed.";
+		end;
+	}
+	if (!@dicebetaid) {
+		message getcharid(CHAR_ID_ACCOUNT), "No one offered you a dice bet.";
+		message getcharid(CHAR_ID_ACCOUNT), "@declinedb failed.";
+		end;
+	}
+	if (!isloggedin(@dicebetaid)) { // shouldn't happen, but as a safeguard
+		message getcharid(CHAR_ID_ACCOUNT), "Your opponent has gone offline.";
+		message getcharid(CHAR_ID_ACCOUNT), "@declinedb failed.";
+		@dicebet = 4;
+		goto Onresetbet;
+	}
+	dispbottom "You have declined a dice bet offer from "+ rid2name(@dicebetaid), C_PINK;
+	@dicebet = 4;
+	addtimer 1, strnpcinfo(NPC_NAME_UNIQUE)+"::Onresetbet";
+	attachrid @dicebetaid;
+	dispbottom "The dice bet offer has been declined.", C_PINK;
+	@dicebet = 4;
+	goto Onresetbet;
+OnAtcommandResetDB:
+	if (@dicebet == 3) {
+		message getcharid(CHAR_ID_ACCOUNT), "The dice are rolling";
+		message getcharid(CHAR_ID_ACCOUNT), "@resetdb failed.";
+		end;
+	}
+	if (@dicebet == 0) {
+		message getcharid(CHAR_ID_ACCOUNT), "You don't have a pending dicebet invitation.";
+		message getcharid(CHAR_ID_ACCOUNT), "@resetdb failed.";
+		end;
+	}
+	dispbottom "Your pending dicebet invitation has been cancelled.", C_PINK;
+	@dicebet = 4;
+	addtimer 1, strnpcinfo(NPC_NAME_UNIQUE)+"::Onresetbet";
+	attachrid @dicebetaid;
+	dispbottom "The dice bet offer has been declined.", C_PINK;
+	@dicebet = 4;
+	goto Onresetbet;
+Onresetbet:
+	if (@dicebet <= 2)
+		dispbottom "The dice bet offer has been time out.", C_PINK;
+	else if (@dicebet == 3)
+		end;
+	deltimer strnpcinfo(NPC_NAME_UNIQUE) +"::Onresetbet";
+	@dicebet = 0;
+	@dicebetaid = 0;
+	@dicebetamount = 0;
+	end;
+OnPCLogoutEvent:
+	if (@dicebet <= 2) {
+		attachrid @dicebetaid;
+		dispbottom "Your opponent has logged out and thus cancels the dice bet.", C_PINK;
+		@dicebet = 4;
+		goto Onresetbet;
+	}
+	end;
+}

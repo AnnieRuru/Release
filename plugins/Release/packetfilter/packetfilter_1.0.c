@@ -4,7 +4,7 @@
 //= Original Idea from eAmod
 //= AnnieRuru
 //===== Current Version: =====================================
-//= 1.0
+//= 1.0a
 //===== Compatible With: =====================================
 //= Hercules 2020-11-09
 //===== Description: =========================================
@@ -476,7 +476,7 @@ int set_flag(int fd, char *tmp) {
 			break;
 		default: {
 			char subtype[2];
-			subtype[0] = TOUPPER(tmp[0]);
+			subtype[0] = TOUPPER(tmp[i]);
 			subtype[1] = '\0';
 			safesnprintf(msg, CHAT_SIZE_MAX, "Invalid format in [%s] type. Unknown type '%s'.", type, subtype);
 			clif->message(fd, msg);

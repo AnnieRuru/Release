@@ -3,15 +3,18 @@
 //===== By: ==================================================
 //= AnnieRuru
 //===== Current Version: =====================================
-//= 1.2
+//= 1.3
 //===== Compatible With: ===================================== 
-//= Hercules 2020-11-10
+//= Hercules 2020-11-11
 //===== Description: =========================================
 //= just like a menu command, but shows your inventory items instead
 //===== Topic ================================================
 //= http://herc.ws/board/topic/16650-inventoryselect/
 //===== Additional Comments: =================================  
-//= now allow to list inventory items, by list out only that item type
+//= *inventoryselect{<item flag>{,<array>}};
+//= allow to list inventory items
+//=   - by list out only that item type
+//=   - or by using an array of your choice with ITF_ALL flag
 //============================================================
 
 #include "common/hercules.h"
@@ -27,7 +30,7 @@
 HPExport struct hplugin_info pinfo = {
 	"inventoryselect",
 	SERVER_TYPE_MAP,
-	"1.2",
+	"1.3",
 	HPM_VERSION,
 };
 
@@ -44,6 +47,7 @@ enum item_type_flag {
 	ITF_AMMO         = 0x400,
 	ITF_DELAYCONSUME = 0x800,
 	ITF_CASH         = 0x4000,
+	ITF_ALL          = 0xFFFF,
 };
 
 struct player_data {
@@ -64,36 +68,62 @@ BUILDIN(inventoryselect) {
 		addToMSD(sd, ssd, 0, true);
 	}	
 
-	int item_type_flag = -1;
-	if (script_hasdata(st,2)) {
-		if (script_isstringtype(st,2)) {
-			ShowError("buildin_inventoryselect: string input is not supported!\n");
-			st->state = END;
-			return false;
-		}
-		int num = script_getnum(st,2);
-		if (num == 0) {
-			ShowError("buildin_inventoryselect: Item type flag cannot be 0.\n", num);
-			st->state = END;
-			return false;
-		}
-		item_type_flag = num;
-	}
-
 	if (sd->state.menu_or_input == 0) {
-		int i, c;
-		WFIFOHEAD(sd->fd, sd->status.inventorySize *2 +4);
-		WFIFOW(sd->fd, 0) = 0x0177;
-		if (item_type_flag == -1) {
-			for (i = c = 0; i < sd->status.inventorySize; ++i) {
+		int item_type_flag = ITF_ALL;
+		if (script_hasdata(st,2)) {
+			if (script_isstringtype(st,2)) {
+				ShowError("buildin_inventoryselect: string input is not supported!\n");
+				st->state = END;
+				return false;
+			}
+			int num = script_getnum(st,2);
+			if (num == 0) {
+				ShowError("buildin_inventoryselect: Item type flag cannot be 0.\n");
+				st->state = END;
+				return false;
+			}
+			item_type_flag = num;
+		}
+
+		int c = 0;
+		if (script_hasdata(st,3)) {
+			if (script_isstringtype(st,3)) {
+				ShowError("buildin_inventoryselect: string input is not supported!\n");
+				st->state = END;
+				return false;
+			}
+			struct script_data *data = script_getdata(st,3);
+			if (!data_isreference(data) || !reference_tovariable(data)) {
+				ShowError("buildin_inventoryselect: Target argument is not a variable!\n");
+				st->state = END;
+				return false;
+			}
+			const char *varname = reference_getname(data);
+			struct reg_db *ref = reference_getref(data);
+			uint32 uid = reference_getid(data);
+			int array_size = script->array_highest_key(st, sd, varname, ref);
+//			for (int i = 0; i < array_size; ++i)
+//				ShowDebug("%s[%d/%d] = %d \n", varname, i, array_size, (int)h64BPTRSIZE(script->get_val2(st, reference_uid(uid, i), ref)));
+
+			WFIFOHEAD(sd->fd, sd->status.inventorySize *2 +4);
+			WFIFOW(sd->fd, 0) = 0x0177;
+			int j;
+			for (int i = 0; i < sd->status.inventorySize; ++i) {
 				if (sd->status.inventory[i].nameid > 0) {
-					WFIFOW(sd->fd, c *2 +4) = i +2;
-					++c;
+					struct item_data *it = itemdb->exists(sd->status.inventory[i].nameid);
+					j = 0;
+					ARR_FIND(0, array_size, j, (int)h64BPTRSIZE(script->get_val2(st, reference_uid(uid, j), ref)) == sd->status.inventory[i].nameid);
+					if (((1 << it->type) & item_type_flag) != 0 && j < array_size) {
+						WFIFOW(sd->fd, c *2 +4) = i +2;
+						++c;
+					}
 				}
 			}
 		}
 		else {
-			for (i = c = 0; i < sd->status.inventorySize; ++i) {
+			WFIFOHEAD(sd->fd, sd->status.inventorySize *2 +4);
+			WFIFOW(sd->fd, 0) = 0x0177;
+			for (int i = 0; i < sd->status.inventorySize; ++i) {
 				if (sd->status.inventory[i].nameid > 0) {
 					struct item_data *it = itemdb->exists(sd->status.inventory[i].nameid);
 					if (((1 << it->type) & item_type_flag) != 0) {
@@ -123,24 +153,26 @@ BUILDIN(inventoryselect) {
 		int i = ssd->inventory_select, j;
 		char var[SCRIPT_VARNAME_LENGTH];
 
-		script->setd_sub(st, sd, ".@inventoryselect_id", 0, (void *)h64BPTRSIZE(sd->status.inventory[i].nameid), NULL);
-		script->setd_sub(st, sd, ".@inventoryselect_amount", 0, (void *)h64BPTRSIZE(sd->status.inventory[i].amount), NULL);
-		script->setd_sub(st, sd, ".@inventoryselect_refine", 0, (void *)h64BPTRSIZE(sd->status.inventory[i].refine), NULL);
-		script->setd_sub(st, sd, ".@inventoryselect_identify", 0, (void *)h64BPTRSIZE(sd->status.inventory[i].identify), NULL);
-		script->setd_sub(st, sd, ".@inventoryselect_attribute", 0, (void *)h64BPTRSIZE(sd->status.inventory[i].attribute), NULL);
-		script->setd_sub(st, sd, ".@inventoryselect_expire", 0, (void *)h64BPTRSIZE(sd->status.inventory[i].expire_time), NULL);
-		script->setd_sub(st, sd, ".@inventoryselect_bound", 0, (void *)h64BPTRSIZE(sd->status.inventory[i].bound), NULL);
+		pc->setreg(sd, reference_uid(script->add_variable("@iselect_id"), 0), sd->status.inventory[i].nameid);
+		pc->setreg(sd, reference_uid(script->add_variable("@iselect_amount"), 0), sd->status.inventory[i].amount);
+		pc->setreg(sd, reference_uid(script->add_variable("@iselect_refine"), 0), sd->status.inventory[i].refine);
+		pc->setreg(sd, reference_uid(script->add_variable("@iselect_identify"), 0), sd->status.inventory[i].identify);
+		pc->setreg(sd, reference_uid(script->add_variable("@iselect_attribute"), 0), sd->status.inventory[i].attribute);
+		pc->setreg(sd, reference_uid(script->add_variable("@iselect_expire"), 0), sd->status.inventory[i].expire_time);
+		pc->setreg(sd, reference_uid(script->add_variable("@iselect_bound"), 0), sd->status.inventory[i].bound);
+		pc->setreg(sd, reference_uid(script->add_variable("@iselect_equip"), 0), pc->equippoint(sd, i));
+		pc->setreg(sd, reference_uid(script->add_variable("@iselect_favorite"), 0), sd->status.inventory[i].favorite);
 		for (j = 0; j < MAX_SLOTS; ++j) {
-			safesnprintf(var, SCRIPT_VARNAME_LENGTH, ".@inventoryselect_card%d", j +1);
-			script->setd_sub( st, sd, var, 0, (void *)h64BPTRSIZE( sd->status.inventory[i].card[j]), NULL);
+			safesnprintf(var, SCRIPT_VARNAME_LENGTH, "@iselect_card%d", j +1);
+			pc->setreg(sd, reference_uid(script->add_variable(var), 0), sd->status.inventory[i].card[j]);
 		}
 		for (j = 0; j < MAX_ITEM_OPTIONS; ++j) {
-			safesnprintf(var, SCRIPT_VARNAME_LENGTH, ".@inventoryselect_opt_id%d", j +1);
-			script->setd_sub(st, sd, var, 0, (void *)h64BPTRSIZE(sd->status.inventory[i].option[j].index), NULL);
-			safesnprintf(var, SCRIPT_VARNAME_LENGTH, ".@inventoryselect_opt_val%d", j +1);
-			script->setd_sub(st, sd, var, 0, (void *)h64BPTRSIZE(sd->status.inventory[i].option[j].value), NULL);
-			safesnprintf(var, SCRIPT_VARNAME_LENGTH, ".@inventoryselect_opt_param%d", j +1);
-			script->setd_sub(st, sd, var, 0, (void *)h64BPTRSIZE(sd->status.inventory[i].option[j].param), NULL);
+			safesnprintf(var, SCRIPT_VARNAME_LENGTH, "@iselect_opt_id%d", j +1);
+			pc->setreg(sd, reference_uid(script->add_variable(var), 0), sd->status.inventory[i].option[j].index);
+			safesnprintf(var, SCRIPT_VARNAME_LENGTH, "@iselect_opt_val%d", j +1);
+			pc->setreg(sd, reference_uid(script->add_variable(var), 0), sd->status.inventory[i].option[j].value);
+			safesnprintf(var, SCRIPT_VARNAME_LENGTH, "@iselect_opt_param%d", j +1);
+			pc->setreg(sd, reference_uid(script->add_variable(var), 0), sd->status.inventory[i].option[j].param);
 		}
 		sd->state.menu_or_input = 0;
 		ssd->parse_inventory_select = 0;
@@ -170,7 +202,7 @@ void clif_pItemIdentify_pre(int *fd, struct map_session_data **sd) {
 }
 	
 HPExport void plugin_init (void) {
-	addScriptCommand("inventoryselect", "?", inventoryselect);
+	addScriptCommand("inventoryselect", "??", inventoryselect);
 	addHookPre(clif, pItemIdentify, clif_pItemIdentify_pre);
 
 	script->set_constant("ITF_HEALING", ITF_HEALING, false, false);
@@ -184,4 +216,5 @@ HPExport void plugin_init (void) {
 	script->set_constant("ITF_AMMO", ITF_AMMO, false, false);
 	script->set_constant("ITF_DELAYCONSUME", ITF_DELAYCONSUME, false, false);
 	script->set_constant("ITF_CASH", ITF_CASH, false, false);
+	script->set_constant("ITF_ALL", ITF_ALL, false, false);
 }

@@ -32,8 +32,9 @@ simple terms, I think everyone can follow
   - if you wish to distribute the code, must include the header 
   - DO NOT claim the code as your own and sell them
 
-yes, the purpose why I started hosting this on Google Drive, and Github later, was because there was a member claimed 1 of my scripts  
+yes, the purpose why I started hosting this on Google Drive, and Github later,  
+was because there was a member claimed 1 of my scripts  
 https://rathena.org/board/topic/75477-custom-bg/?do=findComment&comment=176806  
 and sell to another server for $40  
-that member showed me a battleground script he bought for $40 and I immediately spot it was belongs to mine  
+that member showed me a battleground script he bought and I immediately spot it was belongs to mine  
 after this incident I started to host all my scripts here

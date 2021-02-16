@@ -1,0 +1,79 @@
+//===== Hercules Plugin ======================================
+//= nopettame mapflag
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 0.1
+//===== Compatible With: =====================================
+//= Hercules 2020-09-16
+//===== Description: =========================================
+//= disallow players from using pet taming items on certain maps
+//===== Topic ================================================
+//= https://herc.ws/board/topic/18865-nopettame-mapflag/
+//===== Additional Comments: =================================
+//============================================================
+
+#include "common/hercules.h"
+#include "map/pc.h"
+#include "map/map.h"
+#include "map/npc.h"
+#include "map/pet.h"
+#include "common/utils.h"
+#include "common/memmgr.h"
+#include "plugins/HPMHooking.h"
+#include "common/HPMDataCheck.h"
+
+HPExport struct hplugin_info pinfo = {
+	"nopettame",
+	SERVER_TYPE_MAP,
+	"0.1",
+	HPM_VERSION,
+};
+
+struct mapflag_data {
+	unsigned nopettame : 1;
+};
+
+void npc_parse_unknown_mapflag_pre(const char **name, const char **w3, const char **w4, const char **start, const char **buffer, const char **filepath, int **retval) {
+	if (strcmp(*w3, "nopettame"))
+		return;
+	int16 m = map->mapname2mapid(*name);
+	struct mapflag_data *mf = getFromMAPD(&map->list[m], 0);
+	if (mf == NULL) {
+		CREATE(mf, struct mapflag_data, 1);
+		mf->nopettame = true;
+		addToMAPD(&map->list[m], mf, 0, true);
+	}
+	else
+		mf->nopettame = true;
+	hookStop();
+	return;
+}
+
+static int pet_catch_process1_pre(struct map_session_data **sd, int *target_class) {
+	if ((*sd) != NULL) {
+		struct mapflag_data *mf = getFromMAPD(&map->list[(*sd)->bl.m], 0);
+		if (mf && mf->nopettame == true) {
+			clif->messagecolor_self((*sd)->fd, COLOR_RED, "You can't catch monster on this map.");
+			hookStop();
+		}
+	}
+	return 0;
+}
+
+//	flush all nopettame mapflag back to default upon @reloadscript
+void map_flags_init_pre(void) {
+	int i;
+	for (i = 0; i < map->count; ++i) {
+		struct mapflag_data *mf = getFromMAPD( &map->list[i], 0);
+		if (mf != NULL)
+			removeFromMAPD(&map->list[i], 0);
+	}
+	return;
+}
+
+HPExport void plugin_init (void) {
+	addHookPre(npc, parse_unknown_mapflag, npc_parse_unknown_mapflag_pre);
+	addHookPre(pet, catch_process1, pet_catch_process1_pre);
+	addHookPre(map, flags_init, map_flags_init_pre);
+}

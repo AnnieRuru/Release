@@ -249,7 +249,7 @@ int pc_additem_post(int retVal, struct map_session_data *sd, const struct item *
 	return retVal;
 }
 
-int pc_delitem_pre(struct map_session_data **sd, int *n, int *amount, int *type, short *reason, e_log_pick_type *log_type) {
+int pc_delitem_pre(struct map_session_data **sd, int *n, int *amount, int *type, enum delitem_reason *reason, e_log_pick_type *log_type) {
 	if (*sd == NULL)
 		return 0;
 	if ((*sd)->status.inventory[*n].nameid == 0 || *amount <= 0 || (*sd)->status.inventory[*n].amount < *amount || (*sd)->inventory_data[*n] == NULL) {
@@ -285,7 +285,7 @@ int pc_delitem_pre(struct map_session_data **sd, int *n, int *amount, int *type,
 	return 0;
 }
 
-int pc_delitem_post(int retVal, struct map_session_data *sd, int n, int amount, int type, short reason, e_log_pick_type log_type) {
+int pc_delitem_post(int retVal, struct map_session_data *sd, int n, int amount, int type, enum delitem_reason reason, e_log_pick_type log_type) {
 	struct player_data *ssd = getFromMSD(sd, 0);
 	if (ssd != NULL && ssd->recalculate == true) {
 //		ShowDebug("run recalculation\n");
